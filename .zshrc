@@ -148,6 +148,9 @@ export KUBECONFIG=${KUBECONFIG}:$(echo ${kubeconfigs// /:})
 
 export OPEN_BY_MY_EDITOR='code'
 
+# * homebrew ENV
+eval $(/home/linuxbrew/.linuxbrew/bin/brew shellenv)
+
 
 #####################
 # COLORING          #
