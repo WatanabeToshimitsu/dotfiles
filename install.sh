@@ -24,17 +24,24 @@ if [ $WHO != "root" ]; then
   echo "----------------------------------------------"
   which brew || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 fi
-
 function installApp() {
   manager=$1
+  app=$2
+
+  echo "----------------------------------------------"
+  echo "install ${app}"
+  echo "----------------------------------------------"
+  which $app || ${manager} install -y $app
+}
+function installApps() {
+  manager=$1
+
   # locales-all should be installed first. See https://qiita.com/suzuki-navi/items/b5f066db181092543854
   apps=(
     locales-all
     cat
     curl
     fzf
-    gh
-    ghq
     git
     tar
     unzip
@@ -47,11 +54,20 @@ function installApp() {
   )
 
   for app in "${apps[@]}"; do
-    echo "----------------------------------------------"
-    echo "install ${app}"
-    echo "----------------------------------------------"
-    which $app || ${manager} install -y $app
+    installApp $manager $app
   done
+}
+
+function installAppsNeedsBrew() {
+  apps=(
+    gh
+    ghq
+  )
+
+  for app in "${apps[@]}"; do
+    installApp brew $app
+  done
+
 }
 
 TEST_BREW=$(which brew)
@@ -74,13 +90,14 @@ if [ $TEST_BREW ] && [ $WHO != "root" ]; then
   echo "----------------------------------------------"
   brew update
 
-  installApp brew
+  installApps brew
+  installAppsNeedsBrew
 
 elif [ $TEST_APT ]; then
-  installApp apt-get
+  installApps apt-get
 
 elif [ $TEST_YUM ]; then
-  instsllApp yum
+  instsllApps yum
 
 fi
 
