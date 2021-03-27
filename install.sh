@@ -1,5 +1,6 @@
 #!/bin/bash
 WHO=$(whoami)
+echo ""
 echo " ---------------"
 echo "| Hello ${WHO}! |"
 echo " ---------------"
