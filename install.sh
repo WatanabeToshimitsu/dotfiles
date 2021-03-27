@@ -1,5 +1,7 @@
 #!/bin/bash
 
+echo "install leblary to install brew requirements"
+which brew || (which apt && sudo apt-get install build-essential curl file git) || (which yum && sudo yum groupinstall; sudo yum install curl file git; sudo yum install libxcrypt-compat)
 echo "install brew"
 which brew || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
@@ -27,3 +29,5 @@ for app in "${apps[@]}"; do
 done
 
 echo "install langs"
+
+ln -fs ~/dotfiles/* ~/
