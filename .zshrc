@@ -119,6 +119,7 @@ hash -d win=/mnt/c/
 hash -d ghq=~/ghq
 hash -d zshrc=~/.zshrc
 hash -d dotfiles=~/dotfiles
+hash -d desktop=/mnt/c/Users/kz86n/Desktop/
 
 ########################
 # * cmd history setteing
@@ -151,6 +152,10 @@ export OPEN_BY_MY_EDITOR='code'
 # * homebrew ENV
 eval $(/home/linuxbrew/.linuxbrew/bin/brew shellenv)
 
+# * nvm ENV
+export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
 
 #####################
 # COLORING          #
@@ -176,7 +181,7 @@ if [[ $(uname -r) =~ microsoft ]]; then
         fi
         for arg; do
             if [ -e "${arg}" ]; then
-                readlink -f ${arg} | xargs wslpath -m | xargs cmd.exe /c start
+                cmd.exe /c start $(readlink -f ${arg} | xargs wslpath -w)
             elif [[ ${arg} =~ http ]]; then
                 echo "${arg}" | xargs -I{} bash -c "${Chrome} '{}'"
             else
@@ -295,6 +300,7 @@ alias ff='fzf'
 alias ghq-rm='ghq-rm.sh'
 alias ggrks='open'
 alias ghcr='gh-create-repository'
+alias gmail='open "https://mail.google.com/mail/u/0/#inbox"'
 
 ##################
 # set completion #

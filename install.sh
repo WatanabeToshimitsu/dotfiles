@@ -26,4 +26,4 @@ for app in "${apps[@]}"; do
   which $app || brew install $app || brew upgrade $app
 done
 
-brew tap
+echo "install langs"
