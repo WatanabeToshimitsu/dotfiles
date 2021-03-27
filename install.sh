@@ -108,6 +108,26 @@ ln -fs ~/dotfiles/.* ~/
 git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
 ~/.fzf/install
 
+TEST_GHQ=$(which ghq)
+if [ $TEST_GHQ ]; then
+  GHQ_BUILD_DIR=~/.ghq-build
+  mkdir -p $GHQ_BUILD_DIR
+  git clone https://github.com/x-motemen/ghq $GHQ_BUILD_DIR
+  cd $GHQ_BUILD_DIR
+  make install
+fi
+
+TEST_GHCLI=$(which gh)
+if [ $TEST_GHCLI ]; then
+  if [ $TEST_APT ]; then
+    apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0
+    apt-add-repository https://cli.github.com/packages
+    apt install gh
+  elif [ $TEST_APT ]; then
+    dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
+    dnf install gh
+  fi
+fi
 # for devcontainer
 chown -R ${WHO}:${WHO} ~/.ssh/*
 chown ${WHO}:${WHO} ~/.gitconfig
