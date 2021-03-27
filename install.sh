@@ -111,7 +111,7 @@ fi
 ln -fs ~/dotfiles/.* ~/
 
 git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
-~/.fzf/install
+~/.fzf/install --all
 
 TEST_GHQ=$(which ghq)
 if [ ! $TEST_GHQ ]; then
