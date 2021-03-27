@@ -42,6 +42,8 @@ function installApp() {
     zip
     zsh
     tmux
+    psmisc
+    procps
   )
 
   for app in "${apps[@]}"; do
