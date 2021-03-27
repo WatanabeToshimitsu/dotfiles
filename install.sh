@@ -44,10 +44,10 @@ function installApp() {
     tmux
   )
 
-  echo "----------------------------------------------"
-  echo "install apps"
-  echo "----------------------------------------------"
   for app in "${apps[@]}"; do
+    echo "----------------------------------------------"
+    echo "install ${app}"
+    echo "----------------------------------------------"
     which $app || ${manager} install -y $app
   done
 }
