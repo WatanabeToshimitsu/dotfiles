@@ -8,7 +8,8 @@ echo "Install brew"
 which brew || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
 apps=(
-  exa
+  curl
+  unzip
   ghq
   fzf
   zsh
