@@ -24,10 +24,9 @@ if [ $WHO != "root" ]; then
   which brew || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 fi
 
-# locales-all should be installed first. See https://qiita.com/suzuki-navi/items/b5f066db181092543854
-
 function installApp() {
   manager=$1
+  # locales-all should be installed first. See https://qiita.com/suzuki-navi/items/b5f066db181092543854
   apps=(
     locales-all
     cat
