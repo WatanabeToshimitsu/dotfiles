@@ -1,46 +1,49 @@
 #!/bin/bash
+WHO=$(whoami)
 
-echo "At first, try to install brew"
-echo "Install liblary to install brew requirements"
+echo "Hello ${WHO}!"
 apt-get update -y || yum update -y
 rm /var/lib/dpkg/lock
 rm /var/lib/dpkg/lock-frontend
 rm /var/cache/apt/archives/lock
-which brew || apt-get install -y build-essential curl file git || yum groupinstall -y 'Development Tools'; yum install -y curl file git; yum install -y libxcrypt-compat
-echo "Install brew"
-which brew || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+if [ $WHO != "root" ]; then
+  echo "Before installing brew,"
+  echo "Install liblary to install brew requirements"
+  which brew || apt-get install -y build-essential curl file git || yum groupinstall -y 'Development Tools'; yum install -y curl file git; yum install -y libxcrypt-compat
+  echo "Now, start installing brew"
+  which brew || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+fi
 
 apps=(
-  vim
-  git
-  curl
-  zip
-  unzip
-  tar
   cat
-  ghq
+  curl
   fzf
-  zsh
-  git
   gh
+  ghq
+  git
+  tar
+  unzip
+  vim
+  zip
+  zsh
 )
 
 TEST_BREW=$(which brew)
 TEST_APT=$(which apt-get)
 TEST_YUM=$(which yum)
-WHO=$(whoami)
 
 if [ $TEST_BREW ] && [ $WHO != "root" ]; then
-  echo "brew can ve installed!!"
+  echo "Brew was installed!!"
   eval '$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)'
 
-  echo "run brew doctor..."
+  echo "Run brew doctor..."
   which brew && brew doctor
 
-  echo "run brew update..."
+  echo "Run brew update..."
   which brew && brew update
 
-  echo "brew is setup"
+  echo "Brew is setup"
 
   for app in "${apps[@]}"; do
     which $app || brew install -y $app || brew upgrade -y $app
