@@ -4,7 +4,7 @@ echo "At first, try to install brew"
 echo "Install liblary to install brew requirements"
 sudo apt update -y || apt update -y || sudo yum update -y ||  yum update -y
 sudo rm -f /var/lib/dpkg/lock-frontend || rm -f /var/lib/dpkg/lock-frontend
-sudo rmdir -f /var/lib/dpkg/ || rmdir -f /var/lib/dpkg/
+sudo rmdir /var/lib/dpkg/ || rmdir -f /var/lib/dpkg/
 sudo rm -f /var/lib/apt/lists/lock || rm -f /var/lib/apt/lists/lock
 sudo rm -f /var/cache/apt/archives/lock || rm -f /var/cache/apt/archives/lock
 sudo apt autoremove || apt autoremove
