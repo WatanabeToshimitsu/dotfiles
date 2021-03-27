@@ -12,15 +12,12 @@ which brew || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homeb
 
 apps=(
   vim
-  ps
-  top
   git
   curl
   zip
   unzip
   tar
   cat
-  killall
   ghq
   fzf
   zsh
@@ -61,4 +58,5 @@ elif [ $TEST_YUM ]; then
 fi
 
 ln -fs ~/dotfiles/.* ~/
-chown -R ${WHO}:${WHO} ~/.*
+chown -R ${WHO}:${WHO} ~/.ssh/*
+chown -R ${WHO}:${WHO} ~/.gitconfig
