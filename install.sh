@@ -67,6 +67,9 @@ function installAppsNeedsBrew() {
   )
 
   for app in "${apps[@]}"; do
+    echo "----------------------------------------------"
+    echo "install ${app}"
+    echo "----------------------------------------------"
     installApp brew $app
   done
 
@@ -109,7 +112,10 @@ git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
 ~/.fzf/install
 
 TEST_GHQ=$(which ghq)
-if [ $TEST_GHQ ]; then
+if [ ! $TEST_GHQ ]; then
+  echo "----------------------------------------------"
+  echo "install ghq"
+  echo "----------------------------------------------"
   GHQ_BUILD_DIR=~/.ghq-build
   mkdir -p $GHQ_BUILD_DIR
   git clone https://github.com/x-motemen/ghq $GHQ_BUILD_DIR
@@ -118,7 +124,10 @@ if [ $TEST_GHQ ]; then
 fi
 
 TEST_GHCLI=$(which gh)
-if [ $TEST_GHCLI ]; then
+if [ ! $TEST_GHCLI ]; then
+  echo "----------------------------------------------"
+  echo "install github cli"
+  echo "----------------------------------------------"
   if [ $TEST_APT ]; then
     apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0
     apt-add-repository https://cli.github.com/packages
