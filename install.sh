@@ -2,11 +2,11 @@
 
 echo "At first, try to install brew"
 echo "Install liblary to install brew requirements"
-sudo apt update -y || apt update -y || sudo yum update -y ||  yum update -y
+apt update -y || yum update -y
 rm /var/lib/dpkg/lock
 rm /var/lib/dpkg/lock-frontend
 rm /var/cache/apt/archives/lock
-which brew || sudo apt install -y build-essential curl file git || apt install -y build-essential curl file git || sudo yum groupinstall -y 'Development Tools'; sudo yum install -y curl file git; sudo yum install -y libxcrypt-compat || yum groupinstall -y 'Development Tools'; sudo yum install -y curl file git; sudo yum install -y libxcrypt-compat
+which brew || apt install -y build-essential curl file git || yum groupinstall -y 'Development Tools'; sudo yum install -y curl file git; sudo yum install -y libxcrypt-compat
 echo "Install brew"
 which brew || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
@@ -51,12 +51,12 @@ if [ $TEST_BREW ] && [ $WHO != "root" ]; then
 
 elif [ $TEST_APT ]; then
   for app in "${apps[@]}"; do
-    which $app || sudo apt install -y $app || apt install -y $app
+    which $app || apt install -y $app
   done
 
 elif [ $TEST_YUM ]; then
   for app in "${apps[@]}"; do
-    which $app || sudo yum install -y $app || yum install -y $app
+    which $app || yum install -y $app
   done
 fi
 
