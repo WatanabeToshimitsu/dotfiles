@@ -6,7 +6,7 @@ apt update -y || yum update -y
 rm /var/lib/dpkg/lock
 rm /var/lib/dpkg/lock-frontend
 rm /var/cache/apt/archives/lock
-which brew || apt install -y build-essential curl file git || yum groupinstall -y 'Development Tools'; sudo yum install -y curl file git; sudo yum install -y libxcrypt-compat
+which brew || apt install -y build-essential curl file git || yum groupinstall -y 'Development Tools'; yum install -y curl file git; yum install -y libxcrypt-compat
 echo "Install brew"
 which brew || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
