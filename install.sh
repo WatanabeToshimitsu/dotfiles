@@ -129,7 +129,8 @@ if [ ! $TEST_GHQ ]; then
   curl -OL https://github.com/x-motemen/ghq/releases/download/v1.1.7/ghq_linux_amd64.zip
   unzip ghq_linux_amd64.zip
   mkdir -p $GO_BIN_DIR
-  mv ghq_linux_amd64/ghq $GO_BIN_DIR
+  mv ${GHQ_BUILD_DIR}/ghq_linux_amd64/ghq $GO_BIN_DIR
+  rm -fr GHQ_BUILD_DIR
 fi
 
 TEST_GHCLI=$(which gh)
