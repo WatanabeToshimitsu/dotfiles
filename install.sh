@@ -25,21 +25,32 @@ if [ $WHO != "root" ]; then
 fi
 
 # locales-all should be installed first. See https://qiita.com/suzuki-navi/items/b5f066db181092543854
-apps=(
-  locales-all
-  cat
-  curl
-  fzf
-  gh
-  ghq
-  git
-  tar
-  unzip
-  vim
-  zip
-  zsh
-  tmux
-)
+
+function installApp() {
+  manager=$1
+  apps=(
+    locales-all
+    cat
+    curl
+    fzf
+    gh
+    ghq
+    git
+    tar
+    unzip
+    vim
+    zip
+    zsh
+    tmux
+  )
+
+  echo "----------------------------------------------"
+  echo "install apps"
+  echo "----------------------------------------------"
+  for app in "${apps[@]}"; do
+    which $app || ${manager} install -y $app
+  done
+}
 
 TEST_BREW=$(which brew)
 TEST_APT=$(which apt-get)
@@ -61,22 +72,14 @@ if [ $TEST_BREW ] && [ $WHO != "root" ]; then
   echo "----------------------------------------------"
   brew update
 
-  echo "----------------------------------------------"
-  echo "install apps"
-  echo "----------------------------------------------"
-  for app in "${apps[@]}"; do
-    which $app || brew install -y $app || brew upgrade -y $app
-  done
+  installApp brew
 
 elif [ $TEST_APT ]; then
-  for app in "${apps[@]}"; do
-    which $app || apt-get install -y $app
-  done
+  installApp apt-get
 
 elif [ $TEST_YUM ]; then
-  for app in "${apps[@]}"; do
-    which $app || yum install -y $app
-  done
+  instsllApp yum
+
 fi
 
 ln -fs ~/dotfiles/.* ~/
