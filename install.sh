@@ -41,6 +41,8 @@ function installApps() {
   # locales-all should be installed first. See https://qiita.com/suzuki-navi/items/b5f066db181092543854
   apps=(
     locales-all
+    build-essential
+    file
     less
     cat
     curl
