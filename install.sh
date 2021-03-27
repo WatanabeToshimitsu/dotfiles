@@ -8,7 +8,7 @@ echo " ---------------"
 echo "----------------------------------------------"
 echo "Run apt/yum update..."
 echo "----------------------------------------------"
-apt-get update -y || yum update -y
+apt-get update -y || yum update -y || dnf update -y
 rm /var/lib/dpkg/lock
 rm /var/lib/dpkg/lock-frontend
 rm /var/cache/apt/archives/lock
@@ -40,21 +40,21 @@ function installApps() {
 
   # locales-all should be installed first. See https://qiita.com/suzuki-navi/items/b5f066db181092543854
   apps=(
-    locales-all
     build-essential
-    file
-    less
     cat
     curl
+    file
     git
+    less
+    locales-all
+    procps
+    psmisc
     tar
+    tmux
     unzip
     vim
     zip
     zsh
-    tmux
-    psmisc
-    procps
   )
 
   for app in "${apps[@]}"; do
@@ -79,6 +79,7 @@ function installAppsNeedsBrew() {
 
 TEST_BREW=$(which brew)
 TEST_APT=$(which apt-get)
+TEST_DNF=$(which dnf)
 TEST_YUM=$(which yum)
 
 if [ $TEST_BREW ] && [ $WHO != "root" ]; then
@@ -103,6 +104,9 @@ if [ $TEST_BREW ] && [ $WHO != "root" ]; then
 elif [ $TEST_APT ]; then
   installApps apt-get
 
+elif [ $TEST_DNF ]; then
+  instsllApps dnf
+
 elif [ $TEST_YUM ]; then
   instsllApps yum
 
@@ -114,15 +118,18 @@ git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
 ~/.fzf/install --all
 
 TEST_GHQ=$(which ghq)
+GO_BIN_DIR=~/go/bin
 if [ ! $TEST_GHQ ]; then
   echo "----------------------------------------------"
   echo "install ghq"
   echo "----------------------------------------------"
   GHQ_BUILD_DIR=~/.ghq-build
   mkdir -p $GHQ_BUILD_DIR
-  git clone https://github.com/x-motemen/ghq $GHQ_BUILD_DIR
   cd $GHQ_BUILD_DIR
-  make install
+  curl -OL https://github.com/x-motemen/ghq/releases/download/v1.1.7/ghq_linux_amd64.zip
+  unzip ghq_linux_amd64.zip
+  mkdir -p $GO_BIN_DIR
+  mv ghq_linux_amd64/ghq $GO_BIN_DIR
 fi
 
 TEST_GHCLI=$(which gh)
@@ -134,7 +141,7 @@ if [ ! $TEST_GHCLI ]; then
     apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0
     apt-add-repository https://cli.github.com/packages
     apt install gh
-  elif [ $TEST_APT ]; then
+  elif [ $TEST_DNF ]; then
     dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
     dnf install gh
   fi
