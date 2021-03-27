@@ -102,5 +102,8 @@ elif [ $TEST_YUM ]; then
 fi
 
 ln -fs ~/dotfiles/.* ~/
+
+# for devcontainer
 chown -R ${WHO}:${WHO} ~/.ssh/*
-chown -R ${WHO}:${WHO} ~/.gitconfig
+chown ${WHO}:${WHO} ~/.gitconfig
+chown ${WHO}:${WHO} ~/.npmrc
