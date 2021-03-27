@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# echo "At first, try to install brew"
-# echo "Install liblary to install brew requirements"
+echo "At first, try to install brew"
+echo "Install liblary to install brew requirements"
 sudo apt update -y || apt update -y || sudo yum update -y ||  yum update -y
-# which brew || sudo apt install build-essential curl file git || apt install build-essential curl file git || sudo yum groupinstall; sudo yum install curl file git; sudo yum install libxcrypt-compat || yum groupinstall; sudo yum install curl file git; sudo yum install libxcrypt-compat
-# echo "Install brew"
-# which brew || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+which brew || sudo apt install build-essential curl file git || apt install build-essential curl file git || sudo yum groupinstall; sudo yum install curl file git; sudo yum install libxcrypt-compat || yum groupinstall; sudo yum install curl file git; sudo yum install libxcrypt-compat
+echo "Install brew"
+which brew || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
 apps=(
   exa
@@ -16,26 +16,28 @@ apps=(
   gh
 )
 
-# TEST_BREW=$(which brew)
+TEST_BREW=$(which brew)
 TEST_APT=$(which apt)
 TEST_YUM=$(which yum)
-# if [ $TEST_BREW ]; then
-#   echo "brew can ve installed!!"
-#   eval '$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)'
+WHO=$(whoami)
 
-#   echo "run brew doctor..."
-#   which brew && brew doctor
+if [ $TEST_BREW ] && [ $WHO != "root" ]; then
+  echo "brew can ve installed!!"
+  eval '$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)'
 
-#   echo "run brew update..."
-#   which brew && brew update
+  echo "run brew doctor..."
+  which brew && brew doctor
 
-#   echo "brew is setup"
+  echo "run brew update..."
+  which brew && brew update
 
-#   for app in "${apps[@]}"; do
-#     which $app || brew install $app || brew upgrade $app
-#   done
+  echo "brew is setup"
 
-if [ $TEST_APT ]; then
+  for app in "${apps[@]}"; do
+    which $app || brew install -y $app || brew upgrade -y $app
+  done
+
+elif [ $TEST_APT ]; then
   for app in "${apps[@]}"; do
     which $app || sudo apt install -y $app || apt install -y $app
   done
