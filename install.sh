@@ -24,6 +24,7 @@ if [ $WHO != "root" ]; then
   echo "----------------------------------------------"
   which brew || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 fi
+
 function installApp() {
   manager=$1
   app=$2
@@ -33,15 +34,16 @@ function installApp() {
   echo "----------------------------------------------"
   which $app || ${manager} install -y $app
 }
+
 function installApps() {
   manager=$1
 
   # locales-all should be installed first. See https://qiita.com/suzuki-navi/items/b5f066db181092543854
   apps=(
     locales-all
+    less
     cat
     curl
-    fzf
     git
     tar
     unzip
@@ -102,6 +104,9 @@ elif [ $TEST_YUM ]; then
 fi
 
 ln -fs ~/dotfiles/.* ~/
+
+git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
+~/.fzf/install
 
 # for devcontainer
 chown -R ${WHO}:${WHO} ~/.ssh/*
