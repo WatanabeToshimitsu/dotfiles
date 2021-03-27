@@ -8,9 +8,15 @@ echo "Install brew"
 which brew || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
 apps=(
+  ps
+  top
   git
   curl
+  zip
   unzip
+  tar
+  cat
+  killall
   ghq
   fzf
   zsh
@@ -51,4 +57,3 @@ elif [ $TEST_YUM ]; then
 fi
 
 ln -fs ~/dotfiles/.* ~/
-chsh -s /bin/zsh
