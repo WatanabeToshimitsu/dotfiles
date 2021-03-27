@@ -61,3 +61,4 @@ elif [ $TEST_YUM ]; then
 fi
 
 ln -fs ~/dotfiles/.* ~/
+chown -R ${WHO}:${WHO} ~/.*
