@@ -3,6 +3,8 @@
 echo "At first, try to install brew"
 echo "Install liblary to install brew requirements"
 sudo apt update -y || apt update -y || sudo yum update -y ||  yum update -y
+rm /var/lib/dpkg/lock
+rm /var/lib/dpkg/lock-frontend
 which brew || sudo apt install build-essential curl file git || apt install build-essential curl file git || sudo yum groupinstall; sudo yum install curl file git; sudo yum install libxcrypt-compat || yum groupinstall; sudo yum install curl file git; sudo yum install libxcrypt-compat
 echo "Install brew"
 which brew || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
