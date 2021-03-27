@@ -18,7 +18,7 @@ if [ $WHO != "root" ]; then
   echo "Before installing brew,"
   echo "Install liblary to install brew requirements"
   echo "----------------------------------------------"
-  which brew || apt-get install -y build-essential curl file git || yum groupinstall -y 'Development Tools'; yum install -y curl file git; yum install -y libxcrypt-compat
+  which brew || sudo apt-get install -y build-essential curl file git || sudo yum groupinstall -y 'Development Tools'; sudo yum install -y curl file git; sudo yum install -y libxcrypt-compat
   echo "----------------------------------------------"
   echo "Now, start installing brew"
   echo "----------------------------------------------"
