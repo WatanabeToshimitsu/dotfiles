@@ -1,5 +1,5 @@
 #!/bin/bash
-
+apt update || yum update
 echo "install leblary to install brew requirements"
 which brew || sudo apt-get install build-essential curl file git || apt-get install build-essential curl file git || sudo yum groupinstall; sudo yum install curl file git; sudo yum install libxcrypt-compat || yum groupinstall; sudo yum install curl file git; sudo yum install libxcrypt-compat
 echo "install brew"
