@@ -139,9 +139,10 @@ if [ ! $TEST_GHCLI ]; then
   echo "install github cli"
   echo "----------------------------------------------"
   if [ $TEST_APT ]; then
+    apt-get install software-properties-common
     apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0
     apt-add-repository https://cli.github.com/packages
-    apt install gh
+    apt-get install gh
   elif [ $TEST_DNF ]; then
     dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
     dnf install gh
