@@ -40,13 +40,13 @@ function installApps() {
 
   # locales-all should be installed first. See https://qiita.com/suzuki-navi/items/b5f066db181092543854
   apps=(
+    locales-all
     build-essential
     cat
     curl
     file
     git
     less
-    locales-all
     procps
     psmisc
     tar
@@ -150,6 +150,12 @@ if [ ! $TEST_GHCLI ]; then
 fi
 
 # for devcontainer
-chown -R ${WHO}:${WHO} ~/.ssh/*
-chown ${WHO}:${WHO} ~/.gitconfig
-chown ${WHO}:${WHO} ~/.npmrc
+if [ -e ~/.ssh-hostmachine ]; then
+  cp -r ~/.ssh-hostmachine ~/.ssh
+  chown -R ${WHO}:${WHO} ~/.ssh
+fi
+
+if [ -e ~/.npmrc-hostmachine ]; then
+  cp -r ~/.npmrc-hostmachine ~/.npmrc
+  chown -R ${WHO}:${WHO} ~/.npmrc
+fi
