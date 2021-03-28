@@ -321,3 +321,5 @@ eval "$(gh completion -s zsh)"
 autoload -Uz compinit
 compinit
 
+
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
