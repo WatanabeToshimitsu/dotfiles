@@ -141,7 +141,7 @@ if [ ! $TEST_GHCLI ]; then
   if [ $TEST_APT ]; then
     apt-get install -y software-properties-common
     apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0
-    apt-update
+    apt-get update
     apt-add-repository https://cli.github.com/packages
     apt-get install -y gh
   elif [ $TEST_DNF ]; then
