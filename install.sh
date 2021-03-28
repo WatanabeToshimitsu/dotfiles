@@ -152,11 +152,9 @@ fi
 
 # for devcontainer
 if [ -e ~/.ssh-hostmachine ]; then
-  cp -r ~/.ssh-hostmachine ~/.ssh
-  chown -R ${WHO}:${WHO} ~/.ssh
+  cp -r ~/.ssh-hostmachine/* ~/.ssh
 fi
 
 if [ -e ~/.npmrc-hostmachine ]; then
-  cp -r ~/.npmrc-hostmachine ~/.npmrc
-  chown -R ${WHO}:${WHO} ~/.npmrc
+  cp ~/.npmrc-hostmachine ~/.npmrc
 fi
