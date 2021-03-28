@@ -141,8 +141,8 @@ if [ ! $TEST_GHCLI ]; then
   if [ $TEST_APT ]; then
     apt-get install -y software-properties-common
     apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0
-    apt-get update
     apt-add-repository https://cli.github.com/packages
+    apt-get update
     apt-get install -y gh
   elif [ $TEST_DNF ]; then
     dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
