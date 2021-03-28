@@ -147,6 +147,7 @@ if [ ! $TEST_GHCLI ]; then
     dnf install gh
   fi
 fi
+
 # for devcontainer
 chown -R ${WHO}:${WHO} ~/.ssh/*
 chown ${WHO}:${WHO} ~/.gitconfig
