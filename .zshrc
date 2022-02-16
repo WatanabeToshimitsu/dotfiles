@@ -135,12 +135,18 @@ SAVEHIST=30000
 # ENV VARIABLE      #
 #####################
 # * enable some cli
-export PATH="$PATH:/usr/local/bin/istio-1.7.4/bin"
 export PATH=$PATH:/usr/local/go/bin
 export PATH=$PATH:$HOME/go/bin
+
+export PATH="$PATH:/usr/local/bin/istio-1.7.4/bin"
 export PATH=$PATH:$HOME/.fzf/bin
 export PATH="$HOME/.poetry/bin:$PATH"
 export PATH="$HOME/utils:$PATH"
+export PATH="$HOME/.deno/bin:$PATH"
+
+# * Volta env
+export VOLTA_HOME="$HOME/.volta"
+export PATH="$VOLTA_HOME/bin:$PATH"
 
 # * Docker experimental func enable
 export COMPOSE_DOCKER_CLI_BUILD=1
@@ -155,9 +161,9 @@ export OPEN_BY_MY_EDITOR='code'
 # * homebrew ENV
 eval $(/home/linuxbrew/.linuxbrew/bin/brew shellenv)
 
-# * nvm ENV
-export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+# * REACT ENV
+REACT_EDITOR=code
 
 
 #####################
@@ -203,15 +209,6 @@ git-branch-prune() {
     else
         PROTECT_BRANCHES="${PROTECT_BRANCHES}|$1"
     fi
-
-    # echo "fetch remote repository?(y/N): "
-    # if read -q; then
-    #     echo
-    #     echo "fetching..."
-    #     git fetch
-    # else
-    #     echo
-    # fi
 
     echo "fetching..."
     git fetch
@@ -290,9 +287,11 @@ alias g='git'
 alias gb='git branch'
 alias gpl='git pull'
 alias gps='git push'
+alias gsts='git status'
 alias gco='git checkout'
 alias gbd='cd-gitroot'
 alias gcd='cd $(ghq root)/$(ghq list | fzf)'
+alias gb-prune='git-branch-prune'
 alias gcode='${OPEN_BY_MY_EDITOR} $(ghq root)/$(ghq list | fzf)'
 
 
@@ -323,3 +322,16 @@ compinit
 
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+
+##################
+# auto ssh-agent #
+##################
+if [ -z "$SSH_AUTH_SOCK" ]; then
+  RUNNING_AGENT="`ps -ax | grep 'ssh-agent -s' | grep -v grep | wc -l | tr -d '[:space:]'`"
+  if [ "$RUNNING_AGENT" = "0" ]; then
+    echo "Launch a new instance of the agent"
+    ssh-agent -s &> ~/.ssh/ssh-agent > /dev/null
+    ssh-add > /dev/null
+  fi
+    eval `cat ~/.ssh/ssh-agent` > /dev/null
+fi
