@@ -18,7 +18,9 @@ if [ $WHO != "root" ]; then
   echo "Before installing brew,"
   echo "Install liblary to install brew requirements"
   echo "----------------------------------------------"
-  which brew || sudo apt-get install -y build-essential curl file git || sudo yum groupinstall -y 'Development Tools'; sudo yum install -y curl file git; sudo yum install -y libxcrypt-compat
+  which brew || sudo apt-get install -y build-essential curl file git || sudo yum groupinstall -y 'Development Tools'
+  sudo yum install -y curl file git
+  sudo yum install -y libxcrypt-compat
   echo "----------------------------------------------"
   echo "Now, start installing brew"
   echo "----------------------------------------------"
@@ -105,10 +107,10 @@ elif [ $TEST_APT ]; then
   installApps apt-get
 
 elif [ $TEST_DNF ]; then
-  instsllApps dnf
+  installApps dnf
 
 elif [ $TEST_YUM ]; then
-  instsllApps yum
+  installApps yum
 
 fi
 
@@ -125,7 +127,7 @@ if [ ! $TEST_GHQ ]; then
   echo "----------------------------------------------"
   GHQ_BUILD_DIR=~/.ghq-build
   mkdir -p $GHQ_BUILD_DIR
-  cd $GHQ_BUILD_DIR
+  cd $GHQ_BUILD_DIR || exit
   curl -OL https://github.com/x-motemen/ghq/releases/download/v1.1.7/ghq_linux_amd64.zip
   unzip ghq_linux_amd64.zip
   mkdir -p $GO_BIN_DIR
