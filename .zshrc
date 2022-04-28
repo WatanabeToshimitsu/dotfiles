@@ -1,4 +1,3 @@
-
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
 # confirmations, etc.) must go above this block; everything else may go below.
@@ -6,29 +5,27 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
-########################################
-# zplug "mollifier/cd-gitroot"
-
 ### Added by Zinit's installer
-if [[ ! -f $HOME/.zinit/bin/zinit.zsh ]]; then
-    print -P "%F{33}▓▒░ %F{220}Installing %F{33}DHARMA%F{220} Initiative Plugin Manager (%F{33}zdharma/zinit%F{220})…%f"
-    command mkdir -p "$HOME/.zinit" && command chmod g-rwX "$HOME/.zinit"
-    command git clone https://github.com/zdharma/zinit "$HOME/.zinit/bin" && \
-        print -P "%F{33}▓▒░ %F{34}Installation successful.%f%b" || \
-        print -P "%F{160}▓▒░ The clone has failed.%f%b"
+if [[ ! -f $HOME/.local/share/zinit/zinit.git/zinit.zsh ]]; then
+    print -P "%F{33} %F{220}Installing %F{33}ZDHARMA-CONTINUUM%F{220} Initiative Plugin Manager (%F{33}zdharma-continuum/zinit%F{220})…%f"
+    command mkdir -p "$HOME/.local/share/zinit" && command chmod g-rwX "$HOME/.local/share/zinit"
+    command git clone https://github.com/zdharma-continuum/zinit "$HOME/.local/share/zinit/zinit.git" && \
+        print -P "%F{33} %F{34}Installation successful.%f%b" || \
+        print -P "%F{160} The clone has failed.%f%b"
 fi
 
-source "$HOME/.zinit/bin/zinit.zsh"
+source "$HOME/.local/share/zinit/zinit.git/zinit.zsh"
 autoload -Uz _zinit
 (( ${+_comps} )) && _comps[zinit]=_zinit
+### End of Zinit's installer chunk
 
 # Load a few important annexes, without Turbo
 # (this is currently required for annexes)
 zinit light-mode for \
-    zinit-zsh/z-a-rust \
-    zinit-zsh/z-a-as-monitor \
-    zinit-zsh/zinit-annex-patch-dl \
-    zinit-zsh/zinit-annex-bin-gem-node
+    zdharma-continuum/zinit-annex-as-monitor \
+    zdharma-continuum/zinit-annex-bin-gem-node \
+    zdharma-continuum/zinit-annex-patch-dl \
+    zdharma-continuum/zinit-annex-rust
 
 ### End of Zinit's installer chunk
 
@@ -54,17 +51,14 @@ zinit wait"0a" lucid for \
     b4b4r07/enhancd \
     atload'enable-fzf-tab' \
         Aloxaf/fzf-tab \
-    from"gh-r" as"program" mv"exa* -> exa" \
-        ogham/exa \
 
 zinit wait"0b" load lucid for \
     paulirish/git-open \
     mollifier/anyframe \
-    atload'source ~/.zinit/plugins/zsh-users---zsh-history-substring-search/zsh-history-substring-search.zsh; bindkey "$terminfo[kcuu1]" history-substring-search-up; bindkey "$terminfo[kcud1]" history-substring-search-down' \
-        zsh-users/zsh-history-substring-search \
     autoload'#manydots-magic' \
         knu/zsh-manydots-magic \
     mollifier/cd-gitroot \
+    zsh-users/zsh-history-substring-search
 
 #####################
 # SETOPT            #
@@ -89,7 +83,8 @@ setopt vi
 unsetopt beep
 unsetopt completealiases      # こいつがONだとaliasに補完が付かない
 
-chpwd() exa --git --icons --classify --group-directories-first --color-scale
+# chpwd() exa --git --icons --classify --group-directories-first --color-scale
+chpwd() lsd
 
 ###############
 #   ZSTYLE    #
@@ -97,7 +92,7 @@ chpwd() exa --git --icons --classify --group-directories-first --color-scale
 # set list-colors to enable filename colorizing
 zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
 # preview directory's content with exa when completing cd
-zstyle ':fzf-tab:complete:cd:*' fzf-preview 'exa -1 --color=always $realpath'
+# zstyle ':fzf-tab:complete:cd:*' fzf-preview 'exa -1 --color=always $realpath'
 # switch group using `,` and `.`
 zstyle ':fzf-tab:*' switch-group ',' '.'
 
@@ -148,6 +143,9 @@ export PATH="$HOME/.deno/bin:$PATH"
 export VOLTA_HOME="$HOME/.volta"
 export PATH="$VOLTA_HOME/bin:$PATH"
 
+# * use utils
+export PATH="$HOME/.shell-utils:$PATH"
+
 # * Docker experimental func enable
 export COMPOSE_DOCKER_CLI_BUILD=1
 export DOCKER_BUILDKIT=1
@@ -158,14 +156,24 @@ export KUBECONFIG=${KUBECONFIG}:$(echo ${kubeconfigs// /:})
 
 export OPEN_BY_MY_EDITOR='code'
 
-# * homebrew ENV
-eval $(/home/linuxbrew/.linuxbrew/bin/brew shellenv)
+# * homebrew ENV fow WSL
+# eval $(/home/linuxbrew/.linuxbrew/bin/brew shellenv)
 
 
 # * REACT ENV
 REACT_EDITOR=code
 
+# fzf shortcuts customize
+export FZF_CTRL_T_COMMAND='rg --files --hidden --follow --glob "!.git/*"'
+export FZF_CTRL_T_OPTS='--preview "bat  --color=always --style=header,grid --line-range :100 {}"'
 
+# 1password
+export SSH_AUTH_SOCK=~/Library/Group\ Containers/2BUA8C4S2C.com.1password/t/agent.sock
+
+# workaround for puppeteer on m1 mac
+# See: https://github.com/puppeteer/puppeteer/issues/6622#issuecomment-788199984
+export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+export PUPPETEER_EXECUTABLE_PATH=`which chromium`
 #####################
 # COLORING          #
 #####################
@@ -174,6 +182,10 @@ autoload colors && colors
 ###############
 # * key bind  #
 ###############
+# * zsh-history-substring
+source ~/.shell-utils/zsh-history-substrig-search.zsh
+bindkey '^[[A' history-substring-search-up
+bindkey '^[[B' history-substring-search-down
 
 #########
 # funcs
@@ -256,24 +268,22 @@ gh-create-repository() {
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
-#######################
-#  enable fzf   #
-#######################
-# C-r: cmd history
-# C-t: explor child directory
-source ~/.fzf/shell/key-bindings.zsh
-
 #####################
 # ALIASES           #
 #####################
 # * alias
 alias vi='/usr/bin/vim'
 
-alias tree='exa --tree --icons --classify --group'
-alias ls='exa --classify --group-directories-first --icons --group'
-alias la='exa --classify --group-directories-first --icons -a'
-alias ll='exa --classify --group-directories-first --icons -l'
-alias lla='exa --classify --group-directories-first --icons -la'
+alias ls='lsd'
+alias l='ls -l'
+alias la='ls -a'
+alias lla='ls -la'
+alias lt='ls --tree'
+alias tree='ls --tree'
+
+alias cat='bat --paging=never'
+
+alias grep='ripgrep'
 
 alias bd='cd ..' # * need enhancd
 
@@ -292,8 +302,7 @@ alias gco='git checkout'
 alias gbd='cd-gitroot'
 alias gcd='cd $(ghq root)/$(ghq list | fzf)'
 alias gb-prune='git-branch-prune'
-alias gcode='${OPEN_BY_MY_EDITOR} $(ghq root)/$(ghq list | fzf)'
-
+alias gcode='${OPEN_BY_MY_EDITOR} $(ghq root)/$(ghq list | fzf --preview "bat --color=always --style=header,grid --line-range :80 $(ghq root)/{}/README.*")'
 
 alias d='docker'
 alias dc='docker-compose'
@@ -301,9 +310,6 @@ alias dc='docker-compose'
 alias ff='fzf'
 
 alias ghq-rm='ghq-rm.sh'
-alias ggrks='open'
-alias ghcr='gh-create-repository'
-alias gmail='open "https://mail.google.com/mail/u/0/#inbox"'
 
 ##################
 # set completion #
@@ -312,16 +318,24 @@ alias gmail='open "https://mail.google.com/mail/u/0/#inbox"'
 fpath=(~/.zsh/completion $fpath)
 
 eval "$(gh completion -s zsh)"
-# this is native kubectl completion, but poor (e.g. does not complete flag, have not explain)
-# however, fast
-# source <(kubectl completion zsh)
 
 # load compinit func (func is not automatically loaded)
 autoload -Uz compinit
 compinit
 
+# 1password
+eval "$(op completion zsh)"; compdef _op op
+
+if type brew &>/dev/null
+then
+  FPATH="$(brew --prefix)/share/zsh/site-functions:${FPATH}"
+
+  autoload -Uz compinit
+  compinit
+fi
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+
 
 ##################
 # auto ssh-agent #
