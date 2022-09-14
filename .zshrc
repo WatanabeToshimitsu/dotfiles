@@ -135,9 +135,9 @@ export PATH=$PATH:$HOME/go/bin
 
 export PATH="$PATH:/usr/local/bin/istio-1.7.4/bin"
 export PATH=$PATH:$HOME/.fzf/bin
-export PATH="$HOME/.poetry/bin:$PATH"
 export PATH="$HOME/utils:$PATH"
 export PATH="$HOME/.deno/bin:$PATH"
+export PATH="/Users/kz86n/.local/bin:$PATH"
 
 # * Volta env
 export VOLTA_HOME="$HOME/.volta"
@@ -159,6 +159,8 @@ export OPEN_BY_MY_EDITOR='code'
 # * homebrew ENV fow WSL
 # eval $(/home/linuxbrew/.linuxbrew/bin/brew shellenv)
 
+# java
+export PATH="/opt/homebrew/opt/openjdk/bin:$PATH"
 
 # * REACT ENV
 REACT_EDITOR=code
@@ -315,6 +317,7 @@ alias ghq-rm='ghq-rm.sh'
 # set completion #
 ##################
 # NOTE: add fpath and source -> compdef -> compinit
+mkdir -p ~/.zsh/completion
 fpath=(~/.zsh/completion $fpath)
 
 eval "$(gh completion -s zsh)"
@@ -325,6 +328,14 @@ compinit
 
 # 1password
 eval "$(op completion zsh)"; compdef _op op
+
+limactl completion zsh > "$(brew --prefix)/share/zsh/site-functions/_limactl"
+poetry completions zsh > ~/.zsh/completion/_poetry
+
+# pyenv
+export PYENV_ROOT="$HOME/.pyenv"
+command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init -)"
 
 if type brew &>/dev/null
 then
