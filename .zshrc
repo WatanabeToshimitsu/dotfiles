@@ -5,7 +5,7 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
-### Added by Zinit's installer
+# Added by Zinit's installer
 if [[ ! -f $HOME/.local/share/zinit/zinit.git/zinit.zsh ]]; then
     print -P "%F{33} %F{220}Installing %F{33}ZDHARMA-CONTINUUM%F{220} Initiative Plugin Manager (%F{33}zdharma-continuum/zinit%F{220})…%f"
     command mkdir -p "$HOME/.local/share/zinit" && command chmod g-rwX "$HOME/.local/share/zinit"
@@ -17,7 +17,6 @@ fi
 source "$HOME/.local/share/zinit/zinit.git/zinit.zsh"
 autoload -Uz _zinit
 (( ${+_comps} )) && _comps[zinit]=_zinit
-### End of Zinit's installer chunk
 
 # Load a few important annexes, without Turbo
 # (this is currently required for annexes)
@@ -27,7 +26,7 @@ zinit light-mode for \
     zdharma-continuum/zinit-annex-patch-dl \
     zdharma-continuum/zinit-annex-rust
 
-### End of Zinit's installer chunk
+# End of Zinit's installer chunk
 
 # power10k: rich and fast prompt
 # enhancd: fuzzy find cd "cd .." and "cd" and "cd -" is useful!
@@ -150,14 +149,10 @@ export PATH="$HOME/.shell-utils:$PATH"
 export COMPOSE_DOCKER_CLI_BUILD=1
 export DOCKER_BUILDKIT=1
 
-# * kubeconfig
-kubeconfigs=$(echo ~/.kube/config.*)
-export KUBECONFIG=${KUBECONFIG}:$(echo ${kubeconfigs// /:})
 
 export OPEN_BY_MY_EDITOR='code'
 
-# * homebrew ENV fow WSL
-# eval $(/home/linuxbrew/.linuxbrew/bin/brew shellenv)
+
 
 # java
 export PATH="/opt/homebrew/opt/openjdk/bin:$PATH"
@@ -168,9 +163,6 @@ REACT_EDITOR=code
 # fzf shortcuts customize
 export FZF_CTRL_T_COMMAND='rg --files --hidden --follow --glob "!.git/*"'
 export FZF_CTRL_T_OPTS='--preview "bat  --color=always --style=header,grid --line-range :100 {}"'
-
-# 1password
-export SSH_AUTH_SOCK=~/Library/Group\ Containers/2BUA8C4S2C.com.1password/t/agent.sock
 
 # workaround for puppeteer on m1 mac
 # See: https://github.com/puppeteer/puppeteer/issues/6622#issuecomment-788199984
@@ -326,16 +318,9 @@ eval "$(gh completion -s zsh)"
 autoload -Uz compinit
 compinit
 
-# 1password
-eval "$(op completion zsh)"; compdef _op op
 
-limactl completion zsh > "$(brew --prefix)/share/zsh/site-functions/_limactl"
 poetry completions zsh > ~/.zsh/completion/_poetry
 
-# pyenv
-export PYENV_ROOT="$HOME/.pyenv"
-command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
-eval "$(pyenv init -)"
 
 if type brew &>/dev/null
 then
@@ -348,15 +333,36 @@ fi
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
 
-##################
-# auto ssh-agent #
-##################
-if [ -z "$SSH_AUTH_SOCK" ]; then
-  RUNNING_AGENT="`ps -ax | grep 'ssh-agent -s' | grep -v grep | wc -l | tr -d '[:space:]'`"
-  if [ "$RUNNING_AGENT" = "0" ]; then
-    echo "Launch a new instance of the agent"
-    ssh-agent -s &> ~/.ssh/ssh-agent > /dev/null
-    ssh-add > /dev/null
-  fi
-    eval `cat ~/.ssh/ssh-agent` > /dev/null
-fi
+#################
+# Depend on Env #
+#################
+# * homebrew ENV for Linux or WSL
+#! eval $(/home/linuxbrew/.linuxbrew/bin/brew shellenv)
+
+# *  for private PC
+# * kubeconfig
+#! kubeconfigs=$(echo ~/.kube/config.*)
+#! export KUBECONFIG=${KUBECONFIG}:$(echo ${kubeconfigs// /:})
+
+# * auto ssh-agent for privatePC
+#! if [ -z "$SSH_AUTH_SOCK" ]; then
+#!   RUNNING_AGENT="`ps -ax | grep 'ssh-agent -s' | grep -v grep | wc -l | tr -d '[:space:]'`"
+#!   if [ "$RUNNING_AGENT" = "0" ]; then
+#!     echo "Launch a new instance of the agent"
+#!     ssh-agent -s &> ~/.ssh/ssh-agent > /dev/null
+#!     ssh-add > /dev/null
+#!   fi
+#!     eval `cat ~/.ssh/ssh-agent` > /dev/null
+#! fi
+
+# * pyenv
+#! export PYENV_ROOT="$HOME/.pyenv"
+#! command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
+#! eval "$(pyenv init -)"
+
+# * limactl
+#! limactl completion zsh > "$(brew --prefix)/share/zsh/site-functions/_limactl"
+
+# * 1password
+#! eval "$(op completion zsh)"; compdef _op op
+#! export SSH_AUTH_SOCK=~/Library/Group\ Containers/2BUA8C4S2C.com.1password/t/agent.sock
