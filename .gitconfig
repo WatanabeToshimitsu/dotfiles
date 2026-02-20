@@ -1,6 +1,8 @@
 [user]
-	email = kz86nu@gmail.com
-	name = Toshimitsu Watanabe
-
-[ghq]
-	user = WatanabeToshimitsu
+	name = WatanabeToshimitsu
+	email = toshimitsu.watanabe@hdwlab.co.jp
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
