@@ -9,9 +9,10 @@ echo "----------------------------------------------"
 echo "Run apt/yum update..."
 echo "----------------------------------------------"
 apt-get update -y || yum update -y || dnf update -y
-rm /var/lib/dpkg/lock
-rm /var/lib/dpkg/lock-frontend
-rm /var/cache/apt/archives/lock
+# Remove stale lock files if they exist (only needed when previous apt was interrupted)
+[ -f /var/lib/dpkg/lock ] && sudo rm -f /var/lib/dpkg/lock
+[ -f /var/lib/dpkg/lock-frontend ] && sudo rm -f /var/lib/dpkg/lock-frontend
+[ -f /var/cache/apt/archives/lock ] && sudo rm -f /var/cache/apt/archives/lock
 
 if [ $WHO != "root" ]; then
   echo "----------------------------------------------"
@@ -44,7 +45,6 @@ function installApps() {
   apps=(
     locales-all
     build-essential
-    cat
     curl
     file
     git
@@ -116,23 +116,36 @@ fi
 
 ln -fs ~/dotfiles/.* ~/
 
-git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
-~/.fzf/install --all
+# Install fzf (prefer brew, fallback to git clone)
+if ! which fzf > /dev/null 2>&1; then
+  if which brew > /dev/null 2>&1; then
+    brew install fzf
+  else
+    git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
+    ~/.fzf/install --all
+  fi
+fi
 
-TEST_GHQ=$(which ghq)
-GO_BIN_DIR=~/go/bin
-if [ ! $TEST_GHQ ]; then
+# Install ghq (prefer brew, fallback to latest release binary)
+if ! which ghq > /dev/null 2>&1; then
   echo "----------------------------------------------"
   echo "install ghq"
   echo "----------------------------------------------"
-  GHQ_BUILD_DIR=~/.ghq-build
-  mkdir -p $GHQ_BUILD_DIR
-  cd $GHQ_BUILD_DIR || exit
-  curl -OL https://github.com/x-motemen/ghq/releases/download/v1.1.7/ghq_linux_amd64.zip
-  unzip ghq_linux_amd64.zip
-  mkdir -p $GO_BIN_DIR
-  mv ${GHQ_BUILD_DIR}/ghq_linux_amd64/ghq $GO_BIN_DIR
-  rm -fr GHQ_BUILD_DIR
+  if which brew > /dev/null 2>&1; then
+    brew install ghq
+  else
+    GO_BIN_DIR=~/go/bin
+    GHQ_BUILD_DIR=~/.ghq-build
+    GHQ_VERSION=$(curl -s https://api.github.com/repos/x-motemen/ghq/releases/latest | grep '"tag_name"' | sed -E 's/.*"v([^"]+)".*/\1/')
+    mkdir -p "$GHQ_BUILD_DIR"
+    cd "$GHQ_BUILD_DIR" || exit
+    curl -OL "https://github.com/x-motemen/ghq/releases/download/v${GHQ_VERSION}/ghq_linux_amd64.zip"
+    unzip ghq_linux_amd64.zip
+    mkdir -p "$GO_BIN_DIR"
+    mv "${GHQ_BUILD_DIR}/ghq_linux_amd64/ghq" "$GO_BIN_DIR"
+    rm -fr "$GHQ_BUILD_DIR"
+    cd ~ || exit
+  fi
 fi
 
 TEST_GHCLI=$(which gh)
@@ -142,8 +155,9 @@ if [ ! $TEST_GHCLI ]; then
   echo "----------------------------------------------"
   if [ $TEST_APT ]; then
     apt-get install -y software-properties-common
-    apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0
-    apt-add-repository https://cli.github.com/packages
+    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+    sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
     apt-get update
     apt-get install -y gh
   elif [ $TEST_DNF ]; then

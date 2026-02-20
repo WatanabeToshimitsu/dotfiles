@@ -127,7 +127,6 @@ export PATH=$PATH:/usr/local/go/bin
 export PATH=$PATH:$HOME/go/bin
 
 export PATH="$PATH:/usr/local/bin/istio-1.7.4/bin"
-export PATH=$PATH:$HOME/.fzf/bin
 export PATH="$HOME/utils:$PATH"
 export PATH="$HOME/.deno/bin:$PATH"
 export PATH="/Users/kz86n/.local/bin:$PATH"
