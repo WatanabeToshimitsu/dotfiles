@@ -77,7 +77,7 @@ unsetopt beep
 unsetopt completealiases      # こいつがONだとaliasに補完が付かない
 
 # chpwd() exa --git --icons --classify --group-directories-first --color-scale
-chpwd() lsd
+chpwd() { command -v lsd &>/dev/null && lsd || ls; }
 
 ###############
 #   ZSTYLE    #
@@ -412,16 +412,18 @@ git-branch-prune() {
 # * alias
 alias vi='/usr/bin/vim'
 
-alias ls='lsd'
-alias l='ls -l'
-alias la='ls -a'
-alias lla='ls -la'
-alias lt='ls --tree'
-alias tree='ls --tree'
+if command -v lsd &>/dev/null; then
+  alias ls='lsd'
+  alias l='ls -l'
+  alias la='ls -a'
+  alias lla='ls -la'
+  alias lt='ls --tree'
+  alias tree='ls --tree'
+fi
 
-alias cat='bat --paging=never'
+command -v bat &>/dev/null && alias cat='bat --paging=never'
 
-alias grep='rg'
+command -v rg &>/dev/null && alias grep='rg'
 
 alias bd='cd ..' # * need enhancd
 
@@ -456,7 +458,7 @@ alias ghq-rm='ghq-rm.sh'
 mkdir -p ~/.zsh/completion
 fpath=(~/.zsh/completion $fpath)
 
-eval "$(gh completion -s zsh)"
+command -v gh &>/dev/null && eval "$(gh completion -s zsh)"
 
 if type brew &>/dev/null
 then
@@ -466,7 +468,7 @@ fi
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
-eval "$(wtp shell-init zsh)"
+command -v wtp &>/dev/null && eval "$(wtp shell-init zsh)"
 
 #################
 # Depend on Env #
@@ -478,24 +480,10 @@ kubeconfigs=$(echo ~/.kube/config.*)
 export KUBECONFIG=${KUBECONFIG}:$(echo ${kubeconfigs// /:})
 
 # * 1password
-export SSH_AUTH_SOCK=~/Library/Group\ Containers/2BUA8C4S2C.com.1password/t/agent.sock
+[[ -S "$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock" ]] && \
+  export SSH_AUTH_SOCK="$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
 
-source /Users/kz86n/.docker/init-zsh.sh || true # Added by Docker Desktop
-
-# Herd injected PHP binary.
-export PATH="/Users/kz86n/Library/Application Support/Herd/bin/":$PATH
-
-
-# Herd injected PHP 8.2 configuration.
-export HERD_PHP_82_INI_SCAN_DIR="/Users/kz86n/Library/Application Support/Herd/config/php/82/"
-
-# opam configuration
-[[ ! -r /Users/kz86n/.opam/opam-init/init.zsh ]] || source /Users/kz86n/.opam/opam-init/init.zsh  > /dev/null 2> /dev/null
-
-# python bin script
-# export PATH=$(dirname $(dirname $(dirname $(python3 -m site --user-site))))/bin:\${PATH}
-
-export PATH=/Users/kz86n/Library/Python/3.10/bin:${PATH}
+[[ -f "$HOME/.docker/init-zsh.sh" ]] && source "$HOME/.docker/init-zsh.sh"
 # export PYENV_ROOT="$HOME/.pyenv"
 # command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
 # eval "$(pyenv init -)"
@@ -513,12 +501,12 @@ python() {
   python "$@"
 }
 
-alias rm='safe-rm'
+command -v safe-rm &>/dev/null && alias rm='safe-rm'
 export PATH="$HOME/.local/bin:$PATH"
 
 # oh-my-posh prompt theming
-eval "$(oh-my-posh init zsh --config ~/oh-my-posh-theme/myconfig.omp.json)"
+command -v oh-my-posh &>/dev/null && eval "$(oh-my-posh init zsh --config ~/oh-my-posh-theme/myconfig.omp.json)"
 
 # Claude experimental agent teams feature
 export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
-source ~/.safe-chain/scripts/init-posix.sh # Safe-chain Zsh initialization script
+[[ -f ~/.safe-chain/scripts/init-posix.sh ]] && source ~/.safe-chain/scripts/init-posix.sh

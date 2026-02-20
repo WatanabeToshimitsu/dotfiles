@@ -12,8 +12,8 @@ This is a personal dotfiles repository that manages shell configurations, editor
 - **Editor configs**: `.vimrc`, `.tmux.conf`
 - **Utilities**: `.shell-utils/` contains helper scripts (`ghq-rm.sh`, `zsh-history-substrig-search.zsh`)
 - **Package management**: `Brewfile` for Homebrew dependencies
-- **Setup**: `install.sh` for initial environment provisioning (Linux-focused, installs brew, tools, symlinks dotfiles)
-- **Devcontainer**: `devcontainer-template/` has VS Code devcontainer boilerplate for Python projects
+- **Prompt theme**: `oh-my-posh-theme/` contains the oh-my-posh configuration
+- **Setup**: `install.sh` for environment provisioning (macOS and Linux), installs tools and symlinks dotfiles
 
 ## Key Design Decisions
 
@@ -23,21 +23,18 @@ This is a personal dotfiles repository that manages shell configurations, editor
 - **Python version manager**: pyenv with lazy initialization (unfunction pattern to defer `pyenv init`)
 - **Fuzzy finder**: fzf integrated with ripgrep (`rg`) for file search, bat for preview
 - **Directory navigation**: enhancd plugin + cd-gitroot + ghq for repository management
-- **Modern CLI replacements**: `lsd` (ls), `bat` (cat), `rg` (grep)
-- **SSH**: 1Password SSH agent (`SSH_AUTH_SOCK` points to 1Password agent socket)
-- **Symlink strategy**: `install.sh` uses `ln -fs ~/dotfiles/.* ~/` to link all dotfiles
+- **Modern CLI replacements**: `lsd` (ls), `bat` (cat), `rg` (grep) — all guarded with `command -v` checks
+- **SSH**: 1Password SSH agent (`SSH_AUTH_SOCK` points to 1Password agent socket, guarded with socket existence check)
+- **Symlink strategy**: `install.sh` uses an explicit file list (not `.*` glob) to avoid linking `.git`, `.claude`, etc.
 
 ## Commands
 
 ```bash
-# Install dotfiles to a new environment (Linux)
+# Install dotfiles to a new environment (macOS or Linux)
 bash install.sh
 
-# Install Homebrew packages (macOS)
-brew bundle --file=Brewfile
-
 # Apply dotfile changes (re-symlink)
-ln -fs ~/dotfiles/.* ~/
+bash install.sh
 ```
 
 ## Conventions
@@ -47,3 +44,4 @@ ln -fs ~/dotfiles/.* ~/
 - Environment-specific configs (private PC, work) are kept at the bottom of `.zshrc` under "Depend on Env" section
 - Git aliases use short prefixes: `g`=git, `gb`=branch, `gpl`=pull, `gps`=push, `gco`=checkout
 - The `git-branch-prune` function handles both traditional merge and squash-merge cleanup via `gh` CLI
+- All tool-dependent aliases use `command -v` guards so `.zshrc` loads safely without those tools installed

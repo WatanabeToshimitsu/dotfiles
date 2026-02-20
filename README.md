@@ -12,13 +12,13 @@ Personal dotfiles for macOS, Linux, and WSL2 environments.
 | `.tmux.conf` | tmux settings (prefix: `C-j`, vim-style keybindings) |
 | `.zprofile` / `.zshenv` / `.profile` | Shell profile and environment files |
 | `.shell-utils/` | Utility scripts (e.g. `ghq-rm.sh`) |
+| `oh-my-posh-theme/` | oh-my-posh prompt theme configuration |
 | `Brewfile` | Homebrew dependencies |
-| `install.sh` | Environment setup script for Linux |
-| `devcontainer-template/` | VS Code devcontainer boilerplate |
+| `install.sh` | Environment setup script for macOS and Linux |
 
 ## Setup
 
-### Linux / WSL2
+### macOS / Linux / WSL2
 
 ```bash
 git clone https://github.com/WatanabeToshimitsu/dotfiles.git ~/dotfiles
@@ -28,19 +28,9 @@ bash install.sh
 
 `install.sh` will:
 
-1. Install Homebrew (for non-root users)
-2. Install essential packages (git, vim, zsh, tmux, fzf, ghq, gh, etc.)
-3. Symlink dotfiles to `~/`
-4. Install fzf
-
-### macOS
-
-```bash
-git clone https://github.com/WatanabeToshimitsu/dotfiles.git ~/dotfiles
-cd ~/dotfiles
-ln -fs ~/dotfiles/.* ~/
-brew bundle --file=Brewfile
-```
+1. **macOS**: Install Homebrew (if needed), run `brew bundle`, and create symlinks
+2. **Linux**: Install packages via apt/yum/dnf (and Homebrew for non-root users), then create symlinks
+3. Symlink only specific dotfiles (not `.git`, `.claude`, etc.) to `~/`
 
 ## Key Tools
 
