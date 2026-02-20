@@ -2,7 +2,7 @@
 
 if [[ -z "$FILTER" ]]; then
         FILTER=$(git config --global aux.filter)
-        FILTER=${FILTER:-fzf}
+        FILTER=${FILTER:-fzf --multi}
 fi
 
 ask_yn() {
@@ -70,7 +70,7 @@ rm_each_repo() {
 }
 
 main() {
-        rm_each_repo 3 3< <(ghq list -p | "$FILTER")
+        rm_each_repo 3 3< <(ghq list -p | $FILTER)
 }
 
 main

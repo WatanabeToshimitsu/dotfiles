@@ -1,10 +1,3 @@
-# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
-# Initialization code that may require console input (password prompts, [y/n]
-# confirmations, etc.) must go above this block; everything else may go below.
-if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
-fi
-
 # Added by Zinit's installer
 if [[ ! -f $HOME/.local/share/zinit/zinit.git/zinit.zsh ]]; then
     print -P "%F{33} %F{220}Installing %F{33}ZDHARMA-CONTINUUM%F{220} Initiative Plugin Manager (%F{33}zdharma-continuum/zinit%F{220})…%f"
@@ -18,6 +11,9 @@ source "$HOME/.local/share/zinit/zinit.git/zinit.zsh"
 autoload -Uz _zinit
 (( ${+_comps} )) && _comps[zinit]=_zinit
 
+autoload -Uz compinit
+compinit -C
+
 # Load a few important annexes, without Turbo
 # (this is currently required for annexes)
 zinit light-mode for \
@@ -28,7 +24,6 @@ zinit light-mode for \
 
 # End of Zinit's installer chunk
 
-# power10k: rich and fast prompt
 # enhancd: fuzzy find cd "cd .." and "cd" and "cd -" is useful!
 # git-open: when on local git repository, git-open is open remote repository on github(* not gitlab etc)
 # anyframe: some convinient func
@@ -37,9 +32,8 @@ zinit light-mode for \
 # manydots: comvertor manydots to parent directry on interactive shell e.g. ... -> ../..
 # zsh-completion: slow but rich kubectl completion
 
-zinit ice depth=1; zinit load romkatv/powerlevel10k
 zinit wait"0a" lucid for \
-    atinit"ZINIT[COMPINIT_OPTS]=-C; zicompinit; zicdreplay" \
+    atinit"zicdreplay" \
         zdharma/fast-syntax-highlighting \
     blockf \
         zsh-users/zsh-completions \
@@ -149,10 +143,7 @@ export PATH="$HOME/.shell-utils:$PATH"
 export COMPOSE_DOCKER_CLI_BUILD=1
 export DOCKER_BUILDKIT=1
 
-
 export OPEN_BY_MY_EDITOR='code'
-
-
 
 # java
 export PATH="/opt/homebrew/opt/openjdk/bin:$PATH"
@@ -208,7 +199,7 @@ fi
 
 # git prune
 git-branch-prune() {
-    PROTECT_BRANCHES='master|develop'
+    PROTECT_BRANCHES='master|develop|trunk|main|staging|production|release'
 
     if [ -z "$1" ]; then
         :
@@ -217,50 +208,204 @@ git-branch-prune() {
     fi
 
     echo "fetching..."
-    git fetch
+    git fetch --prune
+
+    # メインブランチを特定（origin/プレフィックス付きで取得）
+    MAIN_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/@@')
+    if [ -z "$MAIN_BRANCH" ]; then
+        # HEAD が設定されていない場合は候補から検索（ローカルまたはリモート）
+        for branch in trunk main master; do
+            if git show-ref --verify --quiet refs/heads/$branch; then
+                MAIN_BRANCH=$branch
+                break
+            elif git show-ref --verify --quiet refs/remotes/origin/$branch; then
+                MAIN_BRANCH="origin/$branch"
+                break
+            fi
+        done
+    fi
+
+    if [ -z "$MAIN_BRANCH" ]; then
+        echo "Error: Could not determine main branch"
+        return 1
+    fi
+
+    echo "Using main branch: $MAIN_BRANCH"
+
+    # 1. 従来の方法: git branch --merged で検出（メインブランチに対して）
+    echo
+    echo "=== Checking merged branches (traditional merge) ==="
+    MERGED_BRANCHES=""
+    git branch --merged "$MAIN_BRANCH" 2>/dev/null | while read branch; do
+        branch=$(echo "$branch" | sed 's/^[[:space:]]*\*[[:space:]]*//' | sed 's/^[[:space:]]*//')
+        if [ -n "$branch" ]; then
+            # 保護ブランチかチェック
+            is_protected=0
+            for protected in master develop trunk main staging production release; do
+                if [ "$branch" = "$protected" ]; then
+                    is_protected=1
+                    break
+                fi
+            done
+            if [ $is_protected -eq 0 ]; then
+                MERGED_BRANCHES="${MERGED_BRANCHES}${branch}"$'\n'
+            fi
+        fi
+    done
+    echo "Found $(echo "$MERGED_BRANCHES" | sed '/^$/d' | wc -l | tr -d ' ') branches"
+
+    # 2. GitHub CLI: マージ済みPRからブランチを検出
+    echo "=== Checking merged PRs (including squash merge) ==="
+    MERGED_PR_BRANCHES=""
+    if command -v gh &> /dev/null; then
+        gh pr list --state merged --limit 1000 --json headRefName --jq '.[].headRefName' 2>/dev/null | while read branch; do
+            if [ -z "$branch" ]; then
+                continue
+            fi
+            # ローカルブランチとして存在するかチェック
+            if git show-ref --verify --quiet refs/heads/"$branch"; then
+                # 保護ブランチかチェック
+                is_protected=0
+                for protected in master develop trunk main staging production release; do
+                    if [ "$branch" = "$protected" ]; then
+                        is_protected=1
+                        break
+                    fi
+                done
+                if [ $is_protected -eq 0 ]; then
+                    MERGED_PR_BRANCHES="${MERGED_PR_BRANCHES}${branch}"$'\n'
+                fi
+            fi
+        done
+        echo "Found $(echo "$MERGED_PR_BRANCHES" | sed '/^$/d' | wc -l | tr -d ' ') branches from merged PRs"
+    else
+        echo "Warning: gh command not found. Squash-merged branches may not be detected."
+    fi
+
+    # 3. 両方の結果を統合（重複排除）
+    DELETE_BRANCHES=$(echo -e "${MERGED_BRANCHES}\n${MERGED_PR_BRANCHES}" | sort -u | sed '/^$/d')
+
+    # 4. 現在進行中のブランチ（remained branches）を取得
+    REMAINED_BRANCHES=""
+    ALL_BRANCHES=$(git branch 2>/dev/null | sed 's/^[[:space:]]*\*[[:space:]]*//' | sed 's/^[[:space:]]*//')
+    for branch in ${(f)ALL_BRANCHES}; do
+        if [ -z "$branch" ]; then
+            continue
+        fi
+        # 保護ブランチかチェック
+        is_protected=0
+        for protected in master develop trunk main staging production release; do
+            if [ "$branch" = "$protected" ]; then
+                is_protected=1
+                break
+            fi
+        done
+        # 削除対象かチェック
+        is_to_delete=0
+        for del_branch in ${(f)DELETE_BRANCHES}; do
+            if [ "$branch" = "$del_branch" ]; then
+                is_to_delete=1
+                break
+            fi
+        done
+        if [ $is_protected -eq 0 ] && [ $is_to_delete -eq 0 ]; then
+            REMAINED_BRANCHES="${REMAINED_BRANCHES}${branch}"$'\n'
+        fi
+    done
+
+    # 表示
+    echo
+    echo "=== Branches to be deleted ($(echo "$DELETE_BRANCHES" | sed '/^$/d' | wc -l | tr -d ' ') total) ==="
+    if [ -n "$DELETE_BRANCHES" ]; then
+        echo "$DELETE_BRANCHES"
+    else
+        echo "(none)"
+    fi
 
     echo
-    echo "=== to be deleted ==="
-
-    DELETE_BRANCH=`git branch -a --merged | egrep -v "\*|${PROTECT_BRANCHES}"`
-    echo ${DELETE_BRANCH}
+    echo "=== Protected branches ==="
+    git branch 2>/dev/null | while read branch; do
+        branch=$(echo "$branch" | sed 's/^[[:space:]]*\*[[:space:]]*//' | sed 's/^[[:space:]]*//')
+        for protected in master develop trunk main staging production release; do
+            if [ "$branch" = "$protected" ]; then
+                current_marker=""
+                git branch | command grep "^\* $branch" > /dev/null 2>&1 && current_marker="* "
+                echo "${current_marker}${branch}"
+                break
+            fi
+        done
+    done
 
     echo
-    echo "=== to be protected ( regex: ${PROTECT_BRANCHES} )==="
-    git branch -a --merged | egrep "\*|${PROTECT_BRANCHES}"
+    echo "=== Remained branches (in progress, $(echo "$REMAINED_BRANCHES" | sed '/^$/d' | wc -l | tr -d ' ') total) ==="
+    if [ -n "$REMAINED_BRANCHES" ] && [ "$(echo "$REMAINED_BRANCHES" | sed '/^$/d' | wc -l)" -gt 0 ]; then
+        echo "$REMAINED_BRANCHES" | sed '/^$/d'
+    else
+        echo "(none)"
+    fi
+
+    if [ -z "$DELETE_BRANCHES" ]; then
+        echo
+        echo "No branches to delete."
+        return 0
+    fi
 
     echo
-    echo "delete branches?(y/N): "
+    echo "Delete these branches? (y/N): "
 
     if read -q; then
         echo
-        echo "deleting..."
-        git fetch --prune
-        git branch --merged | egrep -v "\*|${PROTECT_BRANCHES}" | xargs git branch -d
+        echo "Deleting..."
+        FAILED_BRANCHES=()
+        for branch in ${(f)DELETE_BRANCHES}; do
+            if [ -z "$branch" ]; then
+                continue
+            fi
+
+            # PR検出ブランチかチェック（スカッシュマージ対応）
+            is_pr_branch=0
+            for pr_branch in ${(f)MERGED_PR_BRANCHES}; do
+                if [ "$branch" = "$pr_branch" ]; then
+                    is_pr_branch=1
+                    break
+                fi
+            done
+
+            if [ $is_pr_branch -eq 1 ]; then
+                # GitHub PR経由で検出されたブランチは強制削除（スカッシュマージ済み）
+                if git branch -D "$branch" 2>/dev/null; then
+                    echo "✓ Deleted (force): $branch"
+                else
+                    echo "✗ Failed to delete: $branch"
+                    echo "  Reason: $(git branch -D "$branch" 2>&1)"
+                    FAILED_BRANCHES+=("$branch")
+                fi
+            else
+                # 通常マージ検出のブランチは安全な削除
+                if git branch -d "$branch" 2>/dev/null; then
+                    echo "✓ Deleted: $branch"
+                else
+                    echo "✗ Failed to delete: $branch"
+                    echo "  Reason: $(git branch -d "$branch" 2>&1)"
+                    FAILED_BRANCHES+=("$branch")
+                fi
+            fi
+        done
+
+        if [ ${#FAILED_BRANCHES[@]} -gt 0 ]; then
+            echo
+            echo "Some branches could not be deleted. You can manually delete them with:"
+            for branch in "${FAILED_BRANCHES[@]}"; do
+                echo "  git branch -D $branch"
+            done
+        fi
+
+        echo "Done!"
     else
         echo
-        echo "bye!"
+        echo "Cancelled."
     fi
 }
-
-# create repository by github cli
-gh-create-repository() {
-    if [ -z "$1" ]; then
-        echo "please specify repository"
-        exit 1
-    else
-        :
-    fi
-
-    echo $@
-    gh repo create $@
-    ghq get $1
-    code $(ghq list --full-path -e $1)
-
-}
-
-# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
-[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
 #####################
 # ALIASES           #
@@ -277,7 +422,7 @@ alias tree='ls --tree'
 
 alias cat='bat --paging=never'
 
-alias grep='ripgrep'
+alias grep='rg'
 
 alias bd='cd ..' # * need enhancd
 
@@ -314,55 +459,67 @@ fpath=(~/.zsh/completion $fpath)
 
 eval "$(gh completion -s zsh)"
 
-# load compinit func (func is not automatically loaded)
-autoload -Uz compinit
-compinit
-
-
-poetry completions zsh > ~/.zsh/completion/_poetry
-
-
 if type brew &>/dev/null
 then
-  FPATH="$(brew --prefix)/share/zsh/site-functions:${FPATH}"
-
-  autoload -Uz compinit
-  compinit
+#   FPATH="$(brew --prefix)/share/zsh/site-functions:${FPATH}"
+  FPATH="/opt/homebrew/share/zsh/site-functions:${FPATH}"
 fi
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
+eval "$(wtp shell-init zsh)"
 
 #################
 # Depend on Env #
 #################
-# * homebrew ENV for Linux or WSL
-#! eval $(/home/linuxbrew/.linuxbrew/bin/brew shellenv)
-
 # *  for private PC
 # * kubeconfig
-#! kubeconfigs=$(echo ~/.kube/config.*)
-#! export KUBECONFIG=${KUBECONFIG}:$(echo ${kubeconfigs// /:})
-
-# * auto ssh-agent for privatePC
-#! if [ -z "$SSH_AUTH_SOCK" ]; then
-#!   RUNNING_AGENT="`ps -ax | grep 'ssh-agent -s' | grep -v grep | wc -l | tr -d '[:space:]'`"
-#!   if [ "$RUNNING_AGENT" = "0" ]; then
-#!     echo "Launch a new instance of the agent"
-#!     ssh-agent -s &> ~/.ssh/ssh-agent > /dev/null
-#!     ssh-add > /dev/null
-#!   fi
-#!     eval `cat ~/.ssh/ssh-agent` > /dev/null
-#! fi
-
-# * pyenv
-#! export PYENV_ROOT="$HOME/.pyenv"
-#! command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
-#! eval "$(pyenv init -)"
-
-# * limactl
-#! limactl completion zsh > "$(brew --prefix)/share/zsh/site-functions/_limactl"
+export KUBECONFIG=$KUBECONFIG:$HOME/.kube/config
+kubeconfigs=$(echo ~/.kube/config.*)
+export KUBECONFIG=${KUBECONFIG}:$(echo ${kubeconfigs// /:})
 
 # * 1password
-#! eval "$(op completion zsh)"; compdef _op op
-#! export SSH_AUTH_SOCK=~/Library/Group\ Containers/2BUA8C4S2C.com.1password/t/agent.sock
+export SSH_AUTH_SOCK=~/Library/Group\ Containers/2BUA8C4S2C.com.1password/t/agent.sock
+
+source /Users/kz86n/.docker/init-zsh.sh || true # Added by Docker Desktop
+
+# Herd injected PHP binary.
+export PATH="/Users/kz86n/Library/Application Support/Herd/bin/":$PATH
+
+
+# Herd injected PHP 8.2 configuration.
+export HERD_PHP_82_INI_SCAN_DIR="/Users/kz86n/Library/Application Support/Herd/config/php/82/"
+
+# opam configuration
+[[ ! -r /Users/kz86n/.opam/opam-init/init.zsh ]] || source /Users/kz86n/.opam/opam-init/init.zsh  > /dev/null 2> /dev/null
+
+# python bin script
+# export PATH=$(dirname $(dirname $(dirname $(python3 -m site --user-site))))/bin:\${PATH}
+
+export PATH=/Users/kz86n/Library/Python/3.10/bin:${PATH}
+# export PYENV_ROOT="$HOME/.pyenv"
+# command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
+# eval "$(pyenv init -)"
+
+export PYENV_ROOT="$HOME/.pyenv"
+export PATH="$PYENV_ROOT/bin:$PATH"
+pyenv() {
+  unfunction pyenv
+  eval "$(command pyenv init -)"
+  pyenv "$@"
+}
+python() {
+  unfunction python pyenv
+  eval "$(command pyenv init -)"
+  python "$@"
+}
+
+alias rm='safe-rm'
+export PATH="$HOME/.local/bin:$PATH"
+
+# oh-my-posh prompt theming
+eval "$(oh-my-posh init zsh --config ~/oh-my-posh-theme/myconfig.omp.json)"
+
+# Claude experimental agent teams feature
+export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+source ~/.safe-chain/scripts/init-posix.sh # Safe-chain Zsh initialization script
