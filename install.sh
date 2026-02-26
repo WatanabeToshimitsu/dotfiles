@@ -71,6 +71,7 @@ setup_symlinks() {
     .zshrc .bashrc .bash_profile .bash_logout
     .profile .zprofile .zshenv
     .vimrc .tmux.conf .gitconfig
+    .huskyrc .npmrc
   )
 
   echo "----------------------------------------------"
@@ -79,6 +80,21 @@ setup_symlinks() {
 
   for file in "${files[@]}"; do
     if [ -f "$dotfiles_dir/$file" ]; then
+      ln -fs "$dotfiles_dir/$file" "$HOME/$file"
+      echo "  linked: $file"
+    fi
+  done
+
+  # .config/ subdirectory files (create parent dirs, then symlink individual files)
+  local config_files=(
+    .config/git/ignore
+    .config/gh/config.yml
+    .config/ghostty/config
+  )
+
+  for file in "${config_files[@]}"; do
+    if [ -f "$dotfiles_dir/$file" ]; then
+      mkdir -p "$HOME/$(dirname "$file")"
       ln -fs "$dotfiles_dir/$file" "$HOME/$file"
       echo "  linked: $file"
     fi
