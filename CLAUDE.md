@@ -13,6 +13,7 @@ This is a personal dotfiles repository that manages shell configurations, editor
 - **Utilities**: `.shell-utils/` contains helper scripts (`ghq-rm.sh`, `zsh-history-substrig-search.zsh`)
 - **Package management**: `Brewfile` for Homebrew dependencies
 - **Prompt theme**: `oh-my-posh-theme/` contains the oh-my-posh configuration
+- **Claude Code config**: `claude/` contains global Claude Code settings, hooks, and rules (file-level symlinks to `~/.claude/`)
 - **Setup**: `install.sh` for environment provisioning (macOS and Linux), installs tools and symlinks dotfiles
 
 ## Key Design Decisions
@@ -25,6 +26,7 @@ This is a personal dotfiles repository that manages shell configurations, editor
 - **Directory navigation**: enhancd plugin + cd-gitroot + ghq for repository management
 - **Modern CLI replacements**: `lsd` (ls), `bat` (cat), `rg` (grep) — all guarded with `command -v` checks
 - **SSH**: 1Password SSH agent (`SSH_AUTH_SOCK` points to 1Password agent socket, guarded with socket existence check)
+- **Claude Code config**: Stored in `claude/` (not `.claude/`) to avoid project-level config conflict. File-level symlinks to `~/.claude/`
 - **Symlink strategy**: `install.sh` uses an explicit file list (not `.*` glob) to avoid linking `.git`, `.claude`, etc.
 
 ## Commands

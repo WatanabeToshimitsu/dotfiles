@@ -12,6 +12,8 @@ Personal dotfiles for macOS, Linux, and WSL2 environments.
 | `.tmux.conf` | tmux settings (prefix: `C-j`, vim-style keybindings) |
 | `.zprofile` / `.zshenv` / `.profile` | Shell profile and environment files |
 | `.shell-utils/` | Utility scripts (e.g. `ghq-rm.sh`) |
+| `claude/` | [Claude Code](https://claude.ai/code) global settings, hooks, and rules |
+| `.config/` | XDG-compliant configs (git, gh, ghostty) |
 | `oh-my-posh-theme/` | oh-my-posh prompt theme configuration |
 | `Brewfile` | Homebrew dependencies |
 | `install.sh` | Environment setup script for macOS and Linux |
@@ -50,3 +52,17 @@ bash install.sh
 | `gcode` | Open a ghq-managed repository in VS Code via fzf |
 | `gb-prune` | Clean up merged branches (supports squash merge via `gh` CLI) |
 | `ghq-rm` | Remove a ghq-managed repository interactively |
+
+## Configuration Storage Strategy
+
+Configuration files are organized by target location:
+
+| Storage Location | Target | Strategy |
+|---|---|---|
+| Root dotfiles (`.zshrc`, `.vimrc`, etc.) | `~/` | Direct symlink |
+| `.config/` | `~/.config/` | XDG Base Directory mirror |
+| `claude/` | `~/.claude/` | Per-CLI directory (non-XDG tool) |
+| `oh-my-posh-theme/` | `~/oh-my-posh-theme/` | Direct directory symlink |
+| `.shell-utils/` | `~/.shell-utils/` | Direct directory symlink |
+
+**Principle**: Follow XDG Base Directory Specification (`.config/`) by default. For CLI tools that do not respect XDG paths, create a dedicated top-level directory named after the tool (e.g., `claude/` for `~/.claude/`).
