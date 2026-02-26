@@ -1,0 +1,22 @@
+# Ephemeral / auto-generated (DO NOT track)
+history.jsonl
+stats-cache.json
+settings.local.json
+cache/
+chrome/
+debug/
+file-history/
+ide/
+paste-cache/
+plans/
+plugins/
+projects/
+session-env/
+sessions/
+shell-snapshots/
+skills/
+statsig/
+tasks/
+teams/
+telemetry/
+todos/

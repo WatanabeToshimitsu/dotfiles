@@ -100,6 +100,29 @@ setup_symlinks() {
     fi
   done
 
+  # Claude Code global settings (claude/ → ~/.claude/)
+  local claude_files=(
+    CLAUDE.md
+    RTK.md
+    settings.json
+    statusline.sh
+    hooks/deny-check.sh
+    hooks/notification.sh
+    hooks/rtk-rewrite.sh
+    hooks/validate-bash.sh
+    rules/testing/vitest.md
+    rules/typescript/documentation.md
+    rules/typescript/type-safety.md
+  )
+
+  for file in "${claude_files[@]}"; do
+    if [ -f "$dotfiles_dir/claude/$file" ]; then
+      mkdir -p "$HOME/.claude/$(dirname "$file")"
+      ln -fs "$dotfiles_dir/claude/$file" "$HOME/.claude/$file"
+      echo "  linked: .claude/$file"
+    fi
+  done
+
   # .shell-utils directory
   ln -fs "$dotfiles_dir/.shell-utils" "$HOME/.shell-utils"
   echo "  linked: .shell-utils/"

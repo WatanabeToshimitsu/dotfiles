@@ -1,0 +1,293 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/statusline.sh"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(npm run test:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run format:*)",
+      "Bash(npm run lint)",
+      "Bash(npx eslint:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx vitest run:*)",
+      "Bash(npx prettier:*)",
+      "Bash(tee:*)",
+      "Bash(sort:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(git show:*)",
+      "Bash(gh api:*)",
+      "Bash(gh pr diff:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh pr view)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git log:*)",
+      "Bash(git status:*)",
+      "Bash(mkdir:*)",
+      "Bash(rg:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:gist.github.com)",
+      "WebFetch(domain:www.npmjs.com)",
+      "WebFetch(domain:stackoverflow.com)",
+      "WebFetch(domain:zenn.dev)",
+      "WebFetch(domain:docs.anthropic.com)",
+      "mcp__serena",
+      "mcp__chrome",
+      "mcp__github",
+      "mcp__context7"
+    ],
+    "deny": [
+      "Bash(rm -f *)",
+      "Bash(rmdir *)",
+      "Bash(shred *)",
+      "Bash(wipe *)",
+      "Bash(srm *)",
+      "Bash(dd *)",
+      "Bash(fdisk *)",
+      "Bash(parted *)",
+      "Bash(diskutil *)",
+      "Bash(chmod 777 *)",
+      "Bash(chmod -R *)",
+      "Bash(chown *)",
+      "Bash(chgrp *)",
+      "Bash(chflags *)",
+      "Bash(sudo *)",
+      "Bash(git reset --hard*)",
+      "Bash(git reset --merge*)",
+      "Bash(git checkout -- *)",
+      "Bash(git checkout .*)",
+      "Bash(git clean -f*)",
+      "Bash(git clean -d*)",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git branch -D *)",
+      "Bash(git stash drop*)",
+      "Bash(git stash clear*)",
+      "Bash(git restore .*)",
+      "Bash(git reflog expire*)",
+      "Bash(git gc --prune*)",
+      "Bash(git filter-branch*)",
+      "Bash(git update-ref -d *)",
+      "Bash(gh repo delete*)",
+      "Bash(gh pr close*)",
+      "Bash(gh pr merge*)",
+      "Bash(gh issue close*)",
+      "Bash(gh issue delete*)",
+      "Bash(gh release delete*)",
+      "Bash(gh repo archive*)",
+      "Bash(gh api -X DELETE*)",
+      "Bash(gh api --method DELETE*)",
+      "Bash(brew install *)",
+      "Bash(brew uninstall *)",
+      "Bash(brew remove *)",
+      "Bash(npm install -g *)",
+      "Bash(npm i -g *)",
+      "Bash(npm uninstall -g *)",
+      "Bash(npm rm -g *)",
+      "Bash(yarn global *)",
+      "Bash(pnpm add -g *)",
+      "Bash(pip install *)",
+      "Bash(pip uninstall *)",
+      "Bash(pip3 install *)",
+      "Bash(pip3 uninstall *)",
+      "Bash(gem install *)",
+      "Bash(gem uninstall *)",
+      "Bash(cargo install *)",
+      "Bash(go install *)",
+      "Bash(curl -X POST *)",
+      "Bash(curl -X PUT *)",
+      "Bash(curl -X DELETE *)",
+      "Bash(curl -X PATCH *)",
+      "Bash(curl -d *)",
+      "Bash(curl --data *)",
+      "Bash(curl -F *)",
+      "Bash(wget --post-data *)",
+      "Bash(wget --post-file *)",
+      "Bash(nc *)",
+      "Bash(ncat *)",
+      "Bash(netcat *)",
+      "Bash(nmap *)",
+      "Bash(ssh *)",
+      "Bash(scp *)",
+      "Bash(rsync --delete*)",
+      "Bash(sftp *)",
+      "Bash(socat *)",
+      "Bash(kill *)",
+      "Bash(killall *)",
+      "Bash(pkill *)",
+      "Bash(launchctl *)",
+      "Bash($0 &)",
+      "Bash(export PATH=*)",
+      "Bash(unset *)",
+      "Bash(eval *)",
+      "Bash(exec *)",
+      "Bash(crontab *)",
+      "Bash(at *)",
+      "Bash(docker system prune*)",
+      "Bash(docker volume prune*)",
+      "Bash(docker volume rm *)",
+      "Bash(docker rm -f *)",
+      "Bash(docker rmi *)",
+      "Bash(docker stop *)",
+      "Bash(docker kill *)",
+      "Bash(docker-compose down -v*)",
+      "Bash(docker compose down -v*)",
+      "Bash(kubectl delete *)",
+      "Bash(kubectl drain *)",
+      "Bash(aws ec2 terminate*)",
+      "Bash(aws s3 rm *)",
+      "Bash(aws s3 rb *)",
+      "Bash(psql -c *DROP*)",
+      "Bash(psql -c *TRUNCATE*)",
+      "Bash(mysql -e *DROP*)",
+      "Bash(mysql -e *TRUNCATE*)",
+      "Bash(mongosh --eval *drop*)",
+      "Bash(redis-cli FLUSHALL*)",
+      "Bash(redis-cli FLUSHDB*)",
+      "Bash(bash -c *)",
+      "Bash(sh -c *)",
+      "Bash(zsh -c *)",
+      "Bash(python -c *)",
+      "Bash(python3 -c *)",
+      "Bash(ruby -e *)",
+      "Bash(perl -e *)",
+      "Bash(node -e *)",
+      "Bash(php -r *)",
+      "Bash(curl * | bash*)",
+      "Bash(curl * | sh*)",
+      "Bash(wget * | bash*)",
+      "Bash(wget * | sh*)",
+      "Bash(curl * | sudo *)",
+      "Read(**/*.env*)",
+      "Read(**/*key)",
+      "Read(**/*.pem)",
+      "Read(**/*.p12)",
+      "Read(**/*.pfx)",
+      "Read(**/*credentials*)",
+      "Read(**/*secret*)",
+      "Read(**/*aws*)",
+      "Read(**/.ssh/*)",
+      "Read(**/.gnupg/*)",
+      "Read(**/.npmrc)",
+      "Read(**/.netrc)",
+      "Read(**/.gitconfig)",
+      "Read(**/*token*)",
+      "Read(**/*production*)",
+      "Read(id_ed25519)",
+      "Read(id_rsa)",
+      "Write(**/*.env*)",
+      "Write(**/*aws*)",
+      "Write(**/*key)",
+      "Write(**/*production*)",
+      "Write(**/*secrets*)",
+      "Write(**/*token*)",
+      "Write(id_ed25519)",
+      "Write(id_rsa)"
+    ],
+    "ask": [
+      "Bash(curl:*)",
+      "Bash(git checkout:*)",
+      "Bash(git config:*)",
+      "Bash(git push:*)",
+      "Bash(git rebase:*)",
+      "Bash(git reset:*)",
+      "Bash(git rm:*)",
+      "Bash(git switch:*)"
+    ],
+    "defaultMode": "default"
+  },
+  "sandbox": { "enabled": true, "autoAllowBashIfSandboxed": true },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path' | { read file_path; if echo \"$file_path\" | grep -q '\\.ts$'; then npx prettier --write \"$file_path\"; fi; }"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/deny-check.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/validate-bash.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/rtk-rewrite.sh"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/notification.sh"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/rtk-rewrite.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "code-simplifier@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true,
+    "pr-review-toolkit@claude-plugins-official": true,
+    "security-guidance@claude-plugins-official": true,
+    "everything-claude-code@everything-claude-code": true,
+    "feature-dev@claude-plugins-official": true,
+    "commit-commands@claude-plugins-official": true,
+    "superpowers@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true,
+    "claude-code-setup@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true,
+    "pyright-lsp@claude-plugins-official": true,
+    "gopls-lsp@claude-plugins-official": true,
+    "context7@claude-plugins-official": true,
+    "playwright@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true,
+    "serena@claude-plugins-official": true,
+    "github@claude-plugins-official": true
+  },
+  "language": "Japanese",
+  "syntaxHighlightingDisabled": false,
+  "alwaysThinkingEnabled": true
+}
