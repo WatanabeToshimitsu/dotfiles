@@ -1,4 +1,20 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+log_info()  { echo "[INFO]  $*"; }
+log_warn()  { echo "[WARN]  $*" >&2; }
+log_error() { echo "[ERROR] $*" >&2; }
+
+backup_if_real_file() {
+  local target="$1"
+  if [ -e "$target" ] && [ ! -L "$target" ]; then
+    local backup_dir="$HOME/.dotfiles-backup/$(date +%Y%m%d_%H%M%S)"
+    mkdir -p "$backup_dir"
+    mv "$target" "$backup_dir/$(basename "$target")"
+    log_info "Backed up $(basename "$target") to $backup_dir/"
+  fi
+}
+
 DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
 WHO=$(whoami)
 
@@ -15,10 +31,14 @@ installApp() {
   local manager=$1
   local app=$2
 
-  echo "----------------------------------------------"
-  echo "install ${app}"
-  echo "----------------------------------------------"
-  which "$app" || ${manager} install -y "$app"
+  log_info "----------------------------------------------"
+  log_info "install ${app}"
+  log_info "----------------------------------------------"
+  if command -v "$app" > /dev/null 2>&1; then
+    log_info "$app is already installed"
+  else
+    ${manager} install -y "$app"
+  fi
 }
 
 installApps() {
@@ -58,9 +78,9 @@ installAppsNeedsBrew() {
   )
 
   for app in "${apps[@]}"; do
-    echo "----------------------------------------------"
-    echo "install ${app}"
-    echo "----------------------------------------------"
+    log_info "----------------------------------------------"
+    log_info "install ${app}"
+    log_info "----------------------------------------------"
     installApp brew "$app"
   done
 }
@@ -74,12 +94,13 @@ setup_symlinks() {
     .huskyrc .npmrc
   )
 
-  echo "----------------------------------------------"
-  echo "Setting up symlinks..."
-  echo "----------------------------------------------"
+  log_info "----------------------------------------------"
+  log_info "Setting up symlinks..."
+  log_info "----------------------------------------------"
 
   for file in "${files[@]}"; do
     if [ -f "$dotfiles_dir/$file" ]; then
+      backup_if_real_file "$HOME/$file"
       ln -fs "$dotfiles_dir/$file" "$HOME/$file"
       echo "  linked: $file"
     fi
@@ -95,6 +116,7 @@ setup_symlinks() {
   for file in "${config_files[@]}"; do
     if [ -f "$dotfiles_dir/$file" ]; then
       mkdir -p "$HOME/$(dirname "$file")"
+      backup_if_real_file "$HOME/$file"
       ln -fs "$dotfiles_dir/$file" "$HOME/$file"
       echo "  linked: $file"
     fi
@@ -118,6 +140,7 @@ setup_symlinks() {
   for file in "${claude_files[@]}"; do
     if [ -f "$dotfiles_dir/claude/$file" ]; then
       mkdir -p "$HOME/.claude/$(dirname "$file")"
+      backup_if_real_file "$HOME/.claude/$file"
       ln -fs "$dotfiles_dir/claude/$file" "$HOME/.claude/$file"
       echo "  linked: .claude/$file"
     fi
@@ -125,21 +148,36 @@ setup_symlinks() {
 
   # Directory symlinks: use -n to avoid following existing symlinks into the target
   # and rm -rf guard for the case where a real (non-symlink) directory exists
-  [ -d "$HOME/.shell-utils" ] && [ ! -L "$HOME/.shell-utils" ] && rm -rf "$HOME/.shell-utils"
+  if [ -d "$HOME/.shell-utils" ] && [ ! -L "$HOME/.shell-utils" ]; then rm -rf "$HOME/.shell-utils"; fi
   ln -fsn "$dotfiles_dir/.shell-utils" "$HOME/.shell-utils"
   echo "  linked: .shell-utils/"
 
-  [ -d "$HOME/oh-my-posh-theme" ] && [ ! -L "$HOME/oh-my-posh-theme" ] && rm -rf "$HOME/oh-my-posh-theme"
+  if [ -d "$HOME/oh-my-posh-theme" ] && [ ! -L "$HOME/oh-my-posh-theme" ]; then rm -rf "$HOME/oh-my-posh-theme"; fi
   ln -fsn "$dotfiles_dir/oh-my-posh-theme" "$HOME/oh-my-posh-theme"
   echo "  linked: oh-my-posh-theme/"
+
+  # Validate symlinks
+  log_info "Validating symlinks..."
+  local errors=0
+  for file in "${files[@]}"; do
+    if [ -f "$dotfiles_dir/$file" ] && [ ! -L "$HOME/$file" ]; then
+      log_error "Symlink validation failed: $HOME/$file"
+      errors=$((errors + 1))
+    fi
+  done
+  if [ "$errors" -eq 0 ]; then
+    log_info "All symlinks validated successfully"
+  else
+    log_error "$errors symlink(s) failed validation"
+  fi
 }
 
 install_fzf() {
-  if ! which fzf > /dev/null 2>&1; then
-    echo "----------------------------------------------"
-    echo "install fzf"
-    echo "----------------------------------------------"
-    if which brew > /dev/null 2>&1; then
+  if ! command -v fzf > /dev/null 2>&1; then
+    log_info "----------------------------------------------"
+    log_info "install fzf"
+    log_info "----------------------------------------------"
+    if command -v brew > /dev/null 2>&1; then
       brew install fzf
     else
       git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
@@ -149,11 +187,11 @@ install_fzf() {
 }
 
 install_ghq() {
-  if ! which ghq > /dev/null 2>&1; then
-    echo "----------------------------------------------"
-    echo "install ghq"
-    echo "----------------------------------------------"
-    if which brew > /dev/null 2>&1; then
+  if ! command -v ghq > /dev/null 2>&1; then
+    log_info "----------------------------------------------"
+    log_info "install ghq"
+    log_info "----------------------------------------------"
+    if command -v brew > /dev/null 2>&1; then
       brew install ghq
     else
       GO_BIN_DIR=~/go/bin
@@ -172,18 +210,18 @@ install_ghq() {
 }
 
 install_gh_cli() {
-  if ! which gh > /dev/null 2>&1; then
-    echo "----------------------------------------------"
-    echo "install github cli"
-    echo "----------------------------------------------"
-    if which apt-get > /dev/null 2>&1; then
+  if ! command -v gh > /dev/null 2>&1; then
+    log_info "----------------------------------------------"
+    log_info "install github cli"
+    log_info "----------------------------------------------"
+    if command -v apt-get > /dev/null 2>&1; then
       apt-get install -y software-properties-common
       curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
       sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
       echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
       apt-get update
       apt-get install -y gh
-    elif which dnf > /dev/null 2>&1; then
+    elif command -v dnf > /dev/null 2>&1; then
       dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
       dnf install -y gh
     fi
@@ -195,22 +233,22 @@ install_gh_cli() {
 # ========================================
 
 setup_macos() {
-  echo "=========================================="
-  echo "Setting up macOS environment"
-  echo "=========================================="
+  log_info "=========================================="
+  log_info "Setting up macOS environment"
+  log_info "=========================================="
 
   # Install Homebrew if not present
-  if ! which brew > /dev/null 2>&1; then
-    echo "----------------------------------------------"
-    echo "Installing Homebrew..."
-    echo "----------------------------------------------"
+  if ! command -v brew > /dev/null 2>&1; then
+    log_info "----------------------------------------------"
+    log_info "Installing Homebrew..."
+    log_info "----------------------------------------------"
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     eval "$(/opt/homebrew/bin/brew shellenv)"
   fi
 
-  echo "----------------------------------------------"
-  echo "Running brew bundle..."
-  echo "----------------------------------------------"
+  log_info "----------------------------------------------"
+  log_info "Running brew bundle..."
+  log_info "----------------------------------------------"
   brew bundle --file="$DOTFILES_DIR/Brewfile"
 
   setup_symlinks "$DOTFILES_DIR"
@@ -221,52 +259,60 @@ setup_macos() {
 # ========================================
 
 setup_linux() {
-  echo "=========================================="
-  echo "Setting up Linux environment"
-  echo "=========================================="
+  log_info "=========================================="
+  log_info "Setting up Linux environment"
+  log_info "=========================================="
 
-  echo "----------------------------------------------"
-  echo "Run apt/yum update..."
-  echo "----------------------------------------------"
-  apt-get update -y || yum update -y || dnf update -y
+  log_info "----------------------------------------------"
+  log_info "Run apt/yum update..."
+  log_info "----------------------------------------------"
+  apt-get update -y || yum update -y || dnf update -y || true
   # Remove stale lock files if they exist (only needed when previous apt was interrupted)
-  [ -f /var/lib/dpkg/lock ] && sudo rm -f /var/lib/dpkg/lock
-  [ -f /var/lib/dpkg/lock-frontend ] && sudo rm -f /var/lib/dpkg/lock-frontend
-  [ -f /var/cache/apt/archives/lock ] && sudo rm -f /var/cache/apt/archives/lock
+  if [ -f /var/lib/dpkg/lock ]; then sudo rm -f /var/lib/dpkg/lock; fi
+  if [ -f /var/lib/dpkg/lock-frontend ]; then sudo rm -f /var/lib/dpkg/lock-frontend; fi
+  if [ -f /var/cache/apt/archives/lock ]; then sudo rm -f /var/cache/apt/archives/lock; fi
 
   if [ "$WHO" != "root" ]; then
-    echo "----------------------------------------------"
-    echo "Before installing brew,"
-    echo "Install library to install brew requirements"
-    echo "----------------------------------------------"
-    which brew || sudo apt-get install -y build-essential curl file git || sudo yum groupinstall -y 'Development Tools'
+    log_info "----------------------------------------------"
+    log_info "Before installing brew,"
+    log_info "Install library to install brew requirements"
+    log_info "----------------------------------------------"
+    if command -v brew > /dev/null 2>&1; then
+      log_info "brew is already installed"
+    else
+      sudo apt-get install -y build-essential curl file git || sudo yum groupinstall -y 'Development Tools'
+    fi
     sudo yum install -y curl file git 2>/dev/null
     sudo yum install -y libxcrypt-compat 2>/dev/null
-    echo "----------------------------------------------"
-    echo "Now, start installing brew"
-    echo "----------------------------------------------"
-    which brew || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    log_info "----------------------------------------------"
+    log_info "Now, start installing brew"
+    log_info "----------------------------------------------"
+    if command -v brew > /dev/null 2>&1; then
+      log_info "brew is already installed"
+    else
+      /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    fi
   fi
 
-  TEST_BREW=$(which brew 2>/dev/null)
-  TEST_APT=$(which apt-get 2>/dev/null)
-  TEST_DNF=$(which dnf 2>/dev/null)
-  TEST_YUM=$(which yum 2>/dev/null)
+  TEST_BREW=$(command -v brew 2>/dev/null)
+  TEST_APT=$(command -v apt-get 2>/dev/null)
+  TEST_DNF=$(command -v dnf 2>/dev/null)
+  TEST_YUM=$(command -v yum 2>/dev/null)
 
   if [ "$TEST_BREW" ] && [ "$WHO" != "root" ]; then
-    echo "----------------------------------------------"
-    echo "Brew was installed!!"
-    echo "----------------------------------------------"
+    log_info "----------------------------------------------"
+    log_info "Brew was installed!!"
+    log_info "----------------------------------------------"
     eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
-    echo "----------------------------------------------"
-    echo "Run brew doctor..."
-    echo "----------------------------------------------"
+    log_info "----------------------------------------------"
+    log_info "Run brew doctor..."
+    log_info "----------------------------------------------"
     brew doctor
 
-    echo "----------------------------------------------"
-    echo "Run brew update..."
-    echo "----------------------------------------------"
+    log_info "----------------------------------------------"
+    log_info "Run brew update..."
+    log_info "----------------------------------------------"
     brew update
 
     installApps brew
@@ -310,6 +356,6 @@ case "$OS" in
 esac
 
 echo ""
-echo "=========================================="
-echo "Setup complete!"
-echo "=========================================="
+log_info "=========================================="
+log_info "Setup complete!"
+log_info "=========================================="
