@@ -123,15 +123,14 @@ setup_symlinks() {
     fi
   done
 
-  # .shell-utils directory
-  # Remove real directory first; ln -fs cannot replace a directory with a symlink
+  # Directory symlinks: use -n to avoid following existing symlinks into the target
+  # and rm -rf guard for the case where a real (non-symlink) directory exists
   [ -d "$HOME/.shell-utils" ] && [ ! -L "$HOME/.shell-utils" ] && rm -rf "$HOME/.shell-utils"
-  ln -fs "$dotfiles_dir/.shell-utils" "$HOME/.shell-utils"
+  ln -fsn "$dotfiles_dir/.shell-utils" "$HOME/.shell-utils"
   echo "  linked: .shell-utils/"
 
-  # oh-my-posh theme directory
   [ -d "$HOME/oh-my-posh-theme" ] && [ ! -L "$HOME/oh-my-posh-theme" ] && rm -rf "$HOME/oh-my-posh-theme"
-  ln -fs "$dotfiles_dir/oh-my-posh-theme" "$HOME/oh-my-posh-theme"
+  ln -fsn "$dotfiles_dir/oh-my-posh-theme" "$HOME/oh-my-posh-theme"
   echo "  linked: oh-my-posh-theme/"
 }
 
