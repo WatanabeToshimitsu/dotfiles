@@ -269,6 +269,9 @@ python() {
 command -v safe-rm &>/dev/null && alias rm='safe-rm'
 export PATH="$HOME/.local/bin:$PATH"
 
+# Machine-specific overrides (not tracked in git)
+[[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
+
 # oh-my-posh prompt theming
 command -v oh-my-posh &>/dev/null && eval "$(oh-my-posh init zsh --config ~/oh-my-posh-theme/myconfig.omp.json)"
 
