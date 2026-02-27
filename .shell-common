@@ -1,0 +1,14 @@
+# Shared shell environment setup
+# Sourced by .bashrc, .bash_profile, .profile, .huskyrc, .zshrc
+# This file must be POSIX sh compatible (no bashisms)
+
+# Volta (Node.js version manager)
+if [ -d "$HOME/.volta" ]; then
+  export VOLTA_HOME="$HOME/.volta"
+  export PATH="$VOLTA_HOME/bin:$PATH"
+fi
+
+# Cargo (Rust package manager)
+if [ -f "$HOME/.cargo/env" ]; then
+  . "$HOME/.cargo/env"
+fi
