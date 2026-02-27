@@ -157,7 +157,7 @@ export FZF_CTRL_T_OPTS='--preview "bat  --color=always --style=header,grid --lin
 # workaround for puppeteer on m1 mac
 # See: https://github.com/puppeteer/puppeteer/issues/6622#issuecomment-788199984
 export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-export PUPPETEER_EXECUTABLE_PATH=`which chromium`
+export PUPPETEER_EXECUTABLE_PATH=$(command -v chromium)
 #####################
 # COLORING          #
 #####################
