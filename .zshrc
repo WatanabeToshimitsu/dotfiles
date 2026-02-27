@@ -106,11 +106,9 @@ zstyle ":completion:*:git-checkout:*" sort false
 ########################
 # * cd ~hoge と入力すると /long/path/to/hogehoge ディレクトリに移動
 hash -d dev=~/dev
-hash -d win=/mnt/c/
 hash -d ghq=~/ghq
 hash -d zshrc=~/.zshrc
 hash -d dotfiles=~/dotfiles
-hash -d desktop=/mnt/c/Users/kz86n/Desktop/
 
 ########################
 # * cmd history setteing
@@ -174,28 +172,6 @@ bindkey '^[[B' history-substring-search-down
 #########
 # funcs
 #########
-# * open in windows
-if [[ $(uname -r) =~ microsoft ]]; then
-    local Chrome='/mnt/c/Program\ Files/Google/Chrome/Application/chrome.exe'
-    function open(){
-        if [ $# -eq 0 ]; then
-            echo "ERROR: get no input argument."
-            echo "Please specify file-paths, URLs, googling-words"
-            echo "open [file/path]"
-            return 1
-        fi
-        for arg; do
-            if [ -e "${arg}" ]; then
-                cmd.exe /c start $(readlink -f ${arg} | xargs wslpath -w)
-            elif [[ ${arg} =~ http ]]; then
-                echo "${arg}" | xargs -I{} bash -c "${Chrome} '{}'"
-            else
-                echo "${arg}" | sed 's/ /+/g' | xargs -I{} bash -c "${Chrome} 'https://www.google.com/search?q={}'"
-            fi
-        done
-    }
-fi
-
 # git prune
 git-branch-prune() {
     PROTECT_BRANCHES='master|develop|trunk|main|staging|production|release'
@@ -484,10 +460,6 @@ export KUBECONFIG=${KUBECONFIG}:$(echo ${kubeconfigs// /:})
   export SSH_AUTH_SOCK="$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
 
 [[ -f "$HOME/.docker/init-zsh.sh" ]] && source "$HOME/.docker/init-zsh.sh"
-# export PYENV_ROOT="$HOME/.pyenv"
-# command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
-# eval "$(pyenv init -)"
-
 export PYENV_ROOT="$HOME/.pyenv"
 export PATH="$PYENV_ROOT/bin:$PATH"
 pyenv() {
