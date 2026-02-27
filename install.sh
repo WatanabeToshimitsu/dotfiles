@@ -69,7 +69,7 @@ setup_symlinks() {
   local dotfiles_dir="${1:-$DOTFILES_DIR}"
   local files=(
     .zshrc .bashrc .bash_profile .bash_logout
-    .profile .zprofile .zshenv
+    .profile .zprofile .zshenv .shell-common
     .vimrc .tmux.conf .gitconfig
     .huskyrc .npmrc
   )
