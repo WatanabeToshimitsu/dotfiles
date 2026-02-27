@@ -129,9 +129,8 @@ export PATH="$HOME/utils:$PATH"
 export PATH="$HOME/.deno/bin:$PATH"
 export PATH="/Users/kz86n/.local/bin:$PATH"
 
-# * Volta env
-export VOLTA_HOME="$HOME/.volta"
-export PATH="$VOLTA_HOME/bin:$PATH"
+# Shared environment setup (Volta, Cargo)
+[ -f ~/.shell-common ] && . ~/.shell-common
 
 # * use utils
 export PATH="$HOME/.shell-utils:$PATH"
