@@ -1,28 +1,49 @@
-<language>Japanese</language>
-<character_code>UTF-8</character_code>
-<law>
-第 1 原則： コードやファイルの実体に対しては英語を用いること。(コメントやドキュメンテーションも英語)
+# Principles for Coding
 
-第 2 原則： テスト駆動開発(TDD)を開発手法として利用すること。
+- コーディング時は英語を用いる(コメントやドキュメンテーションも英語)
+- テスト駆動開発(TDD)を開発手法として利用する
+- TDD を実践する際は、全て t-wada の推奨する進め方に従う
+- リファクタリングは Martin Fowler が推奨する進め方に従う
+- KISS, DRY, YAGNI を守る
+- TSDoc を書くこと（ts, tsxともに必須。@param, @returnsなど）
+- すべての .ts / .tsx ファイルの冒頭に、そのファイルの役割・責務を2行程度で記述
+- コロケーションを重視する
+- UIは視線の流れを意識する
 
-第 3 原則： TDD およびテスト駆動開発で実践する際は、全て t-wada の推奨する進め方に従うこと。
+# Guidelines for Code Review
 
-第 4 原則： リファクタリングは Martin Fowler が推奨する進め方に従うこと。
+3つの code-review 系プラグインが共存しているため、用途で呼び分ける。
 
-第 5 原則： 基本的なコーディングのベストプラクティスに従う。以下は例。
-・YAGNI（You Aren't Gonna Need It）：今必要じゃない機能は作らない
-・DRY（Don't Repeat Yourself）：同じコードを繰り返さない
-・KISS（Keep It Simple Stupid）：シンプルに保つ
+- **日常のローカル diff レビュー**: `/code-review:review`（公式・confidence ≥80 のバグだけ報告）
+- **PR 提出前の総合チェック**: `/review-pr`（pr-review-toolkit・6専門agentで網羅）
+- **社内 (HDL) 規約レビュー**: `/hdl-review`（backend/frontend/ml 別の社内ルールを適用）
+- **修正ループ**: `/review-fix-loop`（指摘の反映と検証を自動で回す）
 
-第 6 原則： AI はこの原則を忘れないために、定期的にこの 6 原則を逐語的に画面出力してから対応する。
-</law>
+迷ったらまず `/hdl-review` を使う。長期的には公式 `pr-review-toolkit` への統合を目指す。
 
-Always use context7 when I need code generation, setup or configuration steps, or
-library/API documentation. This means you should automatically use the Context7 MCP
-tools to resolve library id and get library docs without me having to explicitly ask.
+# Guidelines for PR, Commit Messages
 
-- PR を作る時はリポジトリのテンプレートに従うこと
-- PR の作成時、テンプレートに外部サイトのリンクの記述欄がある場合には、どの URL を記述するかをユーザーに尋ねること
-- PR 作成の際、Draft であるべきかどうかをユーザーに尋ねること
+- リポジトリのテンプレートに従う
+- Draft であるべきかどうかをユーザーに尋ねる
+- URLの入力欄がある場合、ユーザーに関連するURLを入力するように促す
+- body や コミットメッセージに "Co-Authored-By: Claude ..." といった表記を追加しない
+- body は簡潔にし、実装の詳細を記述しない。レビューに必要な最小限の情報を提供する
 
-@RTK.md
+## Guidelines for PR Size and Scope
+
+### ✅ Always（確認なしで実行）
+
+- 実装を始める前に変更規模を見積もる
+- 変更が複数の関心事にまたがる場合は分割案を提示してから進む
+- 1セッション1PR
+
+### ⚠️ Ask first（必ず確認を取る）
+
+- 推定変更行数が400行を超える場合
+- リファクタリングと機能追加を同時に行う場合
+
+## Guidelines for comment and documentation
+
+- コメントはコードの意図や理由を説明するために使用する。コード自体の詳細な説明には使用しない
+- 数行にも及ぶコメントは推奨されない。数行のコメントが必要な場合、コードをリファクタリングし、コメントなしで理解できるようにする
+- ドキュメンテーションは、ユーザーがコードを理解しやすくするための情報を提供するために記述する。コードの実装の詳細を説明するために使用しないこと。
