@@ -196,7 +196,7 @@
       "Bash(git rm:*)",
       "Bash(git switch:*)"
     ],
-    "defaultMode": "auto"
+    "defaultMode": "default"
   },
   "hooks": {
     "PreToolUse": [
