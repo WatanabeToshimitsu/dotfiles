@@ -18,7 +18,7 @@ installApp() {
   echo "----------------------------------------------"
   echo "install ${app}"
   echo "----------------------------------------------"
-  which "$app" || ${manager} install -y "$app"
+  command -v "$app" || ${manager} install -y "$app"
 }
 
 installApps() {
@@ -135,11 +135,11 @@ setup_symlinks() {
 }
 
 install_fzf() {
-  if ! which fzf > /dev/null 2>&1; then
+  if ! command -v fzf > /dev/null 2>&1; then
     echo "----------------------------------------------"
     echo "install fzf"
     echo "----------------------------------------------"
-    if which brew > /dev/null 2>&1; then
+    if command -v brew > /dev/null 2>&1; then
       brew install fzf
     else
       git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
@@ -149,11 +149,11 @@ install_fzf() {
 }
 
 install_ghq() {
-  if ! which ghq > /dev/null 2>&1; then
+  if ! command -v ghq > /dev/null 2>&1; then
     echo "----------------------------------------------"
     echo "install ghq"
     echo "----------------------------------------------"
-    if which brew > /dev/null 2>&1; then
+    if command -v brew > /dev/null 2>&1; then
       brew install ghq
     else
       GO_BIN_DIR=~/go/bin
@@ -172,18 +172,18 @@ install_ghq() {
 }
 
 install_gh_cli() {
-  if ! which gh > /dev/null 2>&1; then
+  if ! command -v gh > /dev/null 2>&1; then
     echo "----------------------------------------------"
     echo "install github cli"
     echo "----------------------------------------------"
-    if which apt-get > /dev/null 2>&1; then
+    if command -v apt-get > /dev/null 2>&1; then
       apt-get install -y software-properties-common
       curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
       sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
       echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
       apt-get update
       apt-get install -y gh
-    elif which dnf > /dev/null 2>&1; then
+    elif command -v dnf > /dev/null 2>&1; then
       dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
       dnf install -y gh
     fi
@@ -200,7 +200,7 @@ setup_macos() {
   echo "=========================================="
 
   # Install Homebrew if not present
-  if ! which brew > /dev/null 2>&1; then
+  if ! command -v brew > /dev/null 2>&1; then
     echo "----------------------------------------------"
     echo "Installing Homebrew..."
     echo "----------------------------------------------"
@@ -239,19 +239,19 @@ setup_linux() {
     echo "Before installing brew,"
     echo "Install library to install brew requirements"
     echo "----------------------------------------------"
-    which brew || sudo apt-get install -y build-essential curl file git || sudo yum groupinstall -y 'Development Tools'
+    command -v brew || sudo apt-get install -y build-essential curl file git || sudo yum groupinstall -y 'Development Tools'
     sudo yum install -y curl file git 2>/dev/null
     sudo yum install -y libxcrypt-compat 2>/dev/null
     echo "----------------------------------------------"
     echo "Now, start installing brew"
     echo "----------------------------------------------"
-    which brew || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    command -v brew || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   fi
 
-  TEST_BREW=$(which brew 2>/dev/null)
-  TEST_APT=$(which apt-get 2>/dev/null)
-  TEST_DNF=$(which dnf 2>/dev/null)
-  TEST_YUM=$(which yum 2>/dev/null)
+  TEST_BREW=$(command -v brew 2>/dev/null)
+  TEST_APT=$(command -v apt-get 2>/dev/null)
+  TEST_DNF=$(command -v dnf 2>/dev/null)
+  TEST_YUM=$(command -v yum 2>/dev/null)
 
   if [ "$TEST_BREW" ] && [ "$WHO" != "root" ]; then
     echo "----------------------------------------------"
