@@ -6,20 +6,22 @@
 - リファクタリングは Martin Fowler が推奨する進め方に従う
 - KISS, DRY, YAGNI を守る
 - TSDoc を書くこと（ts, tsxともに必須。@param, @returnsなど）
-- すべての .ts / .tsx ファイルの冒頭に、そのファイルの役割・責務を2行程度で記述
 - コロケーションを重視する
-- UIは視線の流れを意識する
 
-# Guidelines for Code Review
+## ワークフロー規約
 
-3つの code-review 系プラグインが共存しているため、用途で呼び分ける。
+- フェーズ/論理単位ごとにコミットする。無関係な変更を1つのコミットにまとめない。
+- 複数ステップの計画では、実装前に必ず Codex レビューを受ける。
 
-- **日常のローカル diff レビュー**: `/code-review:review`（公式・confidence ≥80 のバグだけ報告）
-- **PR 提出前の総合チェック**: `/review-pr`（pr-review-toolkit・6専門agentで網羅）
-- **社内 (HDL) 規約レビュー**: `/hdl-review`（backend/frontend/ml 別の社内ルールを適用）
-- **修正ループ**: `/review-fix-loop`（指摘の反映と検証を自動で回す）
+## スコープ規律 (YAGNI)
 
-迷ったらまず `/hdl-review` を使う。長期的には公式 `pr-review-toolkit` への統合を目指す。
+- バグ修正のときは、明示的に依頼されない限り、報告されたバグのみを修正する。
+- 必要以上の追加テストケースを加えない。
+- 実装前に「(a)依頼を満たす最小限の変更 / (b)意図的に変更しないもの」を箇条書きで提示し、承認を待つ。
+
+## 誠実性とソース
+
+- ドキュメントの引用や API の挙動を捏造しない。外部ドキュメントを引用する場合は、ソース URL を含める。
 
 # Guidelines for PR, Commit Messages
 
@@ -45,5 +47,15 @@
 ## Guidelines for comment and documentation
 
 - コメントはコードの意図や理由を説明するために使用する。コード自体の詳細な説明には使用しない
-- 数行にも及ぶコメントは推奨されない。数行のコメントが必要な場合、コードをリファクタリングし、コメントなしで理解できるようにする
-- ドキュメンテーションは、ユーザーがコードを理解しやすくするための情報を提供するために記述する。コードの実装の詳細を説明するために使用しないこと。
+- 数行のコメントが必要な場合、コードをリファクタリングし、コメントなしで理解できるようにする
+
+## Browser Automation
+
+Use `agent-browser` for web automation. Run `agent-browser --help` for all commands.
+
+Core workflow:
+
+1. `agent-browser open <url>` - Navigate to page
+2. `agent-browser snapshot -i` - Get interactive elements with refs (@e1, @e2)
+3. `agent-browser click @e1` / `fill @e2 "text"` - Interact using refs
+4. Re-snapshot after page changes

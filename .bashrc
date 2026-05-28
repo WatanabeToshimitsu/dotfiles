@@ -12,3 +12,4 @@ export PATH=/Users/kz86n/Library/Python/3.10/bin:${PATH}
 
 
 source ~/.safe-chain/scripts/init-posix.sh # Safe-chain bash initialization script
+. "$HOME/.cargo/env"

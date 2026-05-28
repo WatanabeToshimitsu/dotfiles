@@ -11,8 +11,27 @@ source "$HOME/.local/share/zinit/zinit.git/zinit.zsh"
 autoload -Uz _zinit
 (( ${+_comps} )) && _comps[zinit]=_zinit
 
+#####################
+# Completion setup  #
+#####################
+# Pre-compinit: fpath/FPATH expansion (must be before compinit)
+mkdir -p ~/.zsh/completion
+fpath=(~/.zsh/completion $fpath)
+[[ -d /opt/homebrew/share/zsh/site-functions ]] && \
+  FPATH="/opt/homebrew/share/zsh/site-functions:${FPATH}"
+
+# gtr (fpath-based; strip its trailing duplicate compinit call)
+command -v git-gtr &>/dev/null && \
+  eval "$(git gtr completion zsh | perl -ne 'print unless /^autoload -Uz compinit/')"
+
 autoload -Uz compinit
 compinit -C
+
+# Post-compinit: compdef-direct sources (require compinit to be loaded first)
+command -v gh &>/dev/null && eval "$(gh completion -s zsh)"
+command -v wtp &>/dev/null && eval "$(wtp shell-init zsh)"
+# Reclaim stand-alone `gtr` from zsh's built-in _tr (GNU coreutils prefix map)
+command -v git-gtr &>/dev/null && compdef _git-gtr gtr
 
 # Load a few important annexes, without Turbo
 # (this is currently required for annexes)
@@ -427,24 +446,11 @@ alias ff='fzf'
 
 alias ghq-rm='ghq-rm.sh'
 
-##################
-# set completion #
-##################
-# NOTE: add fpath and source -> compdef -> compinit
-mkdir -p ~/.zsh/completion
-fpath=(~/.zsh/completion $fpath)
-
-command -v gh &>/dev/null && eval "$(gh completion -s zsh)"
-
-if type brew &>/dev/null
-then
-#   FPATH="$(brew --prefix)/share/zsh/site-functions:${FPATH}"
-  FPATH="/opt/homebrew/share/zsh/site-functions:${FPATH}"
-fi
-
+##################################
+# fzf key bindings & completion  #
+##################################
+# NOTE: must stay AFTER `setopt vi` so ^I (Tab) binding lands on viins keymap
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-
-command -v wtp &>/dev/null && eval "$(wtp shell-init zsh)"
 
 #################
 # Depend on Env #
@@ -482,3 +488,7 @@ command -v oh-my-posh &>/dev/null && eval "$(oh-my-posh init zsh --config ~/oh-m
 # Claude experimental agent teams feature
 export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
 [[ -f ~/.safe-chain/scripts/init-posix.sh ]] && source ~/.safe-chain/scripts/init-posix.sh
+
+# for direnv
+export EDITOR=code
+eval "$(direnv hook zsh)"

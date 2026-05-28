@@ -308,5 +308,6 @@
   "skipDangerousModePermissionPrompt": true,
   "theme": "light-daltonized",
   "teammateMode": "tmux",
-  "skipAutoPermissionPrompt": true
+  "skipAutoPermissionPrompt": true,
+  "tui": "fullscreen"
 }
