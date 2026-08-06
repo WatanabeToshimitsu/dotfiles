@@ -492,3 +492,6 @@ export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
 # for direnv
 export EDITOR=code
 eval "$(direnv hook zsh)"
+
+# For SkyPilot shell completion
+. ~/.sky/.sky-complete.zsh
