@@ -495,3 +495,8 @@ eval "$(direnv hook zsh)"
 
 # For SkyPilot shell completion
 . ~/.sky/.sky-complete.zsh
+
+# herdr: vim-herdr-navigation passthrough — node TUIs (Claude Code etc.) keep
+# their own ctrl+h/j/k/l; leave those panes with prefix+h/j/k/l instead.
+# Read by the herdr server at launch (restart herdr to apply changes).
+export HERDR_NAV_PASSTHROUGH_RE='^node$'

@@ -1,0 +1,80 @@
+onboarding = false
+
+[theme]
+name = "tokyo-night-day"
+auto_switch = false
+
+[ui.toast]
+delivery = "system"
+
+[keys]
+prefix = "cmd+space"
+# Worktrees: create = prefix+shift+g (default), open/remove are unbound by default
+open_worktree = "prefix+shift+o"
+remove_worktree = "prefix+shift+k"
+# Jump between agent panes across all workspaces
+previous_agent = "prefix+up"
+next_agent = "prefix+down"
+# Back-and-forth between the two most recent panes
+last_pane = "prefix+;"
+# Cycle workspaces without opening the picker
+previous_workspace = "prefix+ctrl+p"
+next_workspace = "prefix+ctrl+n"
+# Swap panes spatially
+swap_pane_left = "prefix+shift+left"
+swap_pane_right = "prefix+shift+right"
+swap_pane_up = "prefix+shift+up"
+swap_pane_down = "prefix+shift+down"
+
+[ui]
+# Start with the sidebar collapsed to the compact status rail; prefix+b expands it
+sidebar_start_collapsed = true
+show_agent_labels_on_pane_borders = true
+hide_tab_bar_when_single_tab = true
+
+[experimental]
+# Make prefix commands register even while Japanese IME is active (macOS only)
+switch_ascii_input_source_in_prefix = true
+# Keep the IME candidate window tracking the cursor in agent panes
+reveal_hidden_cursor_for_cjk_ime = true
+cjk_ime_agents = ["claude", "codex"]
+# Inline image rendering (outer terminal is Ghostty, Kitty-graphics capable)
+kitty_graphics = true
+
+[advanced]
+# Generous per-pane scrollback for long agent output (default 10 MB)
+scrollback_limit_bytes = 50_000_000
+
+# vim-herdr-navigation plugin: seamless ctrl+h/j/k/l across vim splits and panes.
+# Panes whose foreground matches $HERDR_NAV_PASSTHROUGH_RE (set in ~/.zshrc)
+# keep these keys for themselves; leave those panes with prefix+h/j/k/l.
+[[keys.command]]
+key = "ctrl+h"
+type = "plugin_action"
+command = "vim-herdr-navigation.left"
+description = "navigate left (vim/herdr)"
+
+[[keys.command]]
+key = "ctrl+j"
+type = "plugin_action"
+command = "vim-herdr-navigation.down"
+description = "navigate down (vim/herdr)"
+
+[[keys.command]]
+key = "ctrl+k"
+type = "plugin_action"
+command = "vim-herdr-navigation.up"
+description = "navigate up (vim/herdr)"
+
+[[keys.command]]
+key = "ctrl+l"
+type = "plugin_action"
+command = "vim-herdr-navigation.right"
+description = "navigate right (vim/herdr)"
+
+# ctrl+l is taken by navigation above; clear the shell with prefix+ctrl+l instead
+[[keys.command]]
+key = "prefix+ctrl+l"
+type = "shell"
+command = '"${HERDR_BIN_PATH}" pane send-keys "${HERDR_ACTIVE_PANE_ID}" ctrl+l'
+description = "clear pane (send ctrl+l)"

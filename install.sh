@@ -90,6 +90,7 @@ setup_symlinks() {
     .config/git/ignore
     .config/gh/config.yml
     .config/ghostty/config
+    .config/herdr/config.toml
   )
 
   for file in "${config_files[@]}"; do

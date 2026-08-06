@@ -57,3 +57,13 @@ set wrapscan
 set hlsearch
 " ESC連打でハイライト解除
 nmap <Esc><Esc> :nohlsearch<CR><Esc>
+
+
+" vim-herdr-navigation: seamless Ctrl+h/j/k/l across vim splits and herdr panes
+" (plugin is installed/updated by `herdr plugin`, hence the versioned glob)
+if !empty($HERDR_PANE_ID)
+  for s:herdr_nav in glob('~/.config/herdr/plugins/github/vim-herdr-navigation-*/editor/vim.vim', 0, 1)
+    execute 'source' fnameescape(s:herdr_nav)
+    break
+  endfor
+endif
