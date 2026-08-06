@@ -198,14 +198,14 @@
     ],
     "defaultMode": "default"
   },
+  "model": "claude-fable-5[1m]",
   "hooks": {
-    "PreToolUse": [
+    "Notification": [
       {
-        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/validate-bash.sh"
+            "command": "~/.claude/hooks/notification.sh"
           }
         ]
       }
@@ -230,12 +230,25 @@
         ]
       }
     ],
-    "Notification": [
+    "PreToolUse": [
       {
+        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/notification.sh"
+            "command": "~/.claude/hooks/validate-bash.sh"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Users/kz86n/.claude/hooks/herdr-agent-state.sh' session",
+            "timeout": 10
           }
         ]
       }
@@ -246,51 +259,39 @@
     "command": "npx -y @owloops/claude-powerline@latest"
   },
   "enabledPlugins": {
-    "code-simplifier@claude-plugins-official": false,
-    "code-review@claude-plugins-official": true,
-    "pr-review-toolkit@claude-plugins-official": true,
-    "security-guidance@claude-plugins-official": true,
-    "feature-dev@claude-plugins-official": false,
-    "commit-commands@claude-plugins-official": true,
-    "superpowers@claude-plugins-official": true,
-    "claude-md-management@claude-plugins-official": false,
     "claude-code-setup@claude-plugins-official": false,
-    "typescript-lsp@claude-plugins-official": true,
-    "pyright-lsp@claude-plugins-official": true,
-    "gopls-lsp@claude-plugins-official": false,
-    "context7@claude-plugins-official": true,
-    "playwright@claude-plugins-official": false,
-    "frontend-design@claude-plugins-official": false,
-    "serena@claude-plugins-official": true,
-    "github@claude-plugins-official": false,
-    "plugin-dev@hdl-agent-plugins": true,
-    "co-mlops-context@hdl-agent-plugins": true,
-    "code-review@hdl-agent-plugins": true,
-    "japanese-proofreader@hdl-agent-plugins": false,
-    "codex-integration@hdl-agent-plugins": true,
-    "report-instructor@hdl-agent-plugins": false,
-    "experiment-planner@hdl-agent-plugins": false,
+    "claude-md-management@claude-plugins-official": false,
     "claude-powerline@claude-powerline": true,
-    "codex@openai-codex": true
+    "co-mlops-context@hdl-agent-plugins": true,
+    "code-review@claude-plugins-official": true,
+    "code-review@hdl-agent-plugins": true,
+    "code-simplifier@claude-plugins-official": false,
+    "codex-integration@hdl-agent-plugins": true,
+    "codex@openai-codex": true,
+    "commit-commands@claude-plugins-official": true,
+    "context7@claude-plugins-official": true,
+    "experiment-planner@hdl-agent-plugins": false,
+    "feature-dev@claude-plugins-official": false,
+    "frontend-design@claude-plugins-official": false,
+    "github@claude-plugins-official": false,
+    "gopls-lsp@claude-plugins-official": false,
+    "japanese-proofreader@hdl-agent-plugins": false,
+    "playwright@claude-plugins-official": false,
+    "plugin-dev@hdl-agent-plugins": true,
+    "pr-review-toolkit@claude-plugins-official": true,
+    "pyright-lsp@claude-plugins-official": true,
+    "report-instructor@hdl-agent-plugins": false,
+    "security-guidance@claude-plugins-official": true,
+    "serena@claude-plugins-official": true,
+    "skypilot@skypilot": true,
+    "superpowers@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
-    "hdl-agent-plugins": {
-      "source": {
-        "source": "github",
-        "repo": "hdwlab/hdl-agent-plugins"
-      }
-    },
     "claude-powerline": {
       "source": {
         "source": "github",
         "repo": "Owloops/claude-powerline"
-      },
-      "autoUpdate": true
-    },
-    "openai-codex": {
-      "source": {
-        "source": "github",
-        "repo": "openai/codex-plugin-cc"
       },
       "autoUpdate": true
     },
@@ -299,15 +300,35 @@
         "source": "git",
         "url": "https://github.com/affaan-m/everything-claude-code.git"
       }
+    },
+    "hdl-agent-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "hdwlab/hdl-agent-plugins"
+      }
+    },
+    "openai-codex": {
+      "source": {
+        "source": "github",
+        "repo": "openai/codex-plugin-cc"
+      },
+      "autoUpdate": true
+    },
+    "skypilot": {
+      "source": {
+        "source": "github",
+        "repo": "skypilot-org/skypilot"
+      }
     }
   },
   "language": "Japanese",
   "syntaxHighlightingDisabled": false,
   "alwaysThinkingEnabled": true,
   "effortLevel": "xhigh",
+  "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
+  "skipWorkflowUsageWarning": true,
   "theme": "light-daltonized",
   "teammateMode": "tmux",
-  "skipAutoPermissionPrompt": true,
-  "tui": "fullscreen"
+  "skipAutoPermissionPrompt": true
 }
