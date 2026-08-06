@@ -13,3 +13,13 @@ export PATH=/Users/kz86n/Library/Python/3.10/bin:${PATH}
 
 source ~/.safe-chain/scripts/init-posix.sh # Safe-chain bash initialization script
 . "$HOME/.cargo/env"
+
+# ROS2 Console configuration for better log output
+export RCUTILS_COLORIZED_OUTPUT=1
+export RCUTILS_CONSOLE_OUTPUT_FORMAT="[{severity} {time}] [{name}]: {message} ({function_name}() at {file_name}:{line_number})"
+export GTEST_COLOR=1
+
+# Ccache configuration for Autoware build
+export CC="/usr/lib/ccache/gcc"
+export CXX="/usr/lib/ccache/g++"
+export CCACHE_DIR="/Users/kz86n/.cache/ccache/"
