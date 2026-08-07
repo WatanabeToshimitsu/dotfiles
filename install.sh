@@ -202,6 +202,43 @@ install_gh_cli() {
 }
 
 # ========================================
+# Agent skills (npx skills / skills.sh)
+# ========================================
+# Reinstall global agent skills recorded in ~/.agents/.skill-lock.json.
+# Keep skill_sources in sync when adding skills with `npx skills add`.
+
+setup_agent_skills() {
+  if ! command -v npx > /dev/null 2>&1; then
+    echo "  skipped agent skills (npx not found)"
+    return 0
+  fi
+
+  echo "----------------------------------------------"
+  echo "Installing agent skills..."
+  echo "----------------------------------------------"
+
+  local skill_sources=(
+    "github/gh-stack:gh-stack"
+    "vercel-labs/skills:find-skills"
+    "yoshiko-pg/difit:difit"
+    "yoshiko-pg/difit:difit-review"
+    "GoogleChrome/modern-web-guidance:modern-web-guidance"
+    "vercel-labs/agent-browser:agent-browser"
+  )
+
+  local entry repo skill
+  for entry in "${skill_sources[@]}"; do
+    repo="${entry%%:*}"
+    skill="${entry##*:}"
+    if [ -e "$HOME/.agents/skills/$skill" ]; then
+      echo "  exists: $skill"
+      continue
+    fi
+    npx -y skills add "$repo" -g -y -s "$skill" -a claude-code || echo "  failed: $entry"
+  done
+}
+
+# ========================================
 # macOS setup
 # ========================================
 
@@ -225,6 +262,7 @@ setup_macos() {
   brew bundle --file="$DOTFILES_DIR/Brewfile"
 
   setup_symlinks "$DOTFILES_DIR"
+  setup_agent_skills
 }
 
 # ========================================
@@ -294,6 +332,7 @@ setup_linux() {
   fi
 
   setup_symlinks "$DOTFILES_DIR"
+  setup_agent_skills
 
   install_fzf
   install_ghq
