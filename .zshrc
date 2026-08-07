@@ -171,10 +171,6 @@ REACT_EDITOR=code
 export FZF_CTRL_T_COMMAND='rg --files --hidden --follow --glob "!.git/*"'
 export FZF_CTRL_T_OPTS='--preview "bat  --color=always --style=header,grid --line-range :100 {}"'
 
-# workaround for puppeteer on m1 mac
-# See: https://github.com/puppeteer/puppeteer/issues/6622#issuecomment-788199984
-export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-export PUPPETEER_EXECUTABLE_PATH=$(command -v chromium)
 #####################
 # COLORING          #
 #####################
@@ -500,3 +496,6 @@ eval "$(direnv hook zsh)"
 # their own ctrl+h/j/k/l; leave those panes with prefix+h/j/k/l instead.
 # Read by the herdr server at launch (restart herdr to apply changes).
 export HERDR_NAV_PASSTHROUGH_RE='^node$'
+
+# zoxide: frecency-based jump via `z`/`zi` (cd itself stays on enhancd)
+command -v zoxide &>/dev/null && eval "$(zoxide init zsh)"
