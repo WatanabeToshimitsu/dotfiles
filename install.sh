@@ -203,6 +203,27 @@ install_gh_cli() {
 }
 
 # ========================================
+# VS Code user config (macOS)
+# ========================================
+# keybindings.json is symlinked (never auto-modified by VS Code).
+# settings.json is copied only when absent: VS Code rewrites it with
+# machine-local state (SSH host maps etc.), so a symlink would leak
+# that state back into this public repo.
+
+setup_vscode() {
+  local user_dir="$HOME/Library/Application Support/Code/User"
+  [ -d "$user_dir" ] || return 0
+
+  ln -fs "$DOTFILES_DIR/vscode/keybindings.json" "$user_dir/keybindings.json"
+  echo "  linked: vscode keybindings.json"
+
+  if [ ! -f "$user_dir/settings.json" ]; then
+    cp "$DOTFILES_DIR/vscode/settings.json" "$user_dir/settings.json"
+    echo "  copied: vscode settings.json (bootstrap)"
+  fi
+}
+
+# ========================================
 # Agent skills (npx skills / skills.sh)
 # ========================================
 # Reinstall global agent skills recorded in ~/.agents/.skill-lock.json.
@@ -263,6 +284,7 @@ setup_macos() {
   brew bundle --file="$DOTFILES_DIR/Brewfile"
 
   setup_symlinks "$DOTFILES_DIR"
+  setup_vscode
   setup_agent_skills
 }
 

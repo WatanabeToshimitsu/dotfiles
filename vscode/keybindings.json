@@ -1,0 +1,395 @@
+// Place your key bindings in this file to overwrite the defaults
+[
+  // * Order of setting is very important!!!
+
+  // * Virtual Zen mode
+  {
+    "key": "cmd+k cmd+o",
+    "command": "-workbench.action.files.openFolder"
+  },
+
+  // * Move between views(panelView <-> editorGroup <-> sidebar)
+  // Left
+  {
+    "key": "cmd+shift+h",
+    "command": "workbench.action.navigateLeft"
+  },
+  // Down
+  {
+    "key": "cmd+shift+j",
+    "command": "workbench.action.navigateDown"
+  },
+  // Up (auto select active editor)
+  {
+    "key": "cmd+shift+k",
+    "command": "workbench.action.navigateUp",
+    "when": "!panelFocus"
+  },
+  {
+    "key": "cmd+shift+k",
+    "command": "workbench.action.focusActiveEditorGroup",
+    "when": "panelFocus"
+  },
+  // Right
+  {
+    "key": "cmd+shift+l",
+    "command": "workbench.action.navigateRight"
+  },
+
+  // * Move between terminal in same terminalGroup
+  {
+    "key": "cmd+shift+h",
+    "command": "workbench.action.terminal.focusPreviousPane",
+    "when": "terminalFocus"
+  },
+  {
+    "key": "cmd+shift+l",
+    "command": "workbench.action.terminal.focusNextPane",
+    "when": "terminalFocus"
+  },
+  {
+    "key": "cmd+shift+tab",
+    "command": "workbench.action.terminal.focusNext",
+    "when": "terminalFocus"
+  },
+  {
+    "key": "cmd+shift+j",
+    "command": "workbench.action.terminal.focusNext",
+    "when": "terminalFocus"
+  },
+
+  // * Move between terminalGroup
+  {
+    "key": "cmd+shift+f",
+    "command": "workbench.action.quickOpen"
+  },
+
+  // * Focus outline
+  {
+    "key": "cmd+shift+oem_3",
+    "command": "workbench.action.gotoSymbol"
+  },
+
+  // * Activate search view (normally cmd+shift+f. Why!!!?? Japanese people!!!?)
+  {
+    "key": "cmd+shift+s",
+    "command": "workbench.view.search"
+  },
+
+  // * Toggle terminal
+  {
+    "key": "cmd+shift+t",
+    "command": "workbench.action.terminal.toggleTerminal"
+  },
+
+  // * Focus comment panel
+  {
+    "key": "cmd+shift+c",
+    "command": "workbench.action.focusCommentsPanel"
+  },
+
+  // * Focus deBug panel
+  {
+    "key": "cmd+shift+b",
+    "command": "workbench.view.debug",
+    "when": "viewContainer.workbench.view.debug.enabled"
+  },
+  {
+    "key": "cmd+shift+d",
+    "command": "-workbench.view.debug",
+    "when": "viewContainer.workbench.view.debug.enabled"
+  },
+
+  // * Focus Docker panel
+  {
+    "key": "cmd+shift+d",
+    "command": "workbench.view.extension.dockerView"
+  },
+
+  // * Git
+  {
+    "key": "cmd+shift+g",
+    "command": "workbench.view.scm"
+  },
+
+  // * Bookmarks
+  {
+    "key": "cmd+shift+m",
+    "command": "bookmarks.listFromAllFiles"
+  },
+
+  // * Refactoring
+  {
+    "key": "cmd+shift+r",
+    "command": "editor.action.formatDocument"
+  },
+
+  // * Quick find views
+  {
+    "key": "cmd+shift+v",
+    "command": "workbench.action.quickOpenView"
+  },
+
+  // * Quit sidebar or panelView ("Hidden" may be correct expression)
+  {
+    "key": "cmd+x",
+    "command": "workbench.action.togglePanel",
+    "when": "panelFocus"
+  },
+  {
+    "key": "cmd+x",
+    "command": "workbench.action.toggleSidebarVisibility",
+    "when": "sideBarFocus"
+  },
+  {
+    "key": "cmd+shift+x",
+    "command": "workbench.action.togglePanel",
+    "when": "panelFocus"
+  },
+  {
+    "key": "cmd+shift+x",
+    "command": "workbench.action.toggleSidebarVisibility",
+    "when": "sideBarFocus"
+  },
+  {
+    "key": "cmd+x",
+    "command": "workbench.action.closeActiveEditor",
+    "when": "!sideBarFocus && !panelFocus"
+  },
+  {
+    "key": "cmd+shift+x",
+    "command": "workbench.action.closeActiveEditor",
+    "when": "!sideBarFocus && !panelFocus"
+  },
+
+  // * Split editor (Create new editorGroup)
+  // | (vertical)
+  {
+    "key": "shift+cmd+oem_5",
+    "command": "workbench.action.splitEditorRight",
+    "when": "editorFocus"
+  },
+  // - (horizontal)
+  {
+    "key": "shift+cmd+oem_minus",
+    "command": "workbench.action.splitEditorDown",
+    "when": "editorFocus"
+  },
+
+  // * Split terminal
+  // | (vertical)
+  {
+    "key": "shift+cmd+oem_5",
+    "command": "workbench.action.terminal.split",
+    "when": "terminalFocus"
+  },
+  // - (horizontal)
+  // terminal in VSCode cannnot be split horizontaly.
+  // so this command make new terminal ( equal cmd+shift+@)
+  {
+    "key": "shift+cmd+oem_minus",
+    "command": "workbench.action.terminal.new",
+    "when": "terminalFocus"
+  },
+
+  // * Select suggestion
+  {
+    "key": "cmd+l",
+    "command": "acceptSelectedSuggestion",
+    "when": "suggestWidgetVisible && textInputFocus"
+  },
+  {
+    "key": "cmd+j",
+    "command": "selectNextSuggestion",
+    "when": "suggestWidgetMultipleSuggestions && suggestWidgetVisible && textInputFocus"
+  },
+  {
+    "key": "cmd+k",
+    "command": "selectPrevSuggestion",
+    "when": "suggestWidgetMultipleSuggestions && suggestWidgetVisible && textInputFocus"
+  },
+
+  // * Select QuickOpen
+  // previous
+  {
+    "key": "cmd+k",
+    "command": "workbench.action.quickOpenNavigatePrevious",
+    "when": "inQuickOpen"
+  },
+  {
+    "key": "cmd+shift+k",
+    "command": "workbench.action.quickOpenNavigatePrevious",
+    "when": "inQuickOpen"
+  },
+  // next
+  {
+    "key": "cmd+j",
+    "command": "workbench.action.quickOpenNavigateNext",
+    "when": "inQuickOpen"
+  },
+  {
+    "key": "cmd+shift+j",
+    "command": "workbench.action.quickOpenNavigateNext",
+    "when": "inQuickOpen"
+  },
+  // enter
+  {
+    "key": "cmd+l",
+    "command": "workbench.action.acceptSelectedQuickOpenItem",
+    "when": "inQuickOpen"
+  },
+  {
+    "key": "cmd+shift+l",
+    "command": "workbench.action.acceptSelectedQuickOpenItem",
+    "when": "inQuickOpen"
+  },
+  // esc
+  {
+    "key": "cmd+shift+x",
+    "command": "workbench.action.closeQuickOpen",
+    "when": "inQuickOpen"
+  },
+  {
+    "key": "cmd+x",
+    "command": "workbench.action.closeQuickOpen",
+    "when": "inQuickOpen"
+  },
+
+  // *Select list (e.g. problem, explorer, grep...)
+  // previous
+  {
+    "key": "cmd+k",
+    "command": "list.focusUp",
+    "when": "listFocus"
+  },
+  // next
+  {
+    "key": "cmd+j",
+    "command": "list.focusDown",
+    "when": "listFocus"
+  },
+  // enter
+  {
+    "key": "cmd+l",
+    "command": "list.select",
+    "when": "listFocus"
+  },
+
+  // * grep で検索用インプットボックスから抜ける
+  {
+    "key": "cmd+l",
+    "command": "search.focus.nextInputBox",
+    "when": "inputBoxFocus && searchViewletVisible"
+  },
+  {
+    "key": "cmd+shift+l",
+    "command": "search.focus.nextInputBox",
+    "when": "inputBoxFocus && searchViewletVisible"
+  },
+  {
+    "key": "Enter",
+    "command": "search.focus.nextInputBox",
+    "when": "inputBoxFocus && searchViewletVisible"
+  },
+
+  //新規ファイル作成
+  {
+    "key": "n",
+    "command": "explorer.newFile",
+    "when": "explorerViewletFocus && explorerViewletVisible && !inputFocus"
+  },
+  //新規フォルダ作成
+  {
+    "key": "f",
+    "command": "explorer.newFolder",
+    "when": "explorerViewletFocus && explorerViewletVisible && !inputFocus"
+  },
+  //エクスプローラーでフォルダを開く
+  {
+    "key": "e",
+    "command": "revealFileInOS",
+    "when": "explorerViewletFocus && explorerViewletVisible && !inputFocus"
+  },
+  //リネーム
+  {
+    "key": "r",
+    "command": "renameFile",
+    "when": "explorerViewletFocus && explorerViewletVisible && !inputFocus"
+  },
+  //削除
+  {
+    "key": "d",
+    "command": "deleteFile",
+    "when": "explorerViewletFocus && explorerViewletVisible && !inputFocus"
+  },
+
+  // disabel default key shortcut
+  {
+    "key": "cmd+j",
+    "command": "-workbench.action.togglePanel"
+  },
+  {
+    "key": "cmd+shift+m",
+    "command": "-workbench.actions.view.problems"
+  },
+  {
+    "key": "cmd+z",
+    "command": "-undo"
+  },
+  {
+    "key": "Enter",
+    "command": "-acceptSelectedSuggestion",
+    "when": "acceptSuggestionOnEnter && suggestWidgetVisible && suggestionMakesTextEdit && textInputFocus"
+  },
+  {
+    "key": "cmd+shift+n",
+    "command": "-workbench.action.newWindow"
+  },
+  {
+    "key": "cmd+shift+n",
+    "command": "workbench.action.files.newUntitledFile"
+  },
+  {
+    "key": "cmd+n",
+    "command": "-workbench.action.files.newUntitledFile"
+  },
+  {
+    "key": "cmd+space",
+    "command": "editor.action.triggerSuggest",
+    "when": "editorHasCompletionItemProvider && textInputFocus && !editorReadonly"
+  },
+  {
+    "key": "cmd+l",
+    "command": "-expandLineSelection",
+    "when": "textInputFocus"
+  },
+  {
+    "key": "cmd+l",
+    "command": "workbench.action.nextEditor",
+    "when": "textInputFocus && !suggestWidgetVisible && !listFocus && !inQuickOpen"
+  },
+  {
+    "key": "shift+cmd+]",
+    "command": "-workbench.action.nextEditor"
+  },
+  {
+    "key": "alt+cmd+right",
+    "command": "-workbench.action.nextEditor"
+  },
+  {
+    "key": "cmd+h",
+    "command": "workbench.action.previousEditor"
+  },
+  {
+    "key": "shift+cmd+[",
+    "command": "-workbench.action.previousEditor"
+  },
+  {
+    "key": "shift+enter",
+    "command": "workbench.action.terminal.sendSequence",
+    "args": {
+      "text": "\\\r\n"
+    },
+    "when": "terminalFocus"
+  }
+]

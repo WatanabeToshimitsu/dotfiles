@@ -1,0 +1,645 @@
+{
+  //*----------------------------------------------------------
+  //* vscodeのeditorの設定
+  //*----------------------------------------------------------
+  "breadcrumbs.enabled": true, //エディターで開くパンくずの設定
+  "editor.detectIndentation": true,
+  "editor.hover.above": false,
+  "editor.guides.bracketPairs": true,
+  "editor.fontFamily": "JetBrainsMono Nerd Font Mono, MesloLGS NF, Source Code Pro for Powerline",
+  "editor.formatOnPaste": true, // 時間のかかるフォーマットだとバグが出る
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit",
+    "source.fixAll.eslint": "explicit",
+    "source.fixAll.stylelint": "explicit",
+  },
+  "editor.formatOnType": true,
+  "editor.insertSpaces": true, // tab キーを押すとスペースが挿入されます。
+  "editor.minimap.enabled": false,
+  "editor.renderControlCharacters": true,
+  "editor.renderLineHighlight": "all",
+  "editor.renderWhitespace": "boundary", // エディターで空白文字を表示する方法を制御します。'none'、'boundary' および 'all' が使用可能です。'boundary' オプションでは、単語間の単一スペースは表示されません。
+  "editor.suggestSelection": "first",
+  "editor.bracketPairColorization.enabled": true,
+  "emmet.showExpandedAbbreviation": "never", // disable emmet
+  "explorer.openEditors.visible": 0, // [開いているエディター] ウィンドウに表示するエディターの数。
+  "files.trimTrailingWhitespace": false,
+  "vsintellicode.modify.editor.suggestSelection": "automaticallyOverrodeDefaultValue",
+  "window.openFoldersInNewWindow": "on", // 新規ワークスペースを別ウインドウで開く
+  "window.title": "${activeEditorMedium}${separator}${rootName}",
+  "workbench.editor.enablePreviewFromQuickOpen": true,
+  "workbench.editor.highlightModifiedTabs": true, // 編集中のタブをハイライト
+  "workbench.editor.labelFormat": "short", // タブに表示する文字列の設定
+  "workbench.editor.openPositioning": "first",
+  "workbench.editor.showTabs": "multiple", //タブで見えるようにしないと何が開いているのかわからない
+  "workbench.editor.tabSizing": "shrink", // タブの表示設定
+  "workbench.iconTheme": "material-icon-theme",
+  "workbench.startupEditor": "none", // Welcome Page を表示しない
+  "workbench.editor.customLabels.patterns": {
+    "**/index.*": "${dirname} .../${dirname(1)}",
+    "**/{page,layout,template,route,actions,hooks,components,utils,types}.{js,ts,jsx,tsx}": "${dirname}/${filename}.${extname} .../${dirname(1)}",
+  },
+  //zen mode settings
+  "zenMode.centerLayout": true,
+  "zenMode.fullScreen": true,
+  "zenMode.hideActivityBar": true,
+  "zenMode.hideLineNumbers": false,
+  "zenMode.hideStatusBar": false,
+  "zenMode.restore": false,
+  "workbench.colorCustomizations": {
+    "terminal.background": "#EFECF4",
+    "terminal.foreground": "#585260",
+    "terminalCursor.background": "#585260",
+    "terminalCursor.foreground": "#585260",
+    "terminal.ansiBlack": "#EFECF4",
+    "terminal.ansiBlue": "#576DDB",
+    "terminal.ansiBrightBlack": "#7E7887",
+    "terminal.ansiBrightBlue": "#576DDB",
+    "terminal.ansiBrightCyan": "#398BC6",
+    "terminal.ansiBrightGreen": "#2A9292",
+    "terminal.ansiBrightMagenta": "#955AE7",
+    "terminal.ansiBrightRed": "#BE4678",
+    "terminal.ansiBrightWhite": "#19171C",
+    "terminal.ansiBrightYellow": "#A06E3B",
+    "terminal.ansiCyan": "#398BC6",
+    "terminal.ansiGreen": "#2A9292",
+    "terminal.ansiMagenta": "#955AE7",
+    "terminal.ansiRed": "#BE4678",
+    "terminal.ansiWhite": "#585260",
+    "terminal.ansiYellow": "#A06E3B",
+    "titleBar.activeBackground": "#5E3619",
+    "tab.activeBackground": "#000",
+    "tab.activeForeground": "#FDF9F7",
+    "titleBar.activeForeground": "#FDF9F7",
+  },
+  "editor.semanticHighlighting.enabled": true,
+  "better-comments.tags": [
+    {
+      "tag": "!",
+      "color": "#FF2D00",
+      "strikethrough": false,
+      "underline": false,
+      "backgroundColor": "transparent",
+      "bold": false,
+      "italic": false,
+    },
+    {
+      "tag": "?",
+      "color": "#3498DB",
+      "strikethrough": false,
+      "underline": false,
+      "backgroundColor": "transparent",
+      "bold": false,
+      "italic": false,
+    },
+    {
+      "tag": "//",
+      "color": "#474747",
+      "strikethrough": true,
+      "underline": false,
+      "backgroundColor": "transparent",
+      "bold": false,
+      "italic": false,
+    },
+    {
+      "tag": "todo",
+      "color": "#FF8C00",
+      "strikethrough": false,
+      "underline": false,
+      "backgroundColor": "transparent",
+      "bold": false,
+      "italic": false,
+    },
+    {
+      "tag": "*",
+      "color": "#98C379",
+      "strikethrough": false,
+      "underline": false,
+      "backgroundColor": "transparent",
+      "bold": false,
+      "italic": false,
+    },
+  ],
+  //*----------------------------------------------------------
+  //* vscodeの検索系
+  //*----------------------------------------------------------
+  // ファイル監視から除外するファイル
+  "files.watcherExclude": {
+    "**": true,
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/.svn/**": true,
+    "**/node_modules/*/**": true,
+  },
+  // ファイルブラウザには表示するが、検索から除外する
+  "search.exclude": {
+    "**/.DS_Store": true,
+    "**/.git": true,
+    "**/.svn": true,
+    "**/bower_components": true,
+    "**/env": true,
+    "**/node_modules": true,
+    "**/tmp/cache": true,
+    "**/vendor": true,
+    "tags": true,
+  },
+  //*----------------------------------------------------------
+  //* vscodeのdebugの設定
+  //*----------------------------------------------------------
+  // デバッグ中にエディターの行内に変数値を表示します
+  "debug.inlineValues": true,
+  //*----------------------------------------------------------
+  //* vscodeのterminalの設定
+  //*----------------------------------------------------------
+  "terminal.integrated.copyOnSelection": true, // 設定した場合、ターミナルで選択しているテキストはクリップボードにコピーされます。
+  "terminal.integrated.shellIntegration.decorationsEnabled": "both",
+  //*----------------------------------------------------------
+  //* For javascript
+  //*----------------------------------------------------------
+  "[javascript]": {
+    "editor.tabSize": 2,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+  },
+  "[javascriptreact]": {
+    "editor.tabSize": 2,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+  },
+  //*----------------------------------------------------------
+  //* For typescript
+  //*----------------------------------------------------------
+  "[typescript]": {
+    "editor.tabSize": 2,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+  },
+  "[typescriptreact]": {
+    "editor.tabSize": 2,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+  },
+  //*----------------------------------------------------------
+  //* For styling
+  //*----------------------------------------------------------
+  "css.validate": false,
+  "less.validate": false,
+  "scss.validate": false,
+  //*----------------------------------------------------------
+  //* For Python
+  //*----------------------------------------------------------
+  "[python]": {
+    "editor.tabSize": 4,
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnType": true,
+  },
+  "python.terminal.activateEnvironment": true,
+  "python.languageServer": "Pylance",
+  "python.analysis.completeFunctionParens": true,
+  "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.autoImportCompletions": true,
+  //*----------------------------------------------------------
+  //* misc files
+  //*----------------------------------------------------------
+  "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features",
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+  },
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+  },
+  "[yaml]": {
+    "editor.defaultFormatter": "redhat.vscode-yaml",
+  },
+  "[dockerfile]": {
+    "editor.defaultFormatter": "ms-azuretools.vscode-docker",
+  },
+  "[css]": {
+    "editor.defaultFormatter": "stylelint.vscode-stylelint",
+  },
+  //*----------------------------------------------------------
+  //* vscode vimの設定
+  //*----------------------------------------------------------
+  "vim.autoindent": true, //autoindent
+  "vim.camelCaseMotion.enable": true, // leaer->オペレータでCamel単位で選択
+  "vim.easymotion": true, // 検索をするときに見やすいモッサりすることなければこのまま
+  "vim.easymotionKeys": "qwertyuiopasdfghjkl;zxcvbnm", // easymotionの候補キーを設定
+  "vim.highlightedyank.color": "rgba(0, 240, 170, 0.5)", //yankした時の色
+  "vim.highlightedyank.duration": 150, //yankした時の色の表示時間
+  "vim.highlightedyank.enable": true, // yank範囲をハイライト
+  "vim.hlsearch": true,
+  "vim.ignorecase": true, // ignore case in search patterns.
+  "vim.incsearch": true, // show where a / search matches as you type it.
+  "vim.leader": "<space>",
+  "vim.replaceWithRegister": true,
+  "vim.sneak": true, // enable the sneak plugin for vim.
+  "vim.sneakUseIgnorecaseAndSmartcase": true,
+  "vim.statusBarColorControl": false, //statusbarの色のコントロールをしない
+  "vim.surround": true, // ysiw(insert surround) csiw(change), dsiw(delete)....
+  "vim.timeout": 1200, //入力のタイムアウト時間
+  "vim.useCtrlKeys": true, //諸々のctrlキーを使った操作が有効になる
+  "vim.useSystemClipboard": true, // systemのclipboardを使用します
+  "vim.visualstar": true, // search by *
+  "vim.handleKeys": {
+    "<C-a>": false,
+    "<C-k>": false,
+  },
+  // Vim key map
+  "vim.insertModeKeyBindingsNonRecursive": [
+    // esc
+    {
+      "before": ["j", "k"],
+      "after": ["<Esc>"],
+    },
+    {
+      "before": ["<C-v>"],
+      "commands": ["editor.action.clipboardPasteAction"],
+    },
+    {
+      "before": ["<D-v>"],
+      "commands": ["editor.action.clipboardPasteAction"],
+    },
+  ],
+  "vim.normalModeKeyBindingsNonRecursive": [
+    // no highlight
+    {
+      "before": ["<leader>", "<Esc>"],
+      "commands": [":noh"],
+    },
+    //移動を早める
+    {
+      "before": ["J"],
+      "after": ["1", "0", "j"],
+    },
+    {
+      "before": ["K"],
+      "after": ["1", "0", "k"],
+    },
+    {
+      "before": ["H"],
+      "after": ["b"],
+    },
+    {
+      "before": ["L"],
+      "after": ["w"],
+    },
+    // for snake case value
+    {
+      "before": ["\\"],
+      "after": ["f", "_"],
+    },
+    {
+      "before": ["_"],
+      "after": ["F", "_"],
+    },
+    // bookmark by m
+    {
+      "before": ["m"],
+      "commands": ["bookmarks.toggle"],
+    },
+    {
+      "before": ["M"],
+      "commands": ["bookmarks.jumpToNext"],
+    },
+    // home end
+    {
+      "before": ["<leader>", "h"],
+      "after": ["^"],
+    },
+    {
+      "before": ["<leader>", "l"],
+      "after": ["$"],
+    },
+    // concatinate(J) を退避
+    {
+      "before": ["<leader>", "j"],
+      "after": ["J"],
+    },
+    // indent
+    {
+      "before": [">"],
+      "commands": ["editor.action.indentLines"],
+    },
+    {
+      "before": ["<"],
+      "commands": ["editor.action.outdentLines"],
+    },
+    // insert line
+    {
+      "before": ["<Leader>", "o"],
+      "after": ["o", "<ESC>"],
+    },
+    {
+      "before": ["<Leader>", "O"],
+      "after": ["O", "<ESC>"],
+    },
+    // command in vscode
+    {
+      "before": ["<Leader>", ":"],
+      "commands": [
+        {
+          "command": "workbench.action.showCommands",
+        },
+      ],
+    },
+    // change value name (= ctrl + F2)
+    {
+      "before": ["<Leader>", "c"],
+      "commands": [
+        {
+          "command": "editor.action.changeAll",
+        },
+      ],
+    },
+    // find symbol
+    {
+      "before": ["<Leader>", "/"],
+      "commands": [
+        {
+          "command": "workbench.action.gotoSymbol",
+        },
+      ],
+    },
+    // 検索結果を画面中央に
+    {
+      "before": ["n"],
+      "after": ["n", "z", "z"],
+    },
+    {
+      "before": ["N"],
+      "after": ["N", "z", "z"],
+    },
+    {
+      "before": ["*"],
+      "after": ["*", "z", "z"],
+    },
+    {
+      "before": ["#"],
+      "after": ["#", "z", "z"],
+    },
+    //easy motion
+    {
+      "before": ["s"],
+      "after": ["<Leader>", "<Leader>", "2", "s"],
+    },
+  ],
+  "vim.visualModeKeyBindingsNonRecursive": [
+    {
+      "before": ["<leader>", "j", "k"],
+      "after": ["<Esc>"],
+    },
+    // no highlight
+    {
+      "before": ["<leader>", "<Esc>"],
+      "commands": [":noh"],
+    },
+    //移動を早める
+    {
+      "before": ["J"],
+      "after": ["1", "0", "j"],
+    },
+    {
+      "before": ["K"],
+      "after": ["1", "0", "k"],
+    },
+    {
+      "before": ["H"],
+      "after": ["b"],
+    },
+    {
+      "before": ["L"],
+      "after": ["w"],
+    },
+    {
+      "before": ["<leader>", "h"],
+      "after": ["^"],
+    },
+    {
+      "before": ["<leader>", "l"],
+      "after": ["$"],
+    },
+    //easy motion
+    {
+      "before": ["s"],
+      "after": ["<Leader>", "<Leader>", "2", "s"],
+    },
+    // change value name (= ctrl + F2)
+    {
+      "before": ["<Leader>", "c"],
+      "commands": [
+        {
+          "command": "editor.action.changeAll",
+        },
+      ],
+    },
+    {
+      "before": [">"],
+      "commands": ["editor.action.indentLines"],
+    },
+    {
+      "before": ["<"],
+      "commands": ["editor.action.outdentLines"],
+    },
+  ],
+  "vim.operatorPendingModeKeyBindingsNonRecursive": [
+    {
+      "before": ["<leader>", "h"],
+      "after": ["^"],
+    },
+    {
+      "before": ["<leader>", "l"],
+      "after": ["$"],
+    },
+  ],
+  //*----------------------------------------------------------
+  //* miscellaneous(extensions etc)
+  //*----------------------------------------------------------
+  "git.autofetch": true,
+  "formattingToggle.affects": [
+    "editor.formatOnPaste",
+    "editor.formatOnSave",
+    "editor.formatOnType",
+  ],
+  "cSpell.userWords": [
+    "adachi",
+    "aggfunc",
+    "aggrid",
+    "alertdialog",
+    "browserslist",
+    "budoux",
+    "BUILDKIT",
+    "buildx",
+    "camelcase",
+    "Centerizer",
+    "chuden",
+    "compat",
+    "conv",
+    "Dataware",
+    "datetime",
+    "deactive",
+    "deletable",
+    "devcontainer",
+    "dockerhub",
+    "dtype",
+    "editorconfig",
+    "entrypoint",
+    "etime",
+    "gitlab",
+    "gspread",
+    "hdwlab",
+    "healthz",
+    "immer",
+    "ingressgateway",
+    "inputtable",
+    "istio",
+    "Kustomization",
+    "kustomize",
+    "langchain",
+    "levelname",
+    "meti",
+    "MLOPS",
+    "ndarray",
+    "NEDO",
+    "nextjs",
+    "npmrc",
+    "nuct",
+    "numpy",
+    "oidc",
+    "openai",
+    "openapi",
+    "Pageview",
+    "plotly",
+    "preconnect",
+    "pydtk",
+    "regcred",
+    "requireds",
+    "Rosbag",
+    "Rosbridge",
+    "scrollable",
+    "setenv",
+    "Streamlit",
+    "stylelint",
+    "Swiper",
+    "tiktoken",
+    "tolist",
+    "Toshimitsu",
+    "unmount",
+    "Watanabe",
+    "yusukefs",
+  ],
+  "docker.containers.label": "Compose Project Name",
+  "git.ignoreLegacyWarning": true,
+  "editor.tabCompletion": "on",
+  "editor.acceptSuggestionOnEnter": "smart",
+  "[dockercompose]": {
+    "editor.defaultFormatter": "ms-azuretools.vscode-docker",
+  },
+  "workbench.editorAssociations": {
+    "*.ipynb": "jupyter-notebook",
+  },
+  "editor.cursorStyle": "line",
+  "editor.lineNumbers": "on",
+  "editor.wordSeparators": "/\\()\"':,.;<>~!@#$%^&*|+=[]{}`?-",
+  "editor.wordWrap": "off",
+  "editor.tabSize": 8,
+  "redhat.telemetry.enabled": true,
+  "notebook.cellToolbarLocation": {
+    "default": "right",
+    "jupyter-notebook": "left",
+  },
+  "diffEditor.ignoreTrimWhitespace": false,
+  "git.suggestSmartCommit": false,
+  "shellformat.useEditorConfig": true,
+  "terminal.integrated.defaultProfile.linux": "zsh",
+  "terminal.integrated.profiles.linux": {
+    "zsh": {
+      "path": "zsh",
+      "args": ["--login", "-i", "-l"],
+    },
+  },
+  "githubPullRequests.pullBranch": "never",
+  "playwright.reuseBrowser": true,
+  "settingsSync.ignoredSettings": ["CodeGPT.query.language"],
+  "editor.inlineSuggest.enabled": true,
+  "remote.SSH.connectTimeout": 60,
+  "workbench.editor.tabActionCloseVisibility": false,
+  "window.zoomLevel": 1,
+  "security.workspace.trust.untrustedFiles": "open",
+  // "json.format.keepLines": true,
+  "remote.SSH.useLocalServer": false,
+  "jupyter.widgetScriptSources": ["jsdelivr.com", "unpkg.com"],
+  "terminal.integrated.scrollback": 10000,
+  "ruff.trace.server": "messages",
+  "notebook.defaultFormatter": "charliermarsh.ruff",
+  "makefile.configureOnOpen": false,
+  "javascript.updateImportsOnFileMove.enabled": "always",
+  "editor.unicodeHighlight.ambiguousCharacters": false,
+  "application.shellEnvironmentResolutionTimeout": 30,
+  "terminal.integrated.defaultProfile.osx": "zsh",
+  "[shellscript]": {
+    "editor.defaultFormatter": "mads-hartmann.bash-ide-vscode",
+  },
+  "cline.modelSettings.o3Mini.reasoningEffort": "high",
+  "cline.preferredLanguage": "Japanese - 日本語",
+  "terminal.integrated.env.osx": {},
+  "console-ninja.featureSet": "Community",
+  "workbench.colorTheme": "Night Owl Light",
+  "github.copilot.enable": {
+    "*": true,
+    "plaintext": false,
+    "markdown": true,
+    "scminput": false,
+  },
+  "github.copilot.selectedCompletionModel": "",
+  "github.copilot.chat.completionContext.typescript.mode": "sidecar",
+  "github.copilot.chat.edits.temporalContext.enabled": true,
+  "github.copilot.chat.generateTests.codeLens": true,
+  "github.copilot.chat.languageContext.fix.typescript.enabled": true,
+  "github.copilot.chat.languageContext.inline.typescript.enabled": true,
+  "github.copilot.chat.languageContext.typescript.enabled": true,
+  "github.copilot.chat.agent.thinkingTool": true,
+  "github.copilot.chat.scopeSelection": true,
+  "github.copilot.nextEditSuggestions.enabled": true,
+  "github.copilot.nextEditSuggestions.fixes": true,
+  "github.copilot.chat.editor.temporalContext.enabled": true,
+  "github.copilot.chat.search.keywordSuggestions": true,
+  "containers.containers.label": "Compose Project Name",
+  "github.copilot.chat.codesearch.enabled": true,
+  "githubPullRequests.experimental.chat": true,
+  "githubPullRequests.experimental.notificationsView": true,
+  "githubPullRequests.experimental.useQuickChat": true,
+  "python.analysis.addHoverSummaries": true,
+  "python.analysis.aiCodeActions": {
+    "convertFormatString": true,
+    "convertLambdaToNamedFunction": true,
+    "generateDocstring": true,
+    "generateSymbol": true,
+    "implementAbstractClasses": true,
+  },
+  "editor.experimental.preferTreeSitter.typescript": true,
+  "typescript.preferGoToSourceDefinition": true,
+  "typescript.preferences.preferTypeOnlyAutoImports": true,
+  "typescript.suggest.completeFunctionCalls": true,
+  "typescript.tsserver.experimental.enableProjectDiagnostics": true,
+  "docker.extension.enableComposeLanguageServer": false,
+  "search.followSymlinks": false,
+  "[github-actions-workflow]": {
+    "editor.defaultFormatter": "redhat.vscode-yaml",
+  },
+  "terminal.integrated.macOptionIsMeta": true,
+  "chat.viewSessions.orientation": "stacked",
+  "claudeCode.enableNewConversationShortcut": false,
+  "claudeCode.initialPermissionMode": "plan",
+  "claudeCode.useTerminal": true,
+  "workbench.browser.openLocalhostLinks": false,
+  "[markdown]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+  },
+  "yaml.disableSchemaDetection": [
+    "**/.github/workflows/*.yml",
+    "**/.github/workflows/*.yaml",
+    "**/.gitea/workflows/*.yml",
+    "**/.gitea/workflows/*.yaml",
+    "**/.forgejo/workflows/*.yml",
+    "**/.forgejo/workflows/*.yaml"
+  ],
+}
