@@ -342,13 +342,16 @@ setup_agent_skills() {
     "GoogleChrome/modern-web-guidance:modern-web-guidance"
     "vercel-labs/agent-browser:agent-browser"
     "tokoroten/prompt-review:prompt-review"
+    "vercel-labs/agent-skills:vercel-react-best-practices"
   )
 
+  # Newer skills CLI copies into ~/.claude/skills directly; older versions
+  # symlink from ~/.agents/skills — treat either as installed.
   local entry repo skill
   for entry in "${skill_sources[@]}"; do
     repo="${entry%%:*}"
     skill="${entry##*:}"
-    if [ -e "$HOME/.agents/skills/$skill" ]; then
+    if [ -e "$HOME/.agents/skills/$skill" ] || [ -e "$HOME/.claude/skills/$skill" ]; then
       echo "  exists: $skill"
       continue
     fi
