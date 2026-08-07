@@ -25,6 +25,8 @@ swap_pane_left = "prefix+shift+left"
 swap_pane_right = "prefix+shift+right"
 swap_pane_up = "prefix+shift+up"
 swap_pane_down = "prefix+shift+down"
+# Direct workspace switching, browser-tab style (cmd+1..9 freed in ghostty config)
+switch_workspace = "cmd+1..9"
 
 [ui]
 # Start with the sidebar collapsed to the compact status rail; prefix+b expands it
@@ -78,6 +80,33 @@ key = "prefix+ctrl+l"
 type = "shell"
 command = '"${HERDR_BIN_PATH}" pane send-keys "${HERDR_ACTIVE_PANE_ID}" ctrl+l'
 description = "clear pane (send ctrl+l)"
+
+# cmd+h/j/k/l: unconditional pane focus (works even inside node TUIs like
+# Claude Code, unlike the vim-aware ctrl+h/j/k/l which passes through there).
+# cmd+h needs the forwarding keybind in the ghostty config (macOS Hide).
+[[keys.command]]
+key = "cmd+h"
+type = "shell"
+command = '"${HERDR_BIN_PATH}" pane focus --direction left --pane "${HERDR_ACTIVE_PANE_ID}"'
+description = "focus pane left"
+
+[[keys.command]]
+key = "cmd+j"
+type = "shell"
+command = '"${HERDR_BIN_PATH}" pane focus --direction down --pane "${HERDR_ACTIVE_PANE_ID}"'
+description = "focus pane down"
+
+[[keys.command]]
+key = "cmd+k"
+type = "shell"
+command = '"${HERDR_BIN_PATH}" pane focus --direction up --pane "${HERDR_ACTIVE_PANE_ID}"'
+description = "focus pane up"
+
+[[keys.command]]
+key = "cmd+l"
+type = "shell"
+command = '"${HERDR_BIN_PATH}" pane focus --direction right --pane "${HERDR_ACTIVE_PANE_ID}"'
+description = "focus pane right"
 
 # reviewr: diff review pane (persiyanov/herdr-reviewr; auto-opens in new worktrees)
 [[keys.command]]

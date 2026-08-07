@@ -47,3 +47,31 @@
 # # which is explained in the docs for that config option.
 # # Just for example:
 # resize-overlay-duration = 4s 200ms
+
+# --- herdr integration --------------------------------------------------
+# Free cmd+1..9 from Ghostty tab switching so they reach herdr
+# (workspace switching; unclaimed cmd keys pass through to the TUI).
+keybind = super+1=unbind
+keybind = super+2=unbind
+keybind = super+3=unbind
+keybind = super+4=unbind
+keybind = super+5=unbind
+keybind = super+6=unbind
+keybind = super+7=unbind
+keybind = super+8=unbind
+keybind = super+9=unbind
+keybind = super+digit_1=unbind
+keybind = super+digit_2=unbind
+keybind = super+digit_3=unbind
+keybind = super+digit_4=unbind
+keybind = super+digit_5=unbind
+keybind = super+digit_6=unbind
+keybind = super+digit_7=unbind
+keybind = super+digit_8=unbind
+
+# cmd+k is clear_screen by default; free it for herdr pane navigation.
+keybind = super+k=unbind
+
+# cmd+h normally hides the window (macOS menu); send it to the terminal
+# instead, encoded as kitty-keyboard super+h for herdr's pane navigation.
+keybind = super+h=text:\x1b[104;9u
