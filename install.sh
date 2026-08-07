@@ -203,6 +203,51 @@ install_gh_cli() {
 }
 
 # ========================================
+# CLI tool inventories (gh extensions, pipx, volta)
+# ========================================
+# Idempotent: skips anything already installed.
+
+setup_cli_tools() {
+  echo "----------------------------------------------"
+  echo "Installing CLI tool inventories..."
+  echo "----------------------------------------------"
+
+  if command -v gh > /dev/null 2>&1 && gh auth status > /dev/null 2>&1; then
+    local ext
+    for ext in seachicken/gh-poi github/gh-stack; do
+      if gh extension list 2>/dev/null | grep -q "$ext"; then
+        echo "  exists: gh extension $ext"
+      else
+        gh extension install "$ext" || echo "  failed: gh extension $ext"
+      fi
+    done
+  else
+    echo "  skipped gh extensions (gh missing or unauthenticated)"
+  fi
+
+  if command -v pipx > /dev/null 2>&1; then
+    local tool
+    for tool in aws-sam-cli cfn-lint poetry; do
+      if pipx list --short 2>/dev/null | grep -q "^$tool "; then
+        echo "  exists: pipx $tool"
+      else
+        pipx install "$tool" || echo "  failed: pipx $tool"
+      fi
+    done
+  else
+    echo "  skipped pipx tools (pipx not found)"
+  fi
+
+  if command -v volta > /dev/null 2>&1; then
+    if volta which node > /dev/null 2>&1; then
+      echo "  exists: volta node toolchain"
+    else
+      volta install node || echo "  failed: volta install node"
+    fi
+  fi
+}
+
+# ========================================
 # herdr integrations and plugins
 # ========================================
 # Idempotent: skips anything already installed/linked.
@@ -338,6 +383,7 @@ setup_macos() {
   setup_vscode
   setup_agent_skills
   setup_herdr
+  setup_cli_tools
 }
 
 # ========================================
@@ -409,6 +455,7 @@ setup_linux() {
   setup_symlinks "$DOTFILES_DIR"
   setup_agent_skills
   setup_herdr
+  setup_cli_tools
 
   install_fzf
   install_ghq
