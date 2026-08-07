@@ -1,0 +1,25 @@
+id = "kz86n.worktree-setup"
+name = "Worktree Setup"
+version = "0.1.0"
+min_herdr_version = "0.7.0"
+platforms = ["macos", "linux"]
+description = "Run project setup automatically in a pane when a worktree workspace is created."
+
+# The pane's cwd is the fresh worktree checkout (passed via --cwd on open),
+# so the script must be addressed through the plugin root.
+[[panes]]
+id = "setup"
+title = "setup"
+placement = "split"
+command = ["bash", "-c", "exec bash \"$HERDR_PLUGIN_ROOT/run-setup.sh\""]
+
+[[events]]
+on = "worktree.created"
+command = ["bash", "open-setup-pane.sh"]
+
+# Manual trigger for an existing workspace (e.g. after pulling new lockfiles).
+[[actions]]
+id = "run"
+title = "worktree-setup: run in current workspace"
+contexts = ["pane", "workspace"]
+command = ["bash", "open-setup-pane.sh", "manual"]
