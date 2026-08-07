@@ -246,6 +246,7 @@ setup_agent_skills() {
     "yoshiko-pg/difit:difit-review"
     "GoogleChrome/modern-web-guidance:modern-web-guidance"
     "vercel-labs/agent-browser:agent-browser"
+    "tokoroten/prompt-review:prompt-review"
   )
 
   local entry repo skill
