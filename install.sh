@@ -114,6 +114,16 @@ setup_symlinks() {
     rules/testing/vitest.md
     rules/typescript/documentation.md
     rules/typescript/type-safety.md
+    rules/common/agents.md
+    rules/common/code-review.md
+    rules/common/coding-style.md
+    rules/common/development-workflow.md
+    rules/common/git-workflow.md
+    rules/common/hooks.md
+    rules/common/patterns.md
+    rules/common/performance.md
+    rules/common/security.md
+    rules/common/testing.md
   )
 
   for file in "${claude_files[@]}"; do
