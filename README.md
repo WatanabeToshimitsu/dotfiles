@@ -1,24 +1,28 @@
 # dotfiles
 
+[![CI](https://github.com/WatanabeToshimitsu/dotfiles/actions/workflows/ci.yml/badge.svg)](https://github.com/WatanabeToshimitsu/dotfiles/actions/workflows/ci.yml)
+
 Personal dotfiles for macOS, Linux, and WSL2 environments.
 
 ## What's Included
 
-| File / Directory                     | Description                                                             |
-| ------------------------------------ | ----------------------------------------------------------------------- |
-| `.zshrc`                             | Zsh configuration (primary shell) with Zinit plugin manager             |
-| `.bashrc` / `.bash_profile`          | Bash configuration (NVM, Volta, Docker)                                 |
-| `.vimrc`                             | Vim settings (UTF-8, 2-space tabs, smart search)                        |
-| `.tmux.conf`                         | tmux settings (prefix: `C-j`, vim-style pane/copy keybindings)          |
-| `.zprofile` / `.zshenv` / `.profile` | Shell profile and environment files                                     |
-| `.gitconfig`                         | Git configuration                                                       |
-| `.huskyrc`                           | Husky git hooks configuration                                           |
-| `.shell-utils/`                      | Utility scripts (`ghq-rm.sh`, `zsh-history-substring-search`)           |
-| `claude/`                            | [Claude Code](https://claude.ai/code) global settings, hooks, and rules |
-| `.config/`                           | XDG-compliant configs (`git/ignore`, `gh/config.yml`, `ghostty/config`) |
-| `oh-my-posh-theme/`                  | oh-my-posh prompt theme configuration                                   |
-| `Brewfile`                           | Homebrew dependencies (CLI tools, casks, VS Code extensions)            |
-| `install.sh`                         | Environment setup script for macOS and Linux                            |
+| File / Directory                     | Description                                                                      |
+| ------------------------------------ | -------------------------------------------------------------------------------- |
+| `.zshrc`                             | Zsh configuration (primary shell) with Zinit plugin manager                      |
+| `.bashrc` / `.bash_profile`          | Bash configuration (NVM, Volta, Docker)                                          |
+| `.vimrc`                             | Vim settings (UTF-8, 2-space tabs, smart search)                                 |
+| `.tmux.conf`                         | tmux settings (prefix: `C-j`, vim-style pane/copy keybindings)                   |
+| `.zprofile` / `.zshenv` / `.profile` | Shell profile and environment files                                              |
+| `.gitconfig`                         | Git configuration                                                                |
+| `.huskyrc`                           | Husky git hooks configuration                                                    |
+| `.shell-utils/`                      | Utility scripts (`ghq-rm.sh`, `git-branch-prune.zsh`, ...)                       |
+| `claude/`                            | [Claude Code](https://claude.ai/code) global settings, hooks, rules, statusline  |
+| `.config/`                           | XDG-compliant configs (`git/ignore`, `gh/config.yml`, `ghostty`, `herdr`)        |
+| `herdr-plugins/`                     | Self-made [herdr](https://herdr.dev) plugins (loaded via `herdr plugin link`)    |
+| `vscode/`                            | VS Code user config (keybindings symlinked, settings bootstrap-copied)           |
+| `oh-my-posh-theme/`                  | oh-my-posh prompt theme configuration                                            |
+| `Brewfile`                           | Homebrew dependencies (CLI tools, casks, VS Code extensions)                     |
+| `install.sh`                         | Environment setup script for macOS and Linux                                     |
 
 ## Setup
 
@@ -35,6 +39,11 @@ bash install.sh
 1. **macOS**: Install Homebrew (if needed), run `brew bundle`, and create symlinks
 2. **Linux**: Install packages via apt/yum/dnf (and Homebrew for non-root users), then create symlinks
 3. Symlink only specific dotfiles (not `.git`, `.claude`, etc.) to `~/`
+4. Symlink VS Code keybindings and bootstrap-copy settings (macOS)
+5. Reinstall global agent skills via `npx skills` (see `setup_agent_skills`)
+6. Install herdr integrations/plugins and link `herdr-plugins/worktree-setup`
+
+Machine-specific shell config goes in `~/.zshrc.local` (sourced last, never tracked here).
 
 ## Key Tools
 
@@ -44,7 +53,8 @@ bash install.sh
 - **Node.js**: [Volta](https://volta.sh/) (not nvm in zsh)
 - **Python**: [pyenv](https://github.com/pyenv/pyenv) (lazy-initialized via unfunction pattern)
 - **Repository management**: [ghq](https://github.com/x-motemen/ghq) + fzf integration
-- **Modern CLI**: [lsd](https://github.com/lsd-rs/lsd) (ls), [bat](https://github.com/sharkdp/bat) (cat), [ripgrep](https://github.com/BurntSushi/ripgrep) (grep)
+- **Modern CLI**: [lsd](https://github.com/lsd-rs/lsd) (ls), [bat](https://github.com/sharkdp/bat) (cat), [ripgrep](https://github.com/BurntSushi/ripgrep) (grep), [zoxide](https://github.com/ajeetdsouza/zoxide) (`z`/`zi` jump)
+- **Terminal workspace**: [herdr](https://herdr.dev) on [Ghostty](https://ghostty.org) (agent multiplexer; prefix `cmd+space`)
 
 ## Notable Aliases
 
@@ -64,7 +74,11 @@ Configuration files are organized by target location:
 | Root dotfiles (`.zshrc`, `.vimrc`, etc.) | `~/`                  | Direct symlink                   |
 | `.config/`                               | `~/.config/`          | XDG Base Directory mirror        |
 | `claude/`                                | `~/.claude/`          | Per-CLI directory (non-XDG tool) |
+| `vscode/`                                | `~/Library/Application Support/Code/User/` | Symlink (keybindings) / bootstrap copy (settings) |
+| `herdr-plugins/`                         | herdr plugin registry | `herdr plugin link` (repo edits apply live) |
 | `oh-my-posh-theme/`                      | `~/oh-my-posh-theme/` | Direct directory symlink         |
 | `.shell-utils/`                          | `~/.shell-utils/`     | Direct directory symlink         |
+
+**Not tracked by design**: machine-local state (`~/.zshrc.local`, VS Code's live `settings.json` mutations), internal hostnames, and herdr-mirror `hosts.toml` — this repo is public.
 
 **Principle**: Follow XDG Base Directory Specification (`.config/`) by default. For CLI tools that do not respect XDG paths, create a dedicated top-level directory named after the tool (e.g., `claude/` for `~/.claude/`).
