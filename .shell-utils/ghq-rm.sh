@@ -52,7 +52,7 @@ rm_each_repo() {
         while read -u "$fd" -r repo_path; do
                 printf "\e[1;34m> %s\e[0m\n" "$repo_path"
                 (
-                        cd "$repo_path"
+                        cd "$repo_path" || exit 1
                         ret=0
                         test_repo_is_clean
                         ret=$((ret + $?))
