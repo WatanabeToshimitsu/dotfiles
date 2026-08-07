@@ -1,0 +1,11 @@
+# Shared environment for zsh/bash/sh (POSIX syntax only).
+# Sourced from .zshrc, .bashrc, .bash_profile, .profile, and .huskyrc —
+# keep it fast, idempotent, and free of shell-specific features.
+
+export VOLTA_HOME="$HOME/.volta"
+case ":$PATH:" in
+  *":$VOLTA_HOME/bin:"*) ;;
+  *) export PATH="$VOLTA_HOME/bin:$PATH" ;;
+esac
+
+[ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
