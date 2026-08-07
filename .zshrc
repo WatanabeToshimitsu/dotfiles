@@ -498,4 +498,6 @@ eval "$(direnv hook zsh)"
 export HERDR_NAV_PASSTHROUGH_RE='^node$'
 
 # zoxide: frecency-based jump via `z`/`zi` (cd itself stays on enhancd)
+# zinit ships a `zi` alias that would shadow zoxide's function; drop it
+unalias zi 2>/dev/null
 command -v zoxide &>/dev/null && eval "$(zoxide init zsh)"
