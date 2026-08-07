@@ -107,6 +107,7 @@ setup_symlinks() {
     RTK.md
     settings.json
     statusline.sh
+    claude-powerline.json
     hooks/deny-check.sh
     hooks/notification.sh
     hooks/rtk-rewrite.sh
