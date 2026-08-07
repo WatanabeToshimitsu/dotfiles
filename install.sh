@@ -203,6 +203,56 @@ install_gh_cli() {
 }
 
 # ========================================
+# herdr integrations and plugins
+# ========================================
+# Idempotent: skips anything already installed/linked.
+
+setup_herdr() {
+  if ! command -v herdr > /dev/null 2>&1; then
+    echo "  skipped herdr setup (herdr not found)"
+    return 0
+  fi
+
+  echo "----------------------------------------------"
+  echo "Setting up herdr integrations and plugins..."
+  echo "----------------------------------------------"
+
+  local integration
+  for integration in claude codex; do
+    if herdr integration status 2>/dev/null | grep -q "^${integration}: not installed"; then
+      herdr integration install "$integration" || echo "  failed: integration $integration"
+    else
+      echo "  exists: integration $integration"
+    fi
+  done
+
+  # repo:plugin_id pairs (id is what `herdr plugin list` reports)
+  local plugins=(
+    "paulbkim-dev/vim-herdr-navigation:vim-herdr-navigation"
+    "persiyanov/herdr-reviewr:persiyanov.reviewr"
+    "nikok6/herdr-mirror:mirror"
+  )
+  local installed entry repo id
+  installed=$(herdr plugin list 2>/dev/null)
+  for entry in "${plugins[@]}"; do
+    repo="${entry%%:*}"
+    id="${entry##*:}"
+    if printf '%s' "$installed" | grep -q "^- ${id} "; then
+      echo "  exists: plugin $id"
+    else
+      herdr plugin install "$repo" --yes || echo "  failed: plugin $repo"
+    fi
+  done
+
+  if printf '%s' "$installed" | grep -q "^- kz86n.worktree-setup "; then
+    echo "  exists: plugin kz86n.worktree-setup"
+  else
+    herdr plugin link "$DOTFILES_DIR/herdr-plugins/worktree-setup" ||
+      echo "  failed: link worktree-setup"
+  fi
+}
+
+# ========================================
 # VS Code user config (macOS)
 # ========================================
 # keybindings.json is symlinked (never auto-modified by VS Code).
@@ -287,6 +337,7 @@ setup_macos() {
   setup_symlinks "$DOTFILES_DIR"
   setup_vscode
   setup_agent_skills
+  setup_herdr
 }
 
 # ========================================
@@ -357,6 +408,7 @@ setup_linux() {
 
   setup_symlinks "$DOTFILES_DIR"
   setup_agent_skills
+  setup_herdr
 
   install_fzf
   install_ghq
