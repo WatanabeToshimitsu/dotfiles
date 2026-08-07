@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: shellcheck
+        run: shellcheck -S warning install.sh test/test-install.sh .shell-utils/*.sh
+
+  validate-configs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate TOML (herdr)
+        run: |
+          python3 - <<'PY'
+          import glob, tomllib
+          for path in [".config/herdr/config.toml", *glob.glob("herdr-plugins/*/herdr-plugin.toml")]:
+              with open(path, "rb") as f:
+                  tomllib.load(f)
+              print("OK", path)
+          PY
+      - name: Validate JSON (claude, renovate)
+        run: |
+          python3 - <<'PY'
+          import json
+          for path in ["claude/settings.json", "claude/claude-powerline.json", "renovate.json"]:
+              with open(path) as f:
+                  json.load(f)
+              print("OK", path)
+          PY
+      - name: Validate JSONC (VS Code)
+        run: |
+          npx --yes json5 vscode/settings.json > /dev/null
+          npx --yes json5 vscode/keybindings.json > /dev/null
+
+  install-ubuntu:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build test image
+        run: docker build -f test/Dockerfile.ubuntu -t dotfiles-test .
+      - name: Run install test
+        run: docker run --rm dotfiles-test bash test/test-install.sh
