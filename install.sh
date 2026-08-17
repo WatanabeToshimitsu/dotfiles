@@ -126,6 +126,25 @@ setup_symlinks() {
   [ -d "$HOME/oh-my-posh-theme" ] && [ ! -L "$HOME/oh-my-posh-theme" ] && rm -rf "$HOME/oh-my-posh-theme"
   ln -fsn "$dotfiles_dir/oh-my-posh-theme" "$HOME/oh-my-posh-theme"
   echo "  linked: oh-my-posh-theme/"
+
+  # Neovim config (LazyVim): whole-directory symlink; back up any real dir first
+  if [ -d "$HOME/.config/nvim" ] && [ ! -L "$HOME/.config/nvim" ]; then
+    mkdir -p "$HOME/.dotfiles-backup/$BACKUP_TIMESTAMP/.config"
+    mv "$HOME/.config/nvim" "$HOME/.dotfiles-backup/$BACKUP_TIMESTAMP/.config/nvim"
+    echo "  backed up: .config/nvim"
+  fi
+  mkdir -p "$HOME/.config"
+  ln -fsn "$dotfiles_dir/.config/nvim" "$HOME/.config/nvim"
+  echo "  linked: .config/nvim/"
+}
+
+# Restore Neovim plugins pinned by lazy-lock.json (first run also clones lazy.nvim)
+bootstrap_neovim() {
+  command -v nvim > /dev/null 2>&1 || return 0
+  echo "----------------------------------------------"
+  echo "Bootstrapping Neovim plugins (lazy.nvim restore)..."
+  echo "----------------------------------------------"
+  nvim --headless "+Lazy! restore" +qa
 }
 
 install_fzf() {
@@ -412,6 +431,7 @@ setup_macos() {
   brew bundle --file="$DOTFILES_DIR/Brewfile"
 
   setup_symlinks "$DOTFILES_DIR"
+  bootstrap_neovim
   setup_vscode
   setup_agent_skills
   setup_herdr

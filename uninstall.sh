@@ -51,6 +51,7 @@ done
 
 remove_if_dotfiles_symlink "$HOME/.shell-utils"
 remove_if_dotfiles_symlink "$HOME/oh-my-posh-theme"
+remove_if_dotfiles_symlink "$HOME/.config/nvim"
 
 if [ "$(uname -s)" = "Darwin" ]; then
   remove_if_dotfiles_symlink "$HOME/Library/Application Support/Code/User/keybindings.json"
