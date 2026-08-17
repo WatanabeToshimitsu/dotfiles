@@ -16,6 +16,7 @@ MANIFEST_CONFIG_FILES=(
   .config/gh/config.yml
   .config/ghostty/config
   .config/herdr/config.toml
+  .config/yazi/yazi.toml
 )
 
 # Claude Code global settings (claude/ → ~/.claude/)

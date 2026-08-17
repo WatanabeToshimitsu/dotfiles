@@ -142,3 +142,10 @@ key = "prefix+shift+b"
 type = "plugin_action"
 command = "mirror.restore"
 description = "mirror: restore closed mirrors"
+
+# yazi: browse files in a temporary pane (closes on exit, starts in pane cwd)
+[[keys.command]]
+key = "prefix+y"
+type = "pane"
+command = "yazi"
+description = "yazi file manager"
