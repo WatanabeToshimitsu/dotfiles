@@ -11,7 +11,7 @@ Personal dotfiles for macOS, Linux, and WSL2 environments.
 | `.zshrc`                             | Zsh configuration (primary shell) with Zinit plugin manager                      |
 | `.bashrc` / `.bash_profile`          | Bash configuration (NVM, Volta, Docker)                                          |
 | `.vimrc`                             | Vim settings (UTF-8, 2-space tabs, smart search)                                 |
-| `.tmux.conf`                         | tmux settings (prefix: `C-j`, vim-style pane/copy keybindings)                   |
+| `.tmux.conf`                         | tmux settings — kept as fallback for remote/ssh hosts without herdr              |
 | `.zprofile` / `.zshenv` / `.profile` | Shell profile and environment files                                              |
 | `.gitconfig`                         | Git configuration                                                                |
 | `.huskyrc`                           | Husky git hooks configuration                                                    |
