@@ -243,6 +243,14 @@ if command -v gh &>/dev/null; then
   alias gpo='git-pr-open'
 fi
 alias gcode='${OPEN_BY_MY_EDITOR} $(ghq root)/$(ghq list | fzf --preview "bat --color=always --style=header,grid --line-range :80 $(ghq root)/{}/README.*")'
+# gvim: pick a ghq repo with fzf, cd into it, and open nvim (shell stays there on exit)
+if command -v nvim &>/dev/null; then
+  function gvim() {
+    local repo
+    repo="$(ghq list | fzf --preview "bat --color=always --style=header,grid --line-range :80 $(ghq root)/{}/README.*")" || return
+    [ -n "$repo" ] && builtin cd -- "$(ghq root)/$repo" && nvim
+  }
+fi
 
 alias d='docker'
 alias dc='docker-compose'
