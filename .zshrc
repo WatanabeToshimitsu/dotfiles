@@ -207,6 +207,18 @@ command -v bat &>/dev/null && alias cat='bat --paging=never'
 
 command -v rg &>/dev/null && alias grep='rg'
 
+# yazi wrapper: shell cwd follows yazi on exit
+if command -v yazi &>/dev/null; then
+  function y() {
+    local tmp cwd
+    tmp="$(mktemp -t "yazi-cwd.XXXXXX")"
+    yazi "$@" --cwd-file="$tmp"
+    IFS= read -r -d '' cwd <"$tmp"
+    [ -n "$cwd" ] && [ "$cwd" != "$PWD" ] && builtin cd -- "$cwd"
+    rm -f -- "$tmp"
+  }
+fi
+
 alias bd='cd ..' # * need enhancd
 
 alias hc='fzf-history-widget'
