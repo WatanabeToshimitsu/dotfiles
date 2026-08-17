@@ -1,6 +1,10 @@
 #!/bin/bash
 DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
 WHO=$(whoami)
+BACKUP_TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
+
+# shellcheck source=symlink-manifest.sh
+source "$DOTFILES_DIR/symlink-manifest.sh"
 
 echo ""
 echo " ---------------"
@@ -65,71 +69,49 @@ installAppsNeedsBrew() {
   done
 }
 
+# Back up a real (non-symlink) file before it gets replaced by a symlink.
+# Moves it to ~/.dotfiles-backup/<run-timestamp>/<same relative path>.
+backup_if_real_file() {
+  local target=$1
+  [ -e "$target" ] && [ ! -L "$target" ] || return 0
+
+  local rel_path=${target#"$HOME/"}
+  local dest="$HOME/.dotfiles-backup/$BACKUP_TIMESTAMP/$rel_path"
+  mkdir -p "$(dirname "$dest")"
+  mv "$target" "$dest"
+  echo "  backed up: $rel_path"
+}
+
 setup_symlinks() {
   local dotfiles_dir="${1:-$DOTFILES_DIR}"
-  local files=(
-    .zshrc .bashrc .bash_profile .bash_logout
-    .profile .zprofile .zshenv .shell-common
-    .vimrc .tmux.conf .gitconfig
-    .huskyrc .npmrc
-  )
 
   echo "----------------------------------------------"
   echo "Setting up symlinks..."
   echo "----------------------------------------------"
 
-  for file in "${files[@]}"; do
+  for file in "${MANIFEST_FILES[@]}"; do
     if [ -f "$dotfiles_dir/$file" ]; then
+      backup_if_real_file "$HOME/$file"
       ln -fs "$dotfiles_dir/$file" "$HOME/$file"
       echo "  linked: $file"
     fi
   done
 
   # .config/ subdirectory files (create parent dirs, then symlink individual files)
-  local config_files=(
-    .config/git/ignore
-    .config/gh/config.yml
-    .config/ghostty/config
-    .config/herdr/config.toml
-  )
-
-  for file in "${config_files[@]}"; do
+  for file in "${MANIFEST_CONFIG_FILES[@]}"; do
     if [ -f "$dotfiles_dir/$file" ]; then
       mkdir -p "$HOME/$(dirname "$file")"
+      backup_if_real_file "$HOME/$file"
       ln -fs "$dotfiles_dir/$file" "$HOME/$file"
       echo "  linked: $file"
     fi
   done
 
   # Claude Code global settings (claude/ → ~/.claude/)
-  local claude_files=(
-    CLAUDE.md
-    RTK.md
-    settings.json
-    statusline.sh
-    claude-powerline.json
-    hooks/deny-check.sh
-    hooks/notification.sh
-    hooks/rtk-rewrite.sh
-    hooks/validate-bash.sh
-    rules/testing/vitest.md
-    rules/typescript/documentation.md
-    rules/typescript/type-safety.md
-    rules/common/agents.md
-    rules/common/code-review.md
-    rules/common/coding-style.md
-    rules/common/development-workflow.md
-    rules/common/git-workflow.md
-    rules/common/hooks.md
-    rules/common/patterns.md
-    rules/common/performance.md
-    rules/common/security.md
-    rules/common/testing.md
-  )
-
-  for file in "${claude_files[@]}"; do
+  for file in "${MANIFEST_CLAUDE_FILES[@]}"; do
     if [ -f "$dotfiles_dir/claude/$file" ]; then
       mkdir -p "$HOME/.claude/$(dirname "$file")"
+      backup_if_real_file "$HOME/.claude/$file"
       ln -fs "$dotfiles_dir/claude/$file" "$HOME/.claude/$file"
       echo "  linked: .claude/$file"
     fi
@@ -354,6 +336,7 @@ setup_vscode() {
   local user_dir="$HOME/Library/Application Support/Code/User"
   [ -d "$user_dir" ] || return 0
 
+  backup_if_real_file "$user_dir/keybindings.json"
   ln -fs "$DOTFILES_DIR/vscode/keybindings.json" "$user_dir/keybindings.json"
   echo "  linked: vscode keybindings.json"
 
