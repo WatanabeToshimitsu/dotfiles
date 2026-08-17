@@ -233,8 +233,8 @@ setup_launchd() {
     <key>Hour</key><integer>10</integer>
     <key>Minute</key><integer>0</integer>
   </dict>
-  <key>StandardOutPath</key><string>/tmp/dotfiles-doctor.log</string>
-  <key>StandardErrorPath</key><string>/tmp/dotfiles-doctor.log</string>
+  <key>StandardOutPath</key><string>$HOME/Library/Logs/dotfiles-doctor.log</string>
+  <key>StandardErrorPath</key><string>$HOME/Library/Logs/dotfiles-doctor.log</string>
 </dict>
 </plist>
 EOF
