@@ -45,6 +45,14 @@ bash install.sh
 
 Machine-specific shell config goes in `~/.zshrc.local` (sourced last, never tracked here).
 
+### Secrets
+
+Machine-local secrets also live in `~/.zshrc.local`, generated from
+[`templates/zshrc.local.tpl`](templates/zshrc.local.tpl) by running
+`dotfiles-secrets.sh` (on `PATH` after `install.sh`). Rendering requires a
+signed-in [1Password CLI](https://developer.1password.com/docs/cli/) (`op`);
+the resulting file is never tracked by this repo.
+
 ## Key Tools
 
 - **Shell**: Zsh with [Zinit](https://github.com/zdharma-continuum/zinit) (lazy-loaded plugins)
