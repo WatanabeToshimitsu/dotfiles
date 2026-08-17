@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 # dotfiles-doctor: report drift between this repo and the machine.
 # Checks: broken symlinks, Brewfile coverage, agent-skill coverage, dirty repo.
+# --notify: additionally raise a macOS notification when warnings are found
+# (used by the weekly launchd agent).
 set -uo pipefail
 
-DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# -P resolves ~/.shell-utils (a symlink) so the parent is the real repo
+DOTFILES_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
+NOTIFY=0
+[ "${1:-}" = "--notify" ] && NOTIFY=1
 WARNINGS=0
 
 warn() {
@@ -61,5 +66,8 @@ if [ "$WARNINGS" -eq 0 ]; then
   echo "doctor: all clear"
 else
   echo "doctor: $WARNINGS warning(s)"
+  if [ "$NOTIFY" -eq 1 ] && command -v osascript > /dev/null 2>&1; then
+    osascript -e "display notification \"$WARNINGS warning(s) — run dotfiles-doctor.sh\" with title \"dotfiles-doctor\"" > /dev/null 2>&1 || :
+  fi
   exit 1
 fi
