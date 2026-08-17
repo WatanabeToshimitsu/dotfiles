@@ -224,6 +224,12 @@ alias gco='git checkout'
 alias gbd='cd-gitroot'
 alias gcd='cd $(ghq root)/$(ghq list | fzf)'
 alias gb-prune='git-branch-prune'
+alias git-branch-open='git open' # * need paulirish/git-open
+alias gbo='git-branch-open'
+if command -v gh &>/dev/null; then
+  alias git-pr-open='gh pr view --web' # open PR linked to current branch
+  alias gpo='git-pr-open'
+fi
 alias gcode='${OPEN_BY_MY_EDITOR} $(ghq root)/$(ghq list | fzf --preview "bat --color=always --style=header,grid --line-range :80 $(ghq root)/{}/README.*")'
 
 alias d='docker'
