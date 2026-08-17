@@ -1,6 +1,7 @@
 #!/bin/bash
 DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
 WHO=$(whoami)
+BACKUP_TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 
 # shellcheck source=symlink-manifest.sh
 source "$DOTFILES_DIR/symlink-manifest.sh"
@@ -68,6 +69,19 @@ installAppsNeedsBrew() {
   done
 }
 
+# Back up a real (non-symlink) file before it gets replaced by a symlink.
+# Moves it to ~/.dotfiles-backup/<run-timestamp>/<same relative path>.
+backup_if_real_file() {
+  local target=$1
+  [ -e "$target" ] && [ ! -L "$target" ] || return 0
+
+  local rel_path=${target#"$HOME/"}
+  local dest="$HOME/.dotfiles-backup/$BACKUP_TIMESTAMP/$rel_path"
+  mkdir -p "$(dirname "$dest")"
+  mv "$target" "$dest"
+  echo "  backed up: $rel_path"
+}
+
 setup_symlinks() {
   local dotfiles_dir="${1:-$DOTFILES_DIR}"
 
@@ -77,6 +91,7 @@ setup_symlinks() {
 
   for file in "${MANIFEST_FILES[@]}"; do
     if [ -f "$dotfiles_dir/$file" ]; then
+      backup_if_real_file "$HOME/$file"
       ln -fs "$dotfiles_dir/$file" "$HOME/$file"
       echo "  linked: $file"
     fi
@@ -86,6 +101,7 @@ setup_symlinks() {
   for file in "${MANIFEST_CONFIG_FILES[@]}"; do
     if [ -f "$dotfiles_dir/$file" ]; then
       mkdir -p "$HOME/$(dirname "$file")"
+      backup_if_real_file "$HOME/$file"
       ln -fs "$dotfiles_dir/$file" "$HOME/$file"
       echo "  linked: $file"
     fi
@@ -95,6 +111,7 @@ setup_symlinks() {
   for file in "${MANIFEST_CLAUDE_FILES[@]}"; do
     if [ -f "$dotfiles_dir/claude/$file" ]; then
       mkdir -p "$HOME/.claude/$(dirname "$file")"
+      backup_if_real_file "$HOME/.claude/$file"
       ln -fs "$dotfiles_dir/claude/$file" "$HOME/.claude/$file"
       echo "  linked: .claude/$file"
     fi
@@ -319,6 +336,7 @@ setup_vscode() {
   local user_dir="$HOME/Library/Application Support/Code/User"
   [ -d "$user_dir" ] || return 0
 
+  backup_if_real_file "$user_dir/keybindings.json"
   ln -fs "$DOTFILES_DIR/vscode/keybindings.json" "$user_dir/keybindings.json"
   echo "  linked: vscode keybindings.json"
 
