@@ -2,6 +2,8 @@
 # dotfiles-secrets: render ~/.zshrc.local from templates/zshrc.local.tpl via `op inject`.
 # Requires the 1Password CLI (`op`) signed in. --force overwrites an existing ~/.zshrc.local.
 set -uo pipefail
+# secret-bearing output: ensure files are born 0600, not chmod-ed after the fact
+umask 077
 
 # -P resolves ~/.shell-utils (a symlink) so the parent is the real repo
 DOTFILES_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
