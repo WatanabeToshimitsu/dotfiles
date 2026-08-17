@@ -401,6 +401,7 @@ setup_macos() {
     echo "----------------------------------------------"
     echo "Installing Homebrew..."
     echo "----------------------------------------------"
+    export NONINTERACTIVE=1
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     eval "$(/opt/homebrew/bin/brew shellenv)"
   fi
@@ -447,6 +448,7 @@ setup_linux() {
     echo "----------------------------------------------"
     echo "Now, start installing brew"
     echo "----------------------------------------------"
+    export NONINTERACTIVE=1
     command -v brew || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   fi
 

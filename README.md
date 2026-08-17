@@ -45,6 +45,12 @@ bash install.sh
 
 Machine-specific shell config goes in `~/.zshrc.local` (sourced last, never tracked here).
 
+### Codespaces
+
+GitHub Settings → Codespaces → enable "Automatically install dotfiles" and select this repo.
+`install.sh` then runs automatically on codespace creation.
+Machine-specific config still goes in `~/.zshrc.local`.
+
 ## Key Tools
 
 - **Shell**: Zsh with [Zinit](https://github.com/zdharma-continuum/zinit) (lazy-loaded plugins)
