@@ -81,29 +81,30 @@ type = "shell"
 command = '"${HERDR_BIN_PATH}" pane send-keys "${HERDR_ACTIVE_PANE_ID}" ctrl+l'
 description = "clear pane (send ctrl+l)"
 
-# cmd+h/j/k/l: unconditional pane focus (works even inside node TUIs like
-# Claude Code, unlike the vim-aware ctrl+h/j/k/l which passes through there).
-# cmd+h needs the forwarding keybind in the ghostty config (macOS Hide).
+# cmd+shift+h/j/k/l: unconditional pane focus (VSCode "navigate views" muscle
+# memory; works even inside node TUIs like Claude Code, unlike the vim-aware
+# ctrl+h/j/k/l which passes through there). Plain cmd+h/j/k/l pass through to
+# nvim for buffer switching and completion menus (issue #32).
 [[keys.command]]
-key = "cmd+h"
+key = "cmd+shift+h"
 type = "shell"
 command = '"${HERDR_BIN_PATH}" pane focus --direction left --pane "${HERDR_ACTIVE_PANE_ID}"'
 description = "focus pane left"
 
 [[keys.command]]
-key = "cmd+j"
+key = "cmd+shift+j"
 type = "shell"
 command = '"${HERDR_BIN_PATH}" pane focus --direction down --pane "${HERDR_ACTIVE_PANE_ID}"'
 description = "focus pane down"
 
 [[keys.command]]
-key = "cmd+k"
+key = "cmd+shift+k"
 type = "shell"
 command = '"${HERDR_BIN_PATH}" pane focus --direction up --pane "${HERDR_ACTIVE_PANE_ID}"'
 description = "focus pane up"
 
 [[keys.command]]
-key = "cmd+l"
+key = "cmd+shift+l"
 type = "shell"
 command = '"${HERDR_BIN_PATH}" pane focus --direction right --pane "${HERDR_ACTIVE_PANE_ID}"'
 description = "focus pane right"
@@ -149,3 +150,10 @@ key = "prefix+y"
 type = "pane"
 command = "yazi"
 description = "yazi file manager"
+
+# cmd+shift+g: lazygit in a temporary pane (VSCode SCM-view muscle memory)
+[[keys.command]]
+key = "cmd+shift+g"
+type = "pane"
+command = "lazygit"
+description = "lazygit"

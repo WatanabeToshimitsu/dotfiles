@@ -49,3 +49,17 @@ map({ "n", "x" }, "<leader><Esc>", "<cmd>nohlsearch<cr>", { desc = "Clear hlsear
 -- Command palette / document symbols (VSCode: <leader>: / <leader>/)
 map("n", "<leader>:", function() Snacks.picker.commands() end, { desc = "Commands" })
 map("n", "<leader>/", function() Snacks.picker.lsp_symbols() end, { desc = "Document symbols" })
+
+-- VSCode-style cmd keys. Ghostty forwards them (unbind / text: CSI-u) and herdr
+-- passes them through to the pane app; herdr pane focus moved to cmd+shift+h/j/k/l.
+-- cmd+j/k/l inside completion/picker menus live in plugins/blink.lua and plugins/snacks.lua.
+map({ "n", "i", "x", "s" }, "<D-s>", "<cmd>w<cr><esc>", { desc = "Save file" })
+map("n", "<D-x>", function() Snacks.bufdelete() end, { desc = "Close buffer" })
+map("n", "<D-h>", "<cmd>BufferLineCyclePrev<cr>", { desc = "Prev buffer" })
+map("n", "<D-l>", "<cmd>BufferLineCycleNext<cr>", { desc = "Next buffer" })
+map("n", "<D-S-e>", function() Snacks.explorer({ cwd = LazyVim.root() }) end, { desc = "Explorer (toggle)" })
+map("n", "<D-S-f>", LazyVim.pick("files"), { desc = "Find files" })
+map("n", "<D-S-s>", LazyVim.pick("grep"), { desc = "Grep" })
+map("n", "<D-S-r>", function() LazyVim.format({ force = true }) end, { desc = "Format document" })
+map("n", "<D-S-t>", function() Snacks.terminal() end, { desc = "Terminal (toggle)" })
+map("t", "<D-S-t>", "<cmd>close<cr>", { desc = "Hide terminal" })
