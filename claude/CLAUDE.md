@@ -40,6 +40,7 @@
 ## Agent Orchestration
 
 - 全ての開発時に、計画設計まではFableまたはOpusで行い、実装段階では Sonnet5 をサブエージェントとして走らせる
+- サブエージェント起動時は `model` を必ず明示する（未指定は上位モデルを継承してしまう）。実装・探索は `sonnet` を指定
 - 実装時のエージェントのオーケストレーションをFable, Opus の上位モデルが行う
 - 計画、設計、実装の各段階で敵対的レビューを行う、上位モデルによるサブエージェントを起動する
 - 質問, 確認は遠慮なくして良いが、実装からPR作成までを出来るだけ無確認で自走する
@@ -55,6 +56,13 @@ Core workflow:
 2. `agent-browser snapshot -i` - Get interactive elements with refs (@e1, @e2)
 3. `agent-browser click @e1` / `fill @e2 "text"` - Interact using refs
 4. Re-snapshot after page changes
+
+# Context Discipline（トークン効率）
+
+- タスクが完了したらセッションを終える。次のタスクは新しいセッションで始め、巨大コンテキストを持ち越さない
+- ファイル探索・大量読み込みは Explore / general-purpose サブエージェント（model: sonnet）に委譲し、結論だけ受け取る
+- 大きなファイルの全文 Read を避け、必要な範囲だけ読む
+- セッションが長大化したら（目安 150k tokens）、要点をファイルに書き出して新セッションへ引き継ぐ
 
 # Grill me
 - なんらかの設計や計画を行う際、以下のことを守ってください
