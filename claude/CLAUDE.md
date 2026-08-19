@@ -55,3 +55,11 @@ Core workflow:
 2. `agent-browser snapshot -i` - Get interactive elements with refs (@e1, @e2)
 3. `agent-browser click @e1` / `fill @e2 "text"` - Interact using refs
 4. Re-snapshot after page changes
+
+# Grill me
+- なんらかの設計や計画を行う際、以下のことを守ってください
+- その計画のあらゆる側面について、私たちが共通理解に達するまで徹底的に質問してください。設計ツリーの各枝をたどり、決定事項間の依存関係を 1 つずつ解決していきましょう。それぞれの質問に対して、あなたの推奨する回答を提示してください。
+
+- 質問は 1 つずつしてください。
+
+- コードベースを調べることで疑問が解決できるのであれば、コードベースを調べてください。
