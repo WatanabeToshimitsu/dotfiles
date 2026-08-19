@@ -82,13 +82,12 @@ command = '"${HERDR_BIN_PATH}" pane send-keys "${HERDR_ACTIVE_PANE_ID}" ctrl+l'
 description = "clear pane (send ctrl+l)"
 
 # cmd+shift+h/j/k/l: unconditional pane focus (VSCode "navigate views" muscle
-# memory). Plain cmd+h/j/k/l pass through to nvim (issue #32). At the left
-# edge, cmd+shift+h falls back to the workspace/agent picker (fzf, hjkl keys).
+# memory). Plain cmd+h/j/k/l pass through to nvim (issue #32).
 [[keys.command]]
 key = "cmd+shift+h"
 type = "shell"
-command = '"${HOME}/.shell-utils/herdr-nav-picker.sh" left'
-description = "focus pane left / picker at edge"
+command = '"${HERDR_BIN_PATH}" pane focus --direction left --pane "${HERDR_ACTIVE_PANE_ID}"'
+description = "focus pane left"
 
 [[keys.command]]
 key = "cmd+shift+j"
@@ -152,3 +151,19 @@ description = "yazi file manager"
 
 # cmd+shift+g passes through to nvim (Snacks.lazygit at the file's git root);
 # herdr-level popup was removed because its cwd detection misses nvim's repo.
+
+# Popup pickers (global; issue #32): cmd+shift+w = workspaces, cmd+shift+a =
+# agents. j/k or arrows = move, l/space/enter = attach, h/q/esc = cancel.
+# Ghostty forwards cmd+shift+w as kitty CSI-u (its default was close_window).
+# Built-in alternatives: prefix+up/down cycle agents directly.
+[[keys.command]]
+key = "cmd+shift+w"
+type = "popup"
+command = '"${HOME}/.shell-utils/herdr-nav-picker.sh" ws'
+description = "workspace picker"
+
+[[keys.command]]
+key = "cmd+shift+a"
+type = "popup"
+command = '"${HOME}/.shell-utils/herdr-nav-picker.sh" ag'
+description = "agent picker"

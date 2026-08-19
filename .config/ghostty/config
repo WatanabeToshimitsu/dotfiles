@@ -90,3 +90,6 @@ keybind = super+shift+f=unbind
 keybind = super+shift+g=unbind
 # was undo (cmd+shift+t toggles the nvim terminal):
 keybind = super+shift+t=unbind
+# was close_window (also a macOS menu item, so forward as kitty CSI-u
+# like super+h above); cmd+shift+w opens the herdr workspace/agent picker.
+keybind = super+shift+w=text:\x1b[119;10u
