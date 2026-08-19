@@ -82,14 +82,13 @@ command = '"${HERDR_BIN_PATH}" pane send-keys "${HERDR_ACTIVE_PANE_ID}" ctrl+l'
 description = "clear pane (send ctrl+l)"
 
 # cmd+shift+h/j/k/l: unconditional pane focus (VSCode "navigate views" muscle
-# memory; works even inside node TUIs like Claude Code, unlike the vim-aware
-# ctrl+h/j/k/l which passes through there). Plain cmd+h/j/k/l pass through to
-# nvim for buffer switching and completion menus (issue #32).
+# memory). Plain cmd+h/j/k/l pass through to nvim (issue #32). At the left
+# edge, cmd+shift+h falls back to the workspace/agent picker (fzf, hjkl keys).
 [[keys.command]]
 key = "cmd+shift+h"
 type = "shell"
-command = '"${HERDR_BIN_PATH}" pane focus --direction left --pane "${HERDR_ACTIVE_PANE_ID}"'
-description = "focus pane left"
+command = '"${HOME}/.shell-utils/herdr-nav-picker.sh" left'
+description = "focus pane left / picker at edge"
 
 [[keys.command]]
 key = "cmd+shift+j"
@@ -151,9 +150,5 @@ type = "pane"
 command = "yazi"
 description = "yazi file manager"
 
-# cmd+shift+g: lazygit in a temporary pane (VSCode SCM-view muscle memory)
-[[keys.command]]
-key = "cmd+shift+g"
-type = "pane"
-command = "lazygit"
-description = "lazygit"
+# cmd+shift+g passes through to nvim (Snacks.lazygit at the file's git root);
+# herdr-level popup was removed because its cwd detection misses nvim's repo.
