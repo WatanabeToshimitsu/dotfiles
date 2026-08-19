@@ -193,6 +193,7 @@ source ~/.shell-utils/git-branch-prune.zsh
 #####################
 # * alias
 alias vi='/usr/bin/vim'
+command -v nvim &>/dev/null && alias vim='nvim'
 
 if command -v lsd &>/dev/null; then
   alias ls='lsd'
@@ -302,8 +303,12 @@ command -v oh-my-posh &>/dev/null && eval "$(oh-my-posh init zsh --config ~/oh-m
 export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
 [[ -f ~/.safe-chain/scripts/init-posix.sh ]] && source ~/.safe-chain/scripts/init-posix.sh
 
-# for direnv
-export EDITOR=code
+# Editor: nvim when available (used by direnv, yazi opener, herdr prefix+e)
+if command -v nvim &>/dev/null; then
+  export EDITOR=nvim
+else
+  export EDITOR=vim
+fi
 eval "$(direnv hook zsh)"
 
 # For SkyPilot shell completion

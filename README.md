@@ -61,6 +61,18 @@ Machine-specific config still goes in `~/.zshrc.local`.
 - **Repository management**: [ghq](https://github.com/x-motemen/ghq) + fzf integration
 - **Modern CLI**: [lsd](https://github.com/lsd-rs/lsd) (ls), [bat](https://github.com/sharkdp/bat) (cat), [ripgrep](https://github.com/BurntSushi/ripgrep) (grep), [zoxide](https://github.com/ajeetdsouza/zoxide) (`z`/`zi` jump)
 - **Terminal workspace**: [herdr](https://herdr.dev) on [Ghostty](https://ghostty.org) (agent multiplexer; prefix `cmd+space`)
+- **Editor**: [Neovim](https://neovim.io) with [LazyVim](https://www.lazyvim.org) (`$EDITOR`; vscodevim keymaps ported, plugins pinned via `lazy-lock.json`)
+- **File manager**: [yazi](https://yazi-rs.github.io) (image/video/PDF preview via kitty graphics)
+
+## Terminal File Workflow
+
+View and edit files entirely inside herdr panes — both yazi and Neovim render
+images through the kitty graphics protocol (Ghostty and herdr both support it):
+
+- **Browse**: `y` (yazi, shell cwd follows on exit) or `prefix+y` (temporary herdr pane); `Enter` opens `$EDITOR`
+- **Edit**: `nvim` = LazyVim; `gvim` picks a ghq repo via fzf and opens it at the repo root
+- **Images in the editor**: snacks.image renders PNG inline (JPG/WebP/GIF need imagemagick); `<leader>fy` opens yazi.nvim inside Neovim
+- **Fallbacks**: `.vimrc` stays for servers (`vi` = plain vim), VS Code remains installed (`gcode`)
 
 ## Notable Aliases
 
@@ -68,6 +80,8 @@ Machine-specific config still goes in `~/.zshrc.local`.
 | ---------- | ------------------------------------------------------------- |
 | `gcd`      | `cd` into a ghq-managed repository via fzf                    |
 | `gcode`    | Open a ghq-managed repository in VS Code via fzf              |
+| `gvim`     | Open a ghq-managed repository in Neovim via fzf (cwd follows) |
+| `y`        | yazi file manager (shell cwd follows on exit)                 |
 | `gb-prune` | Clean up merged branches (supports squash merge via `gh` CLI) |
 | `ghq-rm`   | Remove a ghq-managed repository interactively                 |
 
