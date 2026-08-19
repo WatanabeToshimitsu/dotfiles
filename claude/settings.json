@@ -245,6 +245,11 @@
             "type": "command",
             "command": "bash '/Users/kz86n/.claude/hooks/herdr-agent-state.sh' session",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "bash \"$HOME/.claude/hooks/link-worktree-memory.sh\"",
+            "timeout": 10
           }
         ]
       }
@@ -259,7 +264,7 @@
     "claude-md-management@claude-plugins-official": false,
     "claude-powerline@claude-powerline": true,
     "co-mlops-context@hdl-agent-plugins": true,
-    "code-review@claude-plugins-official": true,
+    "code-review@claude-plugins-official": false,
     "code-review@hdl-agent-plugins": true,
     "code-simplifier@claude-plugins-official": false,
     "codex-integration@hdl-agent-plugins": true,
@@ -273,8 +278,8 @@
     "gopls-lsp@claude-plugins-official": false,
     "japanese-proofreader@hdl-agent-plugins": false,
     "playwright@claude-plugins-official": false,
-    "plugin-dev@hdl-agent-plugins": true,
-    "pr-review-toolkit@claude-plugins-official": true,
+    "plugin-dev@hdl-agent-plugins": false,
+    "pr-review-toolkit@claude-plugins-official": false,
     "pyright-lsp@claude-plugins-official": true,
     "report-instructor@hdl-agent-plugins": false,
     "security-guidance@claude-plugins-official": true,
