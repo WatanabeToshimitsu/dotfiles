@@ -218,6 +218,16 @@
             "command": "bash \"$HOME/.claude/hooks/post-ts-lint.sh\""
           }
         ]
+      },
+      {
+        "matcher": "Read|Grep|Glob|WebFetch|WebSearch|mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/compact-tool-output.py\"",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PreToolUse": [

@@ -29,6 +29,7 @@ MANIFEST_CLAUDE_FILES=(
   hooks/link-worktree-memory.sh
   hooks/notification.sh
   hooks/post-ts-lint.sh
+  hooks/compact-tool-output.py
   hooks/require-subagent-model.sh
   hooks/validate-bash.sh
   rules/common/coding-style.md
@@ -40,6 +41,7 @@ MANIFEST_CLAUDE_FILES=(
   agents/sonnet-worker.md
   skills/code-review/SKILL.md
   skills/delivery-workflow/SKILL.md
+  skills/expand-tool-output/SKILL.md
   rules/golang/coding-style.md
   rules/golang/hooks.md
   rules/golang/patterns.md

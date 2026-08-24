@@ -91,6 +91,18 @@ images through the kitty graphics protocol (Ghostty and herdr both support it):
 | `gb-prune` | Clean up merged branches (supports squash merge via `gh` CLI) |
 | `ghq-rm`   | Remove a ghq-managed repository interactively                 |
 
+## Claude Tool Output Compaction
+
+Large Read, Grep, Glob, Web, and MCP results are shortened before entering the
+conversation. The full result is retained locally for seven days with user-only
+permissions and can be queried through the `expand-tool-output` skill.
+
+Show aggregate savings:
+
+```bash
+python3 ~/.claude/hooks/compact-tool-output.py stats
+```
+
 ## Configuration Storage Strategy
 
 Configuration files are organized by target location:

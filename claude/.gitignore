@@ -17,6 +17,7 @@ shell-snapshots/
 skills/*
 !skills/code-review/
 !skills/delivery-workflow/
+!skills/expand-tool-output/
 statsig/
 tasks/
 teams/
