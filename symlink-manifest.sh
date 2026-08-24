@@ -23,7 +23,6 @@ MANIFEST_CONFIG_FILES=(
 # shellcheck disable=SC2034  # consumed by install.sh / uninstall.sh via source
 MANIFEST_CLAUDE_FILES=(
   CLAUDE.md
-  RTK.md
   settings.json
   claude-powerline.json
   hooks/deny-check.sh
