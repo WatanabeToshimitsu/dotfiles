@@ -64,3 +64,5 @@ map("n", "<D-S-r>", function() LazyVim.format({ force = true }) end, { desc = "F
 map("n", "<D-S-t>", function() Snacks.terminal() end, { desc = "Terminal (toggle)" })
 map("t", "<D-S-t>", "<cmd>close<cr>", { desc = "Hide terminal" })
 map("n", "<D-S-g>", function() Snacks.lazygit({ cwd = LazyVim.root.git() }) end, { desc = "Lazygit (root dir)" })
+map("n", "<D-a>", "ggVG", { desc = "Select all" })
+map({ "i", "x" }, "<D-a>", "<Esc>ggVG", { desc = "Select all" })
