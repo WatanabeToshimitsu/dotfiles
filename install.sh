@@ -299,6 +299,20 @@ setup_cli_tools() {
     else
       volta install node || echo "  failed: volta install node"
     fi
+
+    local node_tool binary
+    for node_tool in typescript typescript-language-server; do
+      case "$node_tool" in
+        typescript) binary=tsc ;;
+        *) binary="$node_tool" ;;
+      esac
+
+      if command -v "$binary" > /dev/null 2>&1; then
+        echo "  exists: volta $node_tool"
+      else
+        volta install "$node_tool" || echo "  failed: volta install $node_tool"
+      fi
+    done
   fi
 }
 

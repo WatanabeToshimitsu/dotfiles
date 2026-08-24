@@ -282,7 +282,8 @@
     "co-mlops-context@hdl-agent-plugins": true,
     "codex@openai-codex": true,
     "context7@claude-plugins-official": true,
-    "discernment-nudge@anthropic-agent-skills": true
+    "discernment-nudge@anthropic-agent-skills": true,
+    "typescript-lsp@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "claude-powerline": {
