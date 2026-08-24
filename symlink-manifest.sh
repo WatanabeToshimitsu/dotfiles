@@ -25,14 +25,12 @@ MANIFEST_CLAUDE_FILES=(
   CLAUDE.md
   RTK.md
   settings.json
-  statusline.sh
   claude-powerline.json
   hooks/deny-check.sh
   hooks/link-worktree-memory.sh
   hooks/notification.sh
   hooks/post-ts-lint.sh
   hooks/require-subagent-model.sh
-  hooks/rtk-rewrite.sh
   hooks/validate-bash.sh
   rules/common/agents.md
   rules/common/code-review.md

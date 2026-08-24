@@ -12,7 +12,7 @@ if [[ "$tool_name" != "Bash" ]]; then
   exit 0
 fi
 
-# Deny with JSON hookSpecificOutput (same format as rtk-rewrite.sh)
+# Deny with JSON hookSpecificOutput
 deny() {
   jq -n --arg reason "$1" '{
     "hookSpecificOutput": {

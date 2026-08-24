@@ -194,6 +194,9 @@
     "defaultMode": "auto"
   },
   "model": "claude-fable-5[1m]",
+  "skillOverrides": {
+    "difit": "user-invocable-only"
+  },
   "hooks": {
     "Notification": [
       {
@@ -238,6 +241,15 @@
             "command": "bash \"$HOME/.claude/hooks/require-subagent-model.sh\""
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "rtk hook claude"
+          }
+        ]
       }
     ],
     "SessionStart": [
@@ -266,18 +278,10 @@
     "command": "npx -y @owloops/claude-powerline@latest"
   },
   "enabledPlugins": {
-    "claude-powerline@claude-powerline": true,
     "co-mlops-context@hdl-agent-plugins": true,
-    "code-review@hdl-agent-plugins": true,
-    "codex-integration@hdl-agent-plugins": true,
     "codex@openai-codex": true,
-    "commit-commands@claude-plugins-official": true,
     "context7@claude-plugins-official": true,
-    "pyright-lsp@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true
-  },
-  "skillOverrides": {
-    "difit": "user-invocable-only"
+    "discernment-nudge@anthropic-agent-skills": true
   },
   "extraKnownMarketplaces": {
     "claude-powerline": {
@@ -306,10 +310,10 @@
       },
       "autoUpdate": true
     },
-    "skypilot": {
+    "anthropic-agent-skills": {
       "source": {
         "source": "github",
-        "repo": "skypilot-org/skypilot"
+        "repo": "anthropics/skills"
       }
     }
   },
