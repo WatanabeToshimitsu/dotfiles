@@ -1,3 +1,7 @@
+---
+paths:
+  - "**/.claude/**"
+---
 # Hooks System
 
 ## Hook Types

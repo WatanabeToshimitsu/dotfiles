@@ -1,3 +1,7 @@
+---
+paths:
+  - "**/*.{c,cc,cpp,cs,go,java,js,jsx,kt,kts,php,py,pyi,rb,rs,swift,ts,tsx,vue,svelte}"
+---
 # Common Patterns
 
 ## Skeleton Projects

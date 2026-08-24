@@ -1,3 +1,8 @@
+---
+paths:
+  - "**/*.{c,cc,cpp,cs,go,java,js,jsx,kt,kts,php,py,pyi,rb,rs,swift,ts,tsx,vue,svelte}"
+  - "**/*.{json,yaml,yml,toml}"
+---
 # Security Guidelines
 
 ## Mandatory Security Checks

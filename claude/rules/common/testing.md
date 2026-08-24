@@ -1,3 +1,10 @@
+---
+paths:
+  - "**/{test,tests,__tests__,spec,specs}/**"
+  - "**/*.{test,spec}.{js,jsx,ts,tsx}"
+  - "**/test_*.py"
+  - "**/*_test.{go,py,rb,rs}"
+---
 # Testing Requirements
 
 ## Test Scope

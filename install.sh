@@ -117,6 +117,15 @@ setup_symlinks() {
     fi
   done
 
+  local obsolete_file obsolete_target
+  for obsolete_file in "${MANIFEST_CLAUDE_OBSOLETE_FILES[@]}"; do
+    obsolete_target="$HOME/.claude/$obsolete_file"
+    if [ -L "$obsolete_target" ] && [ "$(readlink "$obsolete_target")" = "$dotfiles_dir/claude/$obsolete_file" ]; then
+      rm "$obsolete_target"
+      echo "  removed obsolete link: .claude/$obsolete_file"
+    fi
+  done
+
   # Directory symlinks: use -n to avoid following existing symlinks into the target
   # and rm -rf guard for the case where a real (non-symlink) directory exists
   [ -d "$HOME/.shell-utils" ] && [ ! -L "$HOME/.shell-utils" ] && rm -rf "$HOME/.shell-utils"

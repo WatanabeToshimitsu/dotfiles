@@ -14,7 +14,9 @@ projects/
 session-env/
 sessions/
 shell-snapshots/
-skills/
+skills/*
+!skills/code-review/
+!skills/delivery-workflow/
 statsig/
 tasks/
 teams/

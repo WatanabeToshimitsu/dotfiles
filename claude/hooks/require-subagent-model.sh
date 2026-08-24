@@ -9,6 +9,13 @@ if [[ "$tool_name" != "Agent" ]]; then
 fi
 
 model=$(jq -r '.tool_input.model // ""' <<<"$input")
+subagent_type=$(jq -r '.tool_input.subagent_type // ""' <<<"$input")
+
+case "$subagent_type" in
+  sonnet-worker|fable-deep)
+    exit 0
+    ;;
+esac
 
 if [[ -n "$model" && "$model" != "inherit" ]]; then
   exit 0

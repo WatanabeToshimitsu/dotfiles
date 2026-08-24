@@ -31,16 +31,15 @@ MANIFEST_CLAUDE_FILES=(
   hooks/post-ts-lint.sh
   hooks/require-subagent-model.sh
   hooks/validate-bash.sh
-  rules/common/agents.md
-  rules/common/code-review.md
   rules/common/coding-style.md
-  rules/common/development-workflow.md
-  rules/common/git-workflow.md
   rules/common/hooks.md
   rules/common/patterns.md
-  rules/common/performance.md
   rules/common/security.md
   rules/common/testing.md
+  agents/fable-deep.md
+  agents/sonnet-worker.md
+  skills/code-review/SKILL.md
+  skills/delivery-workflow/SKILL.md
   rules/golang/coding-style.md
   rules/golang/hooks.md
   rules/golang/patterns.md
@@ -60,4 +59,15 @@ MANIFEST_CLAUDE_FILES=(
   rules/typescript/security.md
   rules/typescript/testing.md
   rules/typescript/type-safety.md
+)
+
+# Claude files retired from this repository. install.sh removes only symlinks
+# that still point at these former dotfiles paths.
+# shellcheck disable=SC2034  # consumed by install.sh
+MANIFEST_CLAUDE_OBSOLETE_FILES=(
+  rules/common/agents.md
+  rules/common/code-review.md
+  rules/common/development-workflow.md
+  rules/common/git-workflow.md
+  rules/common/performance.md
 )
