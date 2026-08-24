@@ -12,9 +12,8 @@ local map = vim.keymap.set
 -- jk leaves insert mode
 map("i", "jk", "<Esc>", { desc = "Exit insert mode" })
 
--- Faster travel
+-- Faster travel (K lives in options.lua: it must beat the LSP-attach default)
 map({ "n", "x" }, "J", "10j", { desc = "Down 10 lines" })
-map({ "n", "x" }, "K", "10k", { desc = "Up 10 lines" })
 map({ "n", "x" }, "H", "b", { desc = "Previous word" })
 map({ "n", "x" }, "L", "w", { desc = "Next word" })
 map("n", "gh", vim.lsp.buf.hover, { desc = "Hover (K is remapped)" })
