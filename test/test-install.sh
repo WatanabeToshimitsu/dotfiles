@@ -5,6 +5,9 @@ set -euo pipefail
 DOTFILES_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 ERRORS=0
 
+# shellcheck source=../symlink-manifest.sh
+source "$DOTFILES_DIR/symlink-manifest.sh"
+
 echo "=== Syntax check ==="
 bash -n "$DOTFILES_DIR/install.sh" || { echo "FAIL: install.sh syntax error"; ERRORS=$((ERRORS + 1)); }
 bash -n "$DOTFILES_DIR/uninstall.sh" || { echo "FAIL: uninstall.sh syntax error"; ERRORS=$((ERRORS + 1)); }
@@ -13,8 +16,8 @@ echo "=== Pre-creating a real .npmrc (to verify backup-before-symlink) ==="
 NPMRC_CONTENT="pre-existing npmrc content"
 echo "$NPMRC_CONTENT" > "$HOME/.npmrc"
 
-echo "=== Running install.sh ==="
-bash "$DOTFILES_DIR/install.sh"
+echo "=== Running install.sh --symlinks-only ==="
+bash "$DOTFILES_DIR/install.sh" --symlinks-only
 
 echo "=== Verifying symlinks ==="
 EXPECTED_LINKS=(
@@ -25,6 +28,10 @@ EXPECTED_LINKS=(
     "$HOME/.vimrc"
     "$HOME/.tmux.conf"
 )
+
+for file in "${MANIFEST_CLAUDE_FILES[@]}"; do
+    EXPECTED_LINKS+=("$HOME/.claude/$file")
+done
 
 for link in "${EXPECTED_LINKS[@]}"; do
     if [ -L "$link" ]; then
@@ -73,6 +80,16 @@ bash "$DOTFILES_DIR/uninstall.sh"
 
 echo "=== Verifying tracked symlinks were removed ==="
 for link in "$HOME/.zshrc" "$HOME/.vimrc"; do
+    if [ ! -e "$link" ] && [ ! -L "$link" ]; then
+        echo "  OK: $link removed"
+    else
+        echo "  FAIL: $link still present"
+        ERRORS=$((ERRORS + 1))
+    fi
+done
+
+for file in "${MANIFEST_CLAUDE_FILES[@]}"; do
+    link="$HOME/.claude/$file"
     if [ ! -e "$link" ] && [ ! -L "$link" ]; then
         echo "  OK: $link removed"
     else

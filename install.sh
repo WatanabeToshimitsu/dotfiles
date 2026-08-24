@@ -529,6 +529,15 @@ setup_linux() {
 # Main
 # ========================================
 
+if [ "${1:-}" = "--symlinks-only" ]; then
+  setup_symlinks "$DOTFILES_DIR"
+  echo ""
+  echo "=========================================="
+  echo "Symlink setup complete!"
+  echo "=========================================="
+  exit 0
+fi
+
 OS="$(uname -s)"
 case "$OS" in
   Darwin) setup_macos ;;

@@ -45,6 +45,12 @@ bash install.sh
 
 Machine-specific shell config goes in `~/.zshrc.local` (sourced last, never tracked here).
 
+To reapply only the managed symlinks without installing packages or tools:
+
+```bash
+bash install.sh --symlinks-only
+```
+
 ### Codespaces
 
 GitHub Settings → Codespaces → enable "Automatically install dotfiles" and select this repo.

@@ -28,14 +28,12 @@ MANIFEST_CLAUDE_FILES=(
   statusline.sh
   claude-powerline.json
   hooks/deny-check.sh
+  hooks/link-worktree-memory.sh
   hooks/notification.sh
   hooks/post-ts-lint.sh
   hooks/require-subagent-model.sh
   hooks/rtk-rewrite.sh
   hooks/validate-bash.sh
-  rules/testing/vitest.md
-  rules/typescript/documentation.md
-  rules/typescript/type-safety.md
   rules/common/agents.md
   rules/common/code-review.md
   rules/common/coding-style.md
@@ -46,4 +44,23 @@ MANIFEST_CLAUDE_FILES=(
   rules/common/performance.md
   rules/common/security.md
   rules/common/testing.md
+  rules/golang/coding-style.md
+  rules/golang/hooks.md
+  rules/golang/patterns.md
+  rules/golang/security.md
+  rules/golang/testing.md
+  rules/python/coding-style.md
+  rules/python/fastapi.md
+  rules/python/hooks.md
+  rules/python/patterns.md
+  rules/python/security.md
+  rules/python/testing.md
+  rules/testing/vitest.md
+  rules/typescript/coding-style.md
+  rules/typescript/documentation.md
+  rules/typescript/hooks.md
+  rules/typescript/patterns.md
+  rules/typescript/security.md
+  rules/typescript/testing.md
+  rules/typescript/type-safety.md
 )

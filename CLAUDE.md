@@ -36,7 +36,7 @@ This is a personal dotfiles repository that manages shell configurations, editor
 bash install.sh
 
 # Apply dotfile changes (re-symlink)
-bash install.sh
+bash install.sh --symlinks-only
 ```
 
 ## Conventions
