@@ -326,3 +326,15 @@ command -v zoxide &>/dev/null && eval "$(zoxide init zsh)"
 
 # Machine-specific config (work/private hosts etc.) — never tracked in this repo
 [ -f ~/.zshrc.local ] && source ~/.zshrc.local
+
+# >>> headroom persistent env >>>
+export HEADROOM_PORT="8787"
+export HEADROOM_HOST="127.0.0.1"
+export HEADROOM_MODE="cache"
+export HEADROOM_BACKEND="anthropic"
+export HEADROOM_TELEMETRY="off"
+export HEADROOM_ROLLOUT_CHANNEL="beta"
+export HEADROOM_OUTPUT_SHAPER="1"
+export ANTHROPIC_BASE_URL="http://127.0.0.1:8787"
+export ENABLE_TOOL_SEARCH="true"
+# <<< headroom persistent env <<<

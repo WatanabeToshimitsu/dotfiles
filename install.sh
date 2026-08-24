@@ -314,6 +314,76 @@ setup_cli_tools() {
       fi
     done
   fi
+
+  if command -v uv > /dev/null 2>&1; then
+    if command -v headroom > /dev/null 2>&1 \
+      && headroom --version 2>/dev/null | grep -q 'version 0\.36\.5$'; then
+      echo "  exists: uv tool headroom-ai 0.36.5"
+    else
+      uv tool install --force "headroom-ai==0.36.5" || echo "  failed: uv tool headroom-ai"
+    fi
+  else
+    echo "  skipped headroom-ai (uv not found)"
+  fi
+}
+
+# ========================================
+# Headroom persistent Claude proxy
+# ========================================
+# Recreates the user-scoped deployment when missing or when the persisted
+# output-shaper settings drift. Prefer Docker and fall back to a native task.
+
+setup_headroom() {
+  if ! command -v headroom > /dev/null 2>&1; then
+    echo "  skipped Headroom deployment (headroom not found)"
+    return 0
+  fi
+
+  local manifest="$HOME/.headroom/deploy/default/manifest.json"
+  if [ -f "$manifest" ] \
+    && jq -e \
+      '.provider_mode == "manual"
+       and .targets == ["claude"]
+       and .base_env.HEADROOM_ROLLOUT_CHANNEL == "beta"
+       and .base_env.HEADROOM_OUTPUT_SHAPER == "1"' \
+      "$manifest" > /dev/null 2>&1; then
+    echo "  exists: Headroom persistent Claude deployment"
+    if ! headroom install status --profile default 2>/dev/null | grep -q '^Status:.*running'; then
+      if jq -e '.preset == "persistent-task"' "$manifest" > /dev/null 2>&1; then
+        echo "  waiting for Headroom scheduled recovery"
+      else
+        headroom install start --profile default || echo "  failed: start Headroom deployment"
+      fi
+    fi
+    return 0
+  fi
+
+  local preset runtime
+  if command -v docker > /dev/null 2>&1 && docker info > /dev/null 2>&1; then
+    preset=persistent-docker
+    runtime=docker
+  else
+    preset=persistent-task
+    runtime=python
+  fi
+
+  echo "----------------------------------------------"
+  echo "Installing Headroom persistent Claude proxy..."
+  echo "----------------------------------------------"
+  headroom install apply \
+    --preset "$preset" \
+    --runtime "$runtime" \
+    --scope user \
+    --providers manual \
+    --target claude \
+    --profile default \
+    --port 8787 \
+    --backend anthropic \
+    --mode cache \
+    --no-telemetry \
+    --env HEADROOM_ROLLOUT_CHANNEL=beta \
+    --env HEADROOM_OUTPUT_SHAPER=1 \
+    || echo "  failed: Headroom persistent Claude deployment"
 }
 
 # ========================================
@@ -459,6 +529,7 @@ setup_macos() {
   setup_agent_skills
   setup_herdr
   setup_cli_tools
+  setup_headroom
   setup_launchd
 }
 
@@ -533,6 +604,7 @@ setup_linux() {
   setup_agent_skills
   setup_herdr
   setup_cli_tools
+  setup_headroom
 
   install_fzf
   install_ghq

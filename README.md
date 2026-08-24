@@ -103,6 +103,28 @@ Show aggregate savings:
 python3 ~/.claude/hooks/compact-tool-output.py stats
 ```
 
+## Headroom Proxy
+
+`install.sh` installs Headroom 0.36.5 with `uv` and maintains a user-scoped
+Claude proxy on port 8787. It uses Docker when available and a native scheduled
+task otherwise. The beta output shaper is enabled and Claude Code is routed
+through the proxy from new shell sessions.
+
+Learn the preferred response length again after enough Claude history has
+accumulated:
+
+```bash
+headroom learn --verbosity --apply --all
+```
+
+Check the proxy and output-shaping savings:
+
+```bash
+headroom install status
+headroom doctor
+headroom output-savings
+```
+
 ## Configuration Storage Strategy
 
 Configuration files are organized by target location:

@@ -20,3 +20,15 @@ export GTEST_COLOR=1
 export CC="/usr/lib/ccache/gcc"
 export CXX="/usr/lib/ccache/g++"
 export CCACHE_DIR="/Users/kz86n/.cache/ccache/"
+
+# >>> headroom persistent env >>>
+export HEADROOM_PORT="8787"
+export HEADROOM_HOST="127.0.0.1"
+export HEADROOM_MODE="cache"
+export HEADROOM_BACKEND="anthropic"
+export HEADROOM_TELEMETRY="off"
+export HEADROOM_ROLLOUT_CHANNEL="beta"
+export HEADROOM_OUTPUT_SHAPER="1"
+export ANTHROPIC_BASE_URL="http://127.0.0.1:8787"
+export ENABLE_TOOL_SEARCH="true"
+# <<< headroom persistent env <<<
