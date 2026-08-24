@@ -1,51 +1,35 @@
 # Agent Orchestration
 
-## Available Agents
+Treat Fable / Opus turns and the main conversation context as expensive resources. Delegate only when isolation, parallelism, or model routing has a clear payoff.
 
-Availability depends on the environment (plugins or `~/.claude/agents/`, which may not exist). Check the currently available agent list before delegating. If a referenced agent is unavailable, do the equivalent work directly and briefly report the gap to the user.
+## Model Routing
 
-| Agent | Purpose | When to Use |
-|-------|---------|-------------|
-| planner | Implementation planning | Complex features, refactoring |
-| architect | System design | Architectural decisions |
-| tdd-guide | Test-driven development | New features, bug fixes |
-| code-reviewer | Code review | After writing code |
-| security-reviewer | Security analysis | Before commits |
-| build-error-resolver | Fix build errors | When build fails |
-| e2e-runner | E2E testing | Critical user flows |
-| refactor-cleaner | Dead code cleanup | Code maintenance |
-| doc-updater | Documentation | Updating docs |
-| rust-reviewer | Rust code review | Rust projects |
-| harmonyos-app-resolver | HarmonyOS app development | HarmonyOS/ArkTS projects |
+- Use Fable / Opus for planning, architecture, difficult diagnosis, consequential decisions, and high-risk adversarial review.
+- Use Sonnet for implementation, repository exploration, mechanical work, test execution, and ordinary focused review.
+- Set a non-`inherit` `model` on every Agent call. A global hook rejects omitted or inherited models.
+- Do not change the main conversation's model or effort repeatedly to route routine work; model and effort changes invalidate its prompt cache.
 
-## Immediate Agent Usage
+## When to Delegate
 
-No user prompt needed:
-1. Complex feature requests - Use **planner** agent
-2. Code just written/modified - Use **code-reviewer** agent
-3. Bug fix or new feature - Use **tdd-guide** agent
-4. Architectural decision - Use **architect** agent
+Use the main conversation for quick targeted changes, tightly coupled phases, or work that depends heavily on the current discussion.
 
-## Parallel Task Execution
+Use a subagent when the task is self-contained, produces verbose output, benefits from a different model, or can run independently while useful parent work continues.
 
-ALWAYS use parallel Task execution for independent operations:
+Do not delegate merely because an agent exists. Do not send multiple agents over the same files or question unless genuinely independent perspectives are required by high risk.
 
-```markdown
-# GOOD: Parallel execution
-Launch 3 agents in parallel:
-1. Agent 1: Security analysis of auth module
-2. Agent 2: Performance review of cache system
-3. Agent 3: Type checking of utilities
+## Delegation Contract
 
-# BAD: Sequential when unnecessary
-First agent 1, then agent 2, then agent 3
-```
+Give each subagent a bounded task, relevant paths, constraints, expected output, and verification target. Ask it to return only:
 
-## Multi-Perspective Analysis
+- conclusion or changes made
+- relevant file locations
+- remaining risks or decisions
+- verification results
 
-For complex problems, use split role sub-agents:
-- Factual reviewer
-- Senior engineer
-- Security expert
-- Consistency reviewer
-- Redundancy checker
+Keep raw logs, full diffs, and large file contents out of the parent context. For large outputs, have the subagent summarize or write a scoped artifact.
+
+## Review Routing
+
+- Low risk: tests plus self review in the current context.
+- Medium risk: one Sonnet focused review covering the changed behavior and likely failure modes.
+- High risk: Fable / Opus adversarial review, adding a specialist only when the risk domain warrants it.

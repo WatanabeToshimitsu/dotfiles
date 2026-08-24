@@ -1,47 +1,32 @@
 # Development Workflow
 
-> This file extends [common/git-workflow.md](./git-workflow.md) with the full feature development process that happens before git operations.
+Scale the workflow to the task's uncertainty and risk. Do not turn every change into a ceremony or a sequence of user prompts.
 
-The Feature Implementation Workflow describes the development pipeline: research, planning, TDD, code review, and then committing to git.
+## Default Autonomous Loop
 
-## Feature Implementation Workflow
+When the goal is clear and the actions are reversible and in scope, continue through the natural sequence without waiting for repeated instructions:
 
-0. **Research & Reuse** _(mandatory before any new implementation)_
-   - **GitHub code search first:** Run `gh search repos` and `gh search code` to find existing implementations, templates, and patterns before writing anything new.
-   - **Library docs second:** Use Context7 or primary vendor docs to confirm API behavior, package usage, and version-specific details before implementing.
-   - **Exa only when the first two are insufficient:** Use Exa for broader web research or discovery after GitHub search and primary docs.
-   - **Check package registries:** Search npm, PyPI, crates.io, and other registries before writing utility code. Prefer battle-tested libraries over hand-rolled solutions.
-   - **Search for adaptable implementations:** Look for open-source projects that solve 80%+ of the problem and can be forked, ported, or wrapped.
-   - Prefer adopting or porting a proven approach over writing net-new code when it meets the requirement.
+1. Inspect the relevant code, tests, repository guidance, and current diff.
+2. Research external APIs or unfamiliar behavior only when local evidence is insufficient; prefer primary, version-specific sources.
+3. Identify the smallest coherent change and its verification target.
+4. Follow TDD: RED, GREEN, then REFACTOR. Keep refactoring separate from feature behavior.
+5. Run focused checks, fix failures, and repeat until the scoped verification passes.
+6. Apply the risk-based review policy from `code-review.md`.
+7. Self-review the final diff for scope, correctness, and accidental changes.
+8. If the user's request and repository permissions include delivery, create logical commits, push, and open a Draft PR using the repository template.
 
-1. **Plan First**
-   - Planning and design run on Fable/Opus; run an adversarial review at each phase via an upper-model subagent (CLAUDE.md Agent Orchestration)
-   - Use **planner** agent to create implementation plan
-   - Generate planning docs before coding: PRD, architecture, system_design, tech_doc, task_list
-   - Identify dependencies and risks
-   - Break down into phases
+## Planning Depth
 
-2. **TDD Approach**
-   - Implementation runs on Sonnet subagents (CLAUDE.md Agent Orchestration)
-   - Use **tdd-guide** agent
-   - Write tests first (RED)
-   - Implement to pass tests (GREEN)
-   - Refactor (IMPROVE)
-   - Verify 80%+ coverage
+- Small, clear change: keep the plan in the current context and start.
+- Multi-file or uncertain change: write a concise plan with dependencies, risks, and verification.
+- Product behavior, architecture, data model, compatibility, security, data-loss risk, or expensive-to-reverse decisions: ask one question at a time, with a recommendation and reason, before committing to that branch of the design.
 
-3. **Code Review**
-   - Security-sensitive changes (auth, user input, DB queries, crypto, payments): STOP and run security review first (code-review.md Security Review Triggers)
-   - Use **code-reviewer** agent immediately after writing code
-   - Address CRITICAL and HIGH issues
-   - Fix MEDIUM issues when possible
+Do not create PRDs, architecture documents, or task lists unless they help the current work or the user requested them.
 
-4. **Commit & Push**
-   - PRs created without user confirmation must be Draft (CLAUDE.md)
-   - Concise commit messages, conventional commits format
-   - See [git-workflow.md](./git-workflow.md) for commit message format and PR process
+## Research and Reuse
 
-5. **Pre-Review Checks**
-   - Verify all automated checks (CI/CD) are passing
-   - Resolve any merge conflicts
-   - Ensure branch is up to date with target branch
-   - Only request review after these checks pass
+Search the repository first. Check library documentation, package registries, or existing implementations when dependency behavior is uncertain or reuse is likely to be materially better. Avoid broad web and GitHub searches for routine changes already covered by local patterns.
+
+## Completion
+
+Do not claim completion until the relevant tests and checks have actually run, or clearly state what could not be run. Treat existing unrelated failures and user-owned worktree changes as boundaries, not as permission to expand scope.

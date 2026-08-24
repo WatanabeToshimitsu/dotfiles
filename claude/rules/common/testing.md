@@ -1,13 +1,10 @@
 # Testing Requirements
 
-## Minimum Test Coverage: 80%
+## Test Scope
 
-Scope discipline: the 80% target and the full test-type matrix apply to new feature work. For bug fixes, add only tests covering the reported bug (CLAUDE.md スコープ規律 / YAGNI).
+Follow the repository's existing coverage gates and test conventions. Choose unit, integration, or E2E coverage according to the changed behavior and risk; do not require every test type for every feature.
 
-Test Types (ALL required):
-1. **Unit Tests** - Individual functions, utilities, components
-2. **Integration Tests** - API endpoints, database operations
-3. **E2E Tests** - Critical user flows (framework chosen per language)
+For bug fixes, first add the smallest regression test that reproduces the reported bug. Do not expand into unrelated cases unless they expose the same root cause and materially reduce recurrence risk.
 
 ## Test-Driven Development
 
@@ -17,18 +14,14 @@ MANDATORY workflow:
 3. Write minimal implementation (GREEN)
 4. Run test - it should PASS
 5. Refactor (IMPROVE)
-6. Verify coverage (80%+)
+6. Run the repository's relevant verification and coverage gates
 
 ## Troubleshooting Test Failures
 
-1. Use **tdd-guide** agent
-2. Check test isolation
-3. Verify mocks are correct
-4. Fix implementation, not tests (unless tests are wrong)
-
-## Agent Support
-
-- **tdd-guide** - Use PROACTIVELY for new features, enforces write-tests-first
+1. Read the failure and identify whether it is caused by the implementation, the test, or the environment.
+2. Check test isolation and mocks.
+3. Fix the implementation unless the test expectation is demonstrably wrong.
+4. Delegate verbose or independent diagnosis to a Sonnet subagent only when isolation is useful.
 
 ## Test Structure (AAA Pattern)
 

@@ -29,6 +29,8 @@ MANIFEST_CLAUDE_FILES=(
   claude-powerline.json
   hooks/deny-check.sh
   hooks/notification.sh
+  hooks/post-ts-lint.sh
+  hooks/require-subagent-model.sh
   hooks/rtk-rewrite.sh
   hooks/validate-bash.sh
   rules/testing/vitest.md

@@ -3,14 +3,11 @@
 ## Skeleton Projects
 
 When implementing new functionality:
-1. Search for battle-tested skeleton projects
-2. Use parallel agents to evaluate options:
-   - Security assessment
-   - Extensibility analysis
-   - Relevance scoring
-   - Implementation planning
-3. Clone best match as foundation
-4. Iterate within proven structure
+1. Search the current repository for an established pattern.
+2. Evaluate external skeletons only when the task actually needs a new project or major subsystem.
+3. Compare security, maintenance, relevance, and licensing before adoption.
+4. Use one focused evaluation by default; add independent reviewers only when the choice is high risk.
+5. Adopt or adapt the simplest proven option that fits the requirement.
 
 ## Design Patterns
 

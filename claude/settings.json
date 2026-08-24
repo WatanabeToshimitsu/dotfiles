@@ -6,7 +6,6 @@
   },
   "permissions": {
     "allow": [
-      "Bash(npm run *)",
       "Bash(npm run test:*)",
       "Bash(npm run lint:*)",
       "Bash(npm run format:*)",
@@ -168,19 +167,19 @@
       "Read(**/*.production.*)",
       "Read(**/id_ed25519)",
       "Read(**/id_rsa)",
-      "Write(**/*.env)",
-      "Write(**/*.env.*)",
-      "Write(**/*.key)",
-      "Write(**/*.pem)",
-      "Write(**/.ssh/**)",
-      "Write(**/credentials/**)",
-      "Write(**/secrets/**)",
-      "Write(**/*.secrets)",
-      "Write(**/*.token)",
-      "Write(**/.production/**)",
-      "Write(**/*.production.*)",
-      "Write(**/id_ed25519)",
-      "Write(**/id_rsa)"
+      "Edit(**/*.env)",
+      "Edit(**/*.env.*)",
+      "Edit(**/*.key)",
+      "Edit(**/*.pem)",
+      "Edit(**/.ssh/**)",
+      "Edit(**/credentials/**)",
+      "Edit(**/secrets/**)",
+      "Edit(**/*.secrets)",
+      "Edit(**/*.token)",
+      "Edit(**/.production/**)",
+      "Edit(**/*.production.*)",
+      "Edit(**/id_ed25519)",
+      "Edit(**/id_rsa)"
     ],
     "ask": [
       "Bash(curl:*)",
@@ -194,7 +193,7 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "claude-fable-5",
+  "model": "claude-fable-5[1m]",
   "hooks": {
     "Notification": [
       {
@@ -212,16 +211,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/post-ts-lint.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/deny-check.sh"
+            "command": "bash \"$HOME/.claude/hooks/post-ts-lint.sh\""
           }
         ]
       }
@@ -232,7 +222,20 @@
         "hooks": [
           {
             "type": "command",
+            "command": "~/.claude/hooks/deny-check.sh"
+          },
+          {
+            "type": "command",
             "command": "~/.claude/hooks/validate-bash.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$HOME/.claude/hooks/require-subagent-model.sh\""
           }
         ]
       }
@@ -255,38 +258,26 @@
       }
     ]
   },
+  "worktree": {
+    "baseRef": "fresh"
+  },
   "statusLine": {
     "type": "command",
     "command": "npx -y @owloops/claude-powerline@latest"
   },
   "enabledPlugins": {
-    "claude-code-setup@claude-plugins-official": false,
-    "claude-md-management@claude-plugins-official": false,
     "claude-powerline@claude-powerline": true,
     "co-mlops-context@hdl-agent-plugins": true,
-    "code-review@claude-plugins-official": false,
     "code-review@hdl-agent-plugins": true,
-    "code-simplifier@claude-plugins-official": false,
     "codex-integration@hdl-agent-plugins": true,
     "codex@openai-codex": true,
     "commit-commands@claude-plugins-official": true,
     "context7@claude-plugins-official": true,
-    "experiment-planner@hdl-agent-plugins": false,
-    "feature-dev@claude-plugins-official": false,
-    "frontend-design@claude-plugins-official": false,
-    "github@claude-plugins-official": false,
-    "gopls-lsp@claude-plugins-official": false,
-    "japanese-proofreader@hdl-agent-plugins": false,
-    "playwright@claude-plugins-official": false,
-    "plugin-dev@hdl-agent-plugins": false,
-    "pr-review-toolkit@claude-plugins-official": false,
     "pyright-lsp@claude-plugins-official": true,
-    "report-instructor@hdl-agent-plugins": false,
-    "security-guidance@claude-plugins-official": true,
-    "serena@claude-plugins-official": false,
-    "skypilot@skypilot": false,
-    "superpowers@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true
+  },
+  "skillOverrides": {
+    "difit": "user-invocable-only"
   },
   "extraKnownMarketplaces": {
     "claude-powerline": {
@@ -324,12 +315,29 @@
   },
   "language": "Japanese",
   "syntaxHighlightingDisabled": false,
-  "alwaysThinkingEnabled": true,
-  "effortLevel": "xhigh",
+  "effortLevel": "high",
+  "askUserQuestionTimeout": "never",
+  "autoUpdatesChannel": "stable",
   "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
   "skipWorkflowUsageWarning": true,
   "theme": "light-daltonized",
+  "editorMode": "normal",
+  "preferredNotifChannel": "auto",
+  "switchModelsOnFlag": true,
   "teammateMode": "tmux",
-  "skipAutoPermissionPrompt": true
+  "inputNeededNotifEnabled": false,
+  "skipAutoPermissionPrompt": true,
+  "autoMode": {
+    "allow": [
+      "$defaults",
+      "Bash(agent-browser:*) for routine browser automation in a trusted workspace",
+      "Bash(npx:*) for an existing project's configured toolchain; package installation still requires approval"
+    ],
+    "environment": [
+      "Trust and repository scope must come from the current repository's own remote and project configuration; never reuse another repository's trust assumptions",
+      "Treat credentials, personal data, confidential business data, and regulated data as sensitive; public paste and gist services are outside the trust boundary unless explicitly approved",
+      "Treat remote targets or infrastructure whose name contains prod or production as sensitive"
+    ]
+  }
 }

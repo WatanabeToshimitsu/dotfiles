@@ -1,42 +1,23 @@
-# Performance Optimization
+# Model and Context Efficiency
 
-## Model Selection
+Optimize expensive reasoning turns, not instruction size in isolation.
 
-Model selection is defined in CLAUDE.md (Agent Orchestration): Fable/Opus plan and orchestrate, Sonnet 5 runs implementation subagents. Use Haiku only for lightweight, high-frequency worker agents.
+## Model Use
 
-## Context Window Management
+- Keep the main Fable / Opus context for planning, consequential judgment, and difficult diagnosis.
+- Route implementation, exploration, mechanical work, and normal review to explicitly named Sonnet subagents when delegation has a clear payoff.
+- Prefer the current context for small targeted work; a fresh subagent must rediscover local context.
+- Avoid frequent main-session model or effort changes because they invalidate prompt caching.
+- Use `high` as the normal effort balance. Raise depth only for a demanding decision or diagnosis, not as a permanent default.
 
-Avoid last 20% of context window for:
-- Large-scale refactoring
-- Feature implementation spanning multiple files
-- Debugging complex interactions
+## Context Management
 
-Lower context sensitivity tasks:
-- Single-file edits
-- Independent utility creation
-- Documentation updates
-- Simple bug fixes
+- Delegate verbose tests, logs, documentation retrieval, and broad search when only a summary is needed in the parent.
+- Do not send raw logs or full file dumps back from subagents.
+- Use focused `/compact` when a long same-task history starts obscuring the active goal.
+- Use `/clear` when switching to unrelated work with substantial old context.
+- Do not interrupt a healthy low-utilization session merely to reduce token counts.
 
-## Extended Thinking + Plan Mode
+## Failure Loops
 
-Extended thinking is enabled by default, reserving up to 31,999 tokens for internal reasoning.
-
-Control extended thinking via:
-- **Toggle**: Option+T (macOS) / Alt+T (Windows/Linux)
-- **Config**: Set `alwaysThinkingEnabled` in `~/.claude/settings.json`
-- **Budget cap**: `export MAX_THINKING_TOKENS=10000`
-- **Verbose mode**: Ctrl+O to see thinking output
-
-For complex tasks requiring deep reasoning:
-1. Ensure extended thinking is enabled (on by default)
-2. Enable **Plan Mode** for structured approach
-3. Use multiple critique rounds for thorough analysis
-4. Use split role sub-agents for diverse perspectives
-
-## Build Troubleshooting
-
-If build fails:
-1. Use **build-error-resolver** agent
-2. Analyze error messages
-3. Fix incrementally
-4. Verify after each fix
+Read and classify a failure before retrying. Change the hypothesis or evidence on each retry, and stop repeated identical exploration. Use a Sonnet diagnosis subagent when the output is large or the investigation is self-contained; keep tightly coupled debugging in the main context.

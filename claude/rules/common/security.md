@@ -22,8 +22,8 @@ Before ANY commit:
 ## Security Response Protocol
 
 If security issue found:
-1. STOP immediately
-2. Use **security-reviewer** agent
-3. Fix CRITICAL issues before continuing
-4. Rotate any exposed secrets
-5. Review entire codebase for similar issues
+1. Stop the affected unsafe action and assess severity and scope.
+2. Use a security-focused review for high-risk changes or uncertain impact; use Sonnet for bounded checks and Fable / Opus for consequential adversarial review.
+3. Fix CRITICAL issues before continuing.
+4. Rotate any exposed secrets.
+5. Search the relevant boundary for the same issue pattern without expanding into unrelated cleanup.

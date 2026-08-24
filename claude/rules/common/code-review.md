@@ -4,23 +4,13 @@
 
 Code review ensures quality, security, and maintainability before code is merged. This rule defines when and how to conduct code reviews.
 
-## When to Review
+## Review Depth by Risk
 
-**MANDATORY review triggers:**
+- **Low risk**: targeted tests and self review. Examples: local refactors with preserved behavior, documentation, isolated mechanical changes.
+- **Medium risk**: one Sonnet focused review after verification. Examples: multi-file behavior changes, non-trivial bug fixes, public API changes with bounded impact.
+- **High risk**: Fable / Opus adversarial review after verification. Examples: architecture, concurrency, authentication, authorization, payments, privacy, destructive migrations, compatibility, or data-loss risk.
 
-- After writing or modifying code
-- Before any commit to shared branches
-- When security-sensitive code is changed (auth, payments, user data)
-- When architectural changes are made
-- Before merging pull requests
-
-**Pre-Review Requirements:**
-
-Before requesting review, ensure:
-
-- All automated checks (CI/CD) are passing
-- Merge conflicts are resolved
-- Branch is up to date with target branch
+Do not run a separate agent review after every edit or phase. Review the coherent diff at the point where feedback can still change the result.
 
 ## Review Checklist
 
@@ -32,11 +22,11 @@ Before marking code complete:
 - [ ] No hardcoded secrets or credentials
 - [ ] No console.log or debug statements
 - [ ] Tests exist for new functionality
-- [ ] Test coverage meets 80% minimum
+- [ ] Tests cover the changed behavior and relevant failure modes
 
 ## Security Review Triggers
 
-**STOP and use security-reviewer agent when:**
+Treat a change as high risk and use a security-focused review when it affects:
 
 - Authentication or authorization code
 - User input handling
@@ -55,28 +45,14 @@ Before marking code complete:
 | MEDIUM | Maintainability concern | **INFO** - Consider fixing |
 | LOW | Style or minor suggestion | **NOTE** - Optional |
 
-## Agent Usage
-
-Use these agents for code review:
-
-| Agent | Purpose |
-|-------|---------|
-| **code-reviewer** | General code quality, patterns, best practices |
-| **security-reviewer** | Security vulnerabilities, OWASP Top 10 |
-| **typescript-reviewer** | TypeScript/JavaScript specific issues |
-| **python-reviewer** | Python specific issues |
-| **go-reviewer** | Go specific issues |
-| **rust-reviewer** | Rust specific issues |
-
 ## Review Workflow
 
 ```
 1. Run git diff to understand changes
-2. Check security checklist first
-3. Review code quality checklist
-4. Run relevant tests
-5. Verify coverage >= 80%
-6. Use appropriate agent for detailed review
+2. Run the relevant tests and static checks
+3. Classify the change as low, medium, or high risk
+4. Apply the corresponding self, focused, or adversarial review
+5. Re-run affected verification after fixes
 ```
 
 ## Common Issues to Catch
