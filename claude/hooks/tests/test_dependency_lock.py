@@ -52,6 +52,20 @@ class DependencyLockTest(unittest.TestCase):
         key, marketplace = next(iter(PINNED_MARKETPLACES.items()))
         self.assertEqual(key, marketplace["name"])
 
+    def test_manifestless_lsp_plugin_keeps_its_inline_definition(self) -> None:
+        marketplace = next(iter(PINNED_MARKETPLACES.values()))
+        typescript_lsp = next(
+            plugin
+            for plugin in marketplace["plugins"]
+            if plugin["name"] == "typescript-lsp"
+        )
+
+        self.assertFalse(typescript_lsp["strict"])
+        self.assertEqual(
+            typescript_lsp["lspServers"]["typescript"]["command"],
+            "typescript-language-server",
+        )
+
     def test_third_party_marketplaces_do_not_auto_update(self) -> None:
         for name, marketplace in SETTINGS.get("extraKnownMarketplaces", {}).items():
             with self.subTest(marketplace=name):

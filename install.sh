@@ -535,11 +535,50 @@ setup_agent_skills() {
   cli_version=$(jq -r '.skillsCli.version' "$lock_file")
   local source_entry repository commit checkout actual_commit
   local install_failed=0
+  local staging_root staging_home staged_skill incoming_dir backup_dir
+  local target legacy_target already_managed managed_skill
+  local -a source_entries=()
+  local -a expected_skills=()
+  local -a managed_skills=()
+  local -a backed_claude=()
+  local -a backed_agents=()
+  local -a installed_new=()
 
   while IFS= read -r source_entry; do
+    source_entries+=("$source_entry")
+  done < <(jq -c '.skills[]' "$lock_file")
+
+  while IFS= read -r skill; do
+    if [[ ! "$skill" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
+      echo "  failed: unsafe skill name in dependencies.lock.json: $skill"
+      return 1
+    fi
+    expected_skills+=("$skill")
+    managed_skills+=("$skill")
+  done < <(jq -r '.skills[].names[]' "$lock_file")
+
+  if [ -f "$installed_lock" ] && jq -e '.skills | type == "array"' "$installed_lock" > /dev/null 2>&1; then
+    while IFS= read -r skill; do
+      [[ "$skill" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || continue
+      already_managed=0
+      for managed_skill in "${managed_skills[@]}"; do
+        if [ "$managed_skill" = "$skill" ]; then
+          already_managed=1
+          break
+        fi
+      done
+      [ "$already_managed" -eq 1 ] || managed_skills+=("$skill")
+    done < <(jq -r '.skills[].names[]' "$installed_lock")
+  fi
+
+  staging_root=$(mktemp -d) || return 1
+  staging_home="$staging_root/home"
+  mkdir -p "$staging_home"
+
+  for source_entry in "${source_entries[@]}"; do
     repository=$(printf '%s' "$source_entry" | jq -r '.repository')
     commit=$(printf '%s' "$source_entry" | jq -r '.commit')
-    checkout=$(mktemp -d)
+    checkout="$staging_root/checkout-$commit"
 
     if ! git init --quiet "$checkout" \
       || ! git -C "$checkout" remote add origin "$repository" \
@@ -547,7 +586,6 @@ setup_agent_skills() {
       || ! git -C "$checkout" checkout --quiet --detach FETCH_HEAD; then
       echo "  failed: fetch $repository@$commit"
       install_failed=1
-      rm -rf "$checkout"
       continue
     fi
 
@@ -555,30 +593,104 @@ setup_agent_skills() {
     if [ "$actual_commit" != "$commit" ]; then
       echo "  failed: commit mismatch for $repository"
       install_failed=1
-      rm -rf "$checkout"
       continue
     fi
 
     while IFS= read -r skill; do
-      if npx -y "skills@$cli_version" add "$checkout" -g -y \
-        -s "$skill" -a claude-code; then
+      if HOME="$staging_home" DO_NOT_TRACK=1 \
+        npx -y "skills@$cli_version" add "$checkout" -g -y --copy \
+          -s "$skill" -a claude-code < /dev/null; then
         echo "  installed: $skill@$commit"
       else
         echo "  failed: $skill@$commit"
         install_failed=1
       fi
     done < <(printf '%s' "$source_entry" | jq -r '.names[]')
+  done
 
-    rm -rf "$checkout"
-  done < <(jq -c '.skills[]' "$lock_file")
+  for skill in "${expected_skills[@]}"; do
+    staged_skill="$staging_home/.claude/skills/$skill"
+    if [ ! -f "$staged_skill/SKILL.md" ]; then
+      echo "  failed: staged skill is incomplete: $skill"
+      install_failed=1
+    fi
+  done
+
+  if [ "$install_failed" -ne 0 ]; then
+    echo "  failed: existing agent skills were left unchanged"
+    rm -rf "$staging_root"
+    return 1
+  fi
+
+  mkdir -p "$HOME/.claude/skills" "$HOME/.agents/skills"
+  incoming_dir="$HOME/.claude/skills/.dotfiles-incoming-$$"
+  backup_dir="$HOME/.claude/skills/.dotfiles-backup-$$"
+  mkdir -p "$incoming_dir" "$backup_dir/claude" "$backup_dir/agents"
+
+  for skill in "${expected_skills[@]}"; do
+    staged_skill="$staging_home/.claude/skills/$skill"
+    if ! cp -R "$staged_skill" "$incoming_dir/$skill"; then
+      echo "  failed: prepare replacement for $skill"
+      rm -rf "$incoming_dir" "$backup_dir" "$staging_root"
+      return 1
+    fi
+  done
+
+  for skill in "${managed_skills[@]}"; do
+    target="$HOME/.claude/skills/$skill"
+    legacy_target="$HOME/.agents/skills/$skill"
+    if [ -e "$target" ] || [ -L "$target" ]; then
+      if ! mv "$target" "$backup_dir/claude/$skill"; then
+        install_failed=1
+        break
+      fi
+      backed_claude+=("$skill")
+    fi
+    if [ -e "$legacy_target" ] || [ -L "$legacy_target" ]; then
+      if ! mv "$legacy_target" "$backup_dir/agents/$skill"; then
+        install_failed=1
+        break
+      fi
+      backed_agents+=("$skill")
+    fi
+  done
+
+  if [ "$install_failed" -eq 0 ]; then
+    for skill in "${expected_skills[@]}"; do
+      if ! mv "$incoming_dir/$skill" "$HOME/.claude/skills/$skill"; then
+        install_failed=1
+        break
+      fi
+      installed_new+=("$skill")
+    done
+  fi
 
   if [ "$install_failed" -eq 0 ]; then
     mkdir -p "$HOME/.agents"
-    cp "$lock_file" "$installed_lock"
-    echo "  recorded: agent skills match dependencies.lock.json"
-  else
-    echo "  warning: agent skill lock was not recorded because installation failed"
+    if ! cp "$lock_file" "$installed_lock.tmp.$$" \
+      || ! mv "$installed_lock.tmp.$$" "$installed_lock"; then
+      install_failed=1
+    fi
   fi
+
+  if [ "$install_failed" -ne 0 ]; then
+    echo "  failed: rolling back agent skill update"
+    for skill in "${installed_new[@]}"; do
+      mv "$HOME/.claude/skills/$skill" "$incoming_dir/$skill" 2>/dev/null || true
+    done
+    for skill in "${backed_claude[@]}"; do
+      mv "$backup_dir/claude/$skill" "$HOME/.claude/skills/$skill" 2>/dev/null || true
+    done
+    for skill in "${backed_agents[@]}"; do
+      mv "$backup_dir/agents/$skill" "$HOME/.agents/skills/$skill" 2>/dev/null || true
+    done
+    rm -f "$installed_lock.tmp.$$"
+    rm -rf "$incoming_dir" "$backup_dir" "$staging_root"
+    return 1
+  fi
+
+  rm -rf "$incoming_dir" "$backup_dir" "$staging_root"
+  echo "  recorded: agent skills match dependencies.lock.json"
 }
 
 # ========================================
@@ -608,7 +720,7 @@ setup_macos() {
   setup_symlinks "$DOTFILES_DIR"
   bootstrap_neovim
   setup_vscode
-  setup_agent_skills
+  setup_agent_skills || return 1
   setup_herdr
   setup_cli_tools
   setup_headroom
@@ -683,7 +795,7 @@ setup_linux() {
   fi
 
   setup_symlinks "$DOTFILES_DIR"
-  setup_agent_skills
+  setup_agent_skills || return 1
   setup_herdr
   setup_cli_tools
   setup_headroom
@@ -730,8 +842,8 @@ fi
 
 OS="$(uname -s)"
 case "$OS" in
-  Darwin) setup_macos ;;
-  Linux)  setup_linux ;;
+  Darwin) setup_macos || exit 1 ;;
+  Linux)  setup_linux || exit 1 ;;
   *)      echo "Unsupported OS: $OS"; exit 1 ;;
 esac
 

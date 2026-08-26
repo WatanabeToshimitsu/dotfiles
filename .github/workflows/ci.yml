@@ -18,6 +18,8 @@ jobs:
         run: bash test/test-claude-sandbox.sh
       - name: Test pinned Claude dependencies
         run: bash test/test-claude-dependencies.sh
+      - name: Verify public pinned sources
+        run: bash test/test-pinned-sources.sh
       - name: Test Claude hooks
         run: python3 -m unittest discover -s claude/hooks/tests -p 'test_*.py'
 

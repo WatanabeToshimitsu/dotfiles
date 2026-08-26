@@ -20,5 +20,10 @@ Runtime dependencies are reviewable in two files:
 5. Submit the lock change and the reviewed upstream diff in one pull request.
 
 Do not replace a version or commit with `latest`, a floating branch, or an
-unqualified repository URL. A failed install must not update the local
-`.dotfiles-dependencies.lock.json` state file.
+unqualified repository URL. Skill updates are staged and validated before the
+live directories change. A failed install returns a non-zero status, preserves
+the previous skills, and does not update `.dotfiles-dependencies.lock.json`.
+
+CI fetches every public pinned source and checks the referenced skill or plugin
+entry point. Authenticated plugin sources are skipped in CI and must be verified
+manually after GitHub SSH access is configured on a new machine.

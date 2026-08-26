@@ -338,11 +338,35 @@
           },
           {
             "name": "typescript-lsp",
+            "description": "TypeScript/JavaScript language server for enhanced code intelligence",
+            "version": "1.0.0",
+            "author": {
+              "name": "Anthropic",
+              "email": "support@anthropic.com"
+            },
             "source": {
               "source": "git-subdir",
               "url": "https://github.com/anthropics/claude-plugins-official.git",
               "path": "plugins/typescript-lsp",
               "sha": "b819188d2eea14e0400556ca29dbd1179a7c595b"
+            },
+            "category": "development",
+            "strict": false,
+            "lspServers": {
+              "typescript": {
+                "command": "typescript-language-server",
+                "args": ["--stdio"],
+                "extensionToLanguage": {
+                  ".ts": "typescript",
+                  ".tsx": "typescriptreact",
+                  ".js": "javascript",
+                  ".jsx": "javascriptreact",
+                  ".mts": "typescript",
+                  ".cts": "typescript",
+                  ".mjs": "javascript",
+                  ".cjs": "javascript"
+                }
+              }
             }
           }
         ]
