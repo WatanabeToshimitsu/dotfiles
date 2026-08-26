@@ -10,11 +10,13 @@ this skill must never write to. Claude maintains the Jira issues plus a
 personal Notion staging mirror; the user copies staging rows to the shared
 board manually, about weekly.
 
-`reference.md` sits next to this file and is local-only (untracked). It
+`reference.md` sits next to this file and is machine-local: gitignored and
+absent from the symlink manifest, because this repository is public. It
 holds every concrete identifier: Jira project and board, Notion data
 source IDs, workspace names and IDs, shared-board option labels, the
 linking-only epic title pattern, and the snapshot query. Read it before
-the first Jira or Notion call of a run.
+the first Jira or Notion call of a run. If it is missing, create it from
+`reference.example.md` together with the user instead of guessing values.
 
 ## Systems and workspace mode
 

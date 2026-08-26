@@ -43,7 +43,6 @@ MANIFEST_CLAUDE_FILES=(
   skills/expand-tool-output/SKILL.md
   skills/prepare-compaction/SKILL.md
   skills/ticket/SKILL.md
-  skills/ticket/reference.md
   rules/golang/coding-style.md
   rules/golang/hooks.md
   rules/golang/patterns.md
