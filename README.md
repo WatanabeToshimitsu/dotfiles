@@ -123,6 +123,13 @@ development through explicit cache writes and documented `gh`/Docker exceptions.
 See [`claude/SANDBOX.md`](claude/SANDBOX.md) for the boundary, known limitations,
 promotion criteria, and rollback.
 
+## Claude Auto Memory
+
+Claude Code's repository-scoped auto memory is the only active project-learning
+path. It is shared across worktrees without a custom hook. See
+[`claude/AUTO-MEMORY.md`](claude/AUTO-MEMORY.md) for the verified behavior and
+legacy-data policy.
+
 ## Headroom Proxy
 
 `install.sh` installs Headroom 0.36.5 with `uv` and maintains a user-scoped

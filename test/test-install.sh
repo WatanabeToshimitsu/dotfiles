@@ -16,9 +16,10 @@ echo "=== Pre-creating a machine-local .npmrc ==="
 NPMRC_CONTENT="pre-existing npmrc content"
 echo "$NPMRC_CONTENT" > "$HOME/.npmrc"
 
-echo "=== Pre-creating the retired deny-check symlink ==="
+echo "=== Pre-creating retired Claude hook symlinks ==="
 mkdir -p "$HOME/.claude/hooks"
 ln -s "$DOTFILES_DIR/claude/hooks/deny-check.sh" "$HOME/.claude/hooks/deny-check.sh"
+ln -s "$DOTFILES_DIR/claude/hooks/link-worktree-memory.sh" "$HOME/.claude/hooks/link-worktree-memory.sh"
 
 echo "=== Running install.sh --symlinks-only ==="
 bash "$DOTFILES_DIR/install.sh" --symlinks-only
@@ -50,6 +51,20 @@ if [ ! -L "$HOME/.claude/hooks/deny-check.sh" ]; then
     echo "  OK: retired deny-check symlink removed"
 else
     echo "  FAIL: retired deny-check symlink still present"
+    ERRORS=$((ERRORS + 1))
+fi
+
+if [ ! -L "$HOME/.claude/hooks/link-worktree-memory.sh" ]; then
+    echo "  OK: retired worktree-memory symlink removed"
+else
+    echo "  FAIL: retired worktree-memory symlink still present"
+    ERRORS=$((ERRORS + 1))
+fi
+
+if ! grep -q "link-worktree-memory" "$DOTFILES_DIR/claude/settings.json"; then
+    echo "  OK: retired worktree-memory hook is not configured"
+else
+    echo "  FAIL: retired worktree-memory hook is still configured"
     ERRORS=$((ERRORS + 1))
 fi
 

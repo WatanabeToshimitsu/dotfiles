@@ -270,11 +270,6 @@
             "type": "command",
             "command": "bash '/Users/kz86n/.claude/hooks/herdr-agent-state.sh' session",
             "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "bash \"$HOME/.claude/hooks/link-worktree-memory.sh\"",
-            "timeout": 10
           }
         ]
       }
