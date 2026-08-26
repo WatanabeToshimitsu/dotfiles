@@ -11,7 +11,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: shellcheck
-        run: shellcheck -S warning install.sh test/test-install.sh .shell-utils/*.sh
+        run: shellcheck -S warning install.sh test/test-install.sh test/test-dotfiles-doctor.sh .shell-utils/*.sh
+      - name: Test dotfiles doctor
+        run: bash test/test-dotfiles-doctor.sh
+      - name: Test tool-output compaction
+        run: python3 -m unittest claude/hooks/tests/test_compact_tool_output.py
 
   validate-configs:
     runs-on: ubuntu-latest

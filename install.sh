@@ -340,24 +340,6 @@ setup_headroom() {
   fi
 
   local manifest="$HOME/.headroom/deploy/default/manifest.json"
-  if [ -f "$manifest" ] \
-    && jq -e \
-      '.provider_mode == "manual"
-       and .targets == ["claude"]
-       and .base_env.HEADROOM_ROLLOUT_CHANNEL == "beta"
-       and .base_env.HEADROOM_OUTPUT_SHAPER == "1"' \
-      "$manifest" > /dev/null 2>&1; then
-    echo "  exists: Headroom persistent Claude deployment"
-    if ! headroom install status --profile default 2>/dev/null | grep -q '^Status:.*running'; then
-      if jq -e '.preset == "persistent-task"' "$manifest" > /dev/null 2>&1; then
-        echo "  waiting for Headroom scheduled recovery"
-      else
-        headroom install start --profile default || echo "  failed: start Headroom deployment"
-      fi
-    fi
-    return 0
-  fi
-
   local preset runtime
   if command -v docker > /dev/null 2>&1 && docker info > /dev/null 2>&1; then
     preset=persistent-docker
@@ -365,6 +347,32 @@ setup_headroom() {
   else
     preset=persistent-task
     runtime=python
+  fi
+
+  if [ -f "$manifest" ] \
+    && jq -e --arg preset "$preset" --arg runtime "$runtime" \
+      '.provider_mode == "manual"
+       and .targets == ["claude"]
+       and .preset == $preset
+       and .runtime_kind == $runtime
+       and .base_env.HEADROOM_ROLLOUT_CHANNEL == "beta"
+       and .base_env.HEADROOM_OUTPUT_SHAPER == "1"' \
+      "$manifest" > /dev/null 2>&1; then
+    echo "  exists: Headroom persistent Claude deployment ($preset)"
+    if ! headroom install status --profile default 2>/dev/null | grep -q '^Status:.*running'; then
+      if jq -e '.preset == "persistent-task"' "$manifest" > /dev/null 2>&1; then
+        if [ -x "$HOME/.headroom/deploy/default/ensure-headroom.sh" ]; then
+          echo "  recovering Headroom with scheduled-task watchdog"
+          "$HOME/.headroom/deploy/default/ensure-headroom.sh" ||
+            echo "  failed: Headroom scheduled-task recovery"
+        else
+          echo "  waiting for Headroom scheduled recovery"
+        fi
+      else
+        headroom install start --profile default || echo "  failed: start Headroom deployment"
+      fi
+    fi
+    return 0
   fi
 
   echo "----------------------------------------------"
@@ -629,6 +637,15 @@ if [ "${1:-}" = "--symlinks-only" ]; then
   echo ""
   echo "=========================================="
   echo "Symlink setup complete!"
+  echo "=========================================="
+  exit 0
+fi
+
+if [ "${1:-}" = "--headroom-only" ]; then
+  setup_headroom
+  echo ""
+  echo "=========================================="
+  echo "Headroom setup complete!"
   echo "=========================================="
   exit 0
 fi

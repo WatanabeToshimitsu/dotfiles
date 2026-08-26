@@ -97,11 +97,15 @@ Large Read, Grep, Glob, Web, and MCP results are shortened before entering the
 conversation. The full result is retained locally for seven days with user-only
 permissions and can be queried through the `expand-tool-output` skill.
 
-Show aggregate savings:
+Show health and savings for the last seven days:
 
 ```bash
 python3 ~/.claude/hooks/compact-tool-output.py stats
 ```
+
+The report distinguishes an active hook with zero threshold crossings from a
+hook that has not run, and counts fail-open hook errors without storing error
+messages or tool payloads.
 
 ## Headroom Proxy
 
@@ -123,6 +127,21 @@ Check the proxy and output-shaping savings:
 headroom install status
 headroom doctor
 headroom output-savings
+```
+
+Run the complete agent-harness diagnostic (Headroom reachability, MCP
+connections, Claude Code version drift, and tool-output compaction):
+
+```bash
+~/.shell-utils/dotfiles-doctor.sh --harness-only
+```
+
+If Docker is unavailable, rerunning `install.sh` migrates an existing Docker
+deployment to Headroom's native scheduled recovery instead of leaving a stale
+container deployment behind.
+
+```bash
+./install.sh --headroom-only
 ```
 
 ## Configuration Storage Strategy

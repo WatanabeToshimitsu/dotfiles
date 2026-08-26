@@ -11,6 +11,7 @@ import json
 import os
 from pathlib import Path
 import re
+import stat
 import sys
 import time
 from typing import Any
@@ -25,6 +26,9 @@ ERROR_LINE = re.compile(
 DEFAULT_MAX_CHARS = 40_000
 DEFAULT_PREVIEW_CHARS = 12_000
 DEFAULT_RETENTION_DAYS = 7
+DEFAULT_HEALTH_TOUCH_SECONDS = 300
+LAST_INVOKED_FILE = ".last-invoked"
+ERROR_DIR = ".errors"
 
 
 def env_int(name: str, default: int, minimum: int) -> int:
@@ -198,6 +202,77 @@ def prepare_cache(root: Path) -> None:
     os.chmod(root, 0o700)
 
 
+def mark_hook_invoked(root: Path) -> None:
+    """Record supported hook traffic without retaining tool input or output."""
+    prepare_cache(root)
+    marker = root / LAST_INVOKED_FILE
+    interval = env_int(
+        "CLAUDE_TOOL_OUTPUT_HEALTH_TOUCH_SECONDS",
+        DEFAULT_HEALTH_TOUCH_SECONDS,
+        1,
+    )
+    try:
+        marker_stat = marker.stat(follow_symlinks=False)
+        if stat.S_ISREG(marker_stat.st_mode) and time.time() - marker_stat.st_mtime < interval:
+            return
+    except FileNotFoundError:
+        pass
+
+    flags = os.O_WRONLY | os.O_CREAT
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    descriptor = os.open(marker, flags, 0o600)
+    try:
+        os.fchmod(descriptor, 0o600)
+        os.utime(descriptor)
+    finally:
+        os.close(descriptor)
+    retention_days = env_int(
+        "CLAUDE_TOOL_OUTPUT_RETENTION_DAYS", DEFAULT_RETENTION_DAYS, 1
+    )
+    clean_expired_archives(root, retention_days)
+    clean_expired_errors(root, retention_days)
+
+
+def clean_expired_errors(root: Path, retention_days: int) -> None:
+    errors = root / ERROR_DIR
+    if not errors.is_dir() or errors.is_symlink():
+        return
+    cutoff = time.time() - retention_days * 86_400
+    for path in errors.glob("*.json"):
+        try:
+            if path.is_file() and not path.is_symlink() and path.stat().st_mtime < cutoff:
+                path.unlink()
+        except OSError:
+            continue
+
+
+def record_hook_error(root: Path, error: Exception) -> None:
+    """Record only failure metadata; exception text may contain sensitive data."""
+    prepare_cache(root)
+    errors = root / ERROR_DIR
+    prepare_cache(errors)
+    retention_days = env_int(
+        "CLAUDE_TOOL_OUTPUT_RETENTION_DAYS", DEFAULT_RETENTION_DAYS, 1
+    )
+    clean_expired_errors(root, retention_days)
+    path = errors / f"{time.time_ns()}-{os.getpid()}.json"
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    descriptor = os.open(path, flags, 0o600)
+    with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+        json.dump(
+            {
+                "version": 1,
+                "created_at": datetime.now(UTC).isoformat(),
+                "error_type": type(error).__name__,
+            },
+            stream,
+        )
+        stream.write("\n")
+
+
 def clean_expired_archives(root: Path, retention_days: int) -> None:
     cutoff = time.time() - retention_days * 86_400
     for path in root.glob("*.json"):
@@ -241,6 +316,8 @@ def run_hook() -> int:
         if not SUPPORTED_TOOL.fullmatch(tool_name) or "tool_response" not in payload:
             return 0
 
+        root = cache_dir()
+        mark_hook_invoked(root)
         response = payload["tool_response"]
         original_chars = len(encode(response))
         max_chars = env_int("CLAUDE_TOOL_OUTPUT_MAX_CHARS", DEFAULT_MAX_CHARS, 256)
@@ -259,8 +336,6 @@ def run_hook() -> int:
         if compacted_chars >= original_chars:
             return 0
 
-        root = cache_dir()
-        prepare_cache(root)
         clean_expired_archives(
             root,
             env_int("CLAUDE_TOOL_OUTPUT_RETENTION_DAYS", DEFAULT_RETENTION_DAYS, 1),
@@ -286,7 +361,11 @@ def run_hook() -> int:
         )
         return 0
     except Exception as error:  # Hooks must fail open.
-        print(f"compact-tool-output: {error}", file=sys.stderr)
+        try:
+            record_hook_error(cache_dir(), error)
+        except Exception:
+            pass
+        print(f"compact-tool-output: {type(error).__name__}", file=sys.stderr)
         return 0
 
 
@@ -349,23 +428,56 @@ def expand_archive(args: argparse.Namespace) -> int:
     return 0
 
 
-def show_stats() -> int:
+def show_stats(days: int) -> int:
     root = cache_dir()
+    days = max(days, 1)
+    cutoff = time.time() - days * 86_400
     archives: list[dict[str, Any]] = []
     if root.exists():
         for path in root.glob("*.json"):
             if path.is_symlink():
                 continue
             try:
+                if path.stat().st_mtime < cutoff:
+                    continue
                 with path.open(encoding="utf-8") as stream:
                     archives.append(json.load(stream))
             except (OSError, json.JSONDecodeError):
+                continue
+
+    last_invoked: float | None = None
+    marker = root / LAST_INVOKED_FILE
+    try:
+        marker_stat = marker.stat(follow_symlinks=False)
+        if stat.S_ISREG(marker_stat.st_mode):
+            last_invoked = marker_stat.st_mtime
+    except OSError:
+        pass
+
+    failures = 0
+    errors = root / ERROR_DIR
+    if errors.is_dir() and not errors.is_symlink():
+        for path in errors.glob("*.json"):
+            try:
+                if path.is_file() and not path.is_symlink() and path.stat().st_mtime >= cutoff:
+                    failures += 1
+            except OSError:
                 continue
 
     original = sum(int(item.get("original_chars", 0)) for item in archives)
     compacted = sum(int(item.get("compacted_chars", 0)) for item in archives)
     saved = max(original - compacted, 0)
     percent = saved * 100 / original if original else 0
+    active = last_invoked is not None and last_invoked >= cutoff
+    last_invoked_text = (
+        datetime.fromtimestamp(last_invoked, UTC).isoformat().replace("+00:00", "Z")
+        if last_invoked is not None
+        else "never"
+    )
+    print(f"window: {days} days")
+    print(f"hook active: {'yes' if active else 'no'}")
+    print(f"hook last invoked: {last_invoked_text}")
+    print(f"hook failures: {failures}")
     print(f"archives: {len(archives)}")
     print(f"original chars: {original:,}")
     print(f"compacted chars: {compacted:,}")
@@ -382,7 +494,8 @@ def parse_args() -> argparse.Namespace:
     expand.add_argument("--context", type=int, default=2)
     expand.add_argument("--head", type=int, default=0)
     expand.add_argument("--tail", type=int, default=0)
-    subparsers.add_parser("stats", help="show local compaction savings")
+    stats_parser = subparsers.add_parser("stats", help="show local compaction savings")
+    stats_parser.add_argument("--days", type=int, default=DEFAULT_RETENTION_DAYS)
     return parser.parse_args()
 
 
@@ -391,7 +504,7 @@ def main() -> int:
     if args.command == "expand":
         return expand_archive(args)
     if args.command == "stats":
-        return show_stats()
+        return show_stats(args.days)
     return run_hook()
 
 
