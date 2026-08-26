@@ -6,6 +6,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 
 
@@ -37,6 +38,16 @@ class CompactToolOutputTest(unittest.TestCase):
             check=False,
         )
 
+    def run_raw_hook(self, payload: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [sys.executable, str(SCRIPT)],
+            input=payload,
+            text=True,
+            capture_output=True,
+            env=self.env,
+            check=False,
+        )
+
     def archive_id_from(self, output: dict) -> str:
         encoded = json.dumps(output, ensure_ascii=False)
         match = re.search(r"archive ([a-f0-9]{20})", encoded)
@@ -56,7 +67,10 @@ class CompactToolOutputTest(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, "")
-        self.assertFalse(self.cache_dir.exists())
+        marker = self.cache_dir / ".last-invoked"
+        self.assertTrue(marker.is_file())
+        self.assertEqual(stat.S_IMODE(marker.stat().st_mode), 0o600)
+        self.assertEqual(list(self.cache_dir.glob("*.json")), [])
 
     def test_compacts_large_output_and_archives_the_original(self) -> None:
         original_response = {
@@ -188,8 +202,89 @@ class CompactToolOutputTest(unittest.TestCase):
         )
 
         self.assertEqual(stats_result.returncode, 0, stats_result.stderr)
+        self.assertIn("window: 7 days", stats_result.stdout)
+        self.assertIn("hook active: yes", stats_result.stdout)
+        self.assertIn("hook failures: 0", stats_result.stdout)
         self.assertIn("archives: 1", stats_result.stdout)
         self.assertRegex(stats_result.stdout, r"saved: [1-9][0-9,]* chars")
+
+    def test_stats_distinguishes_active_hook_with_no_compactions(self) -> None:
+        hook_result = self.run_hook(
+            {
+                "session_id": "session-6",
+                "tool_use_id": "tool-7",
+                "tool_name": "Read",
+                "tool_response": {"content": "small"},
+            }
+        )
+        self.assertEqual(hook_result.returncode, 0, hook_result.stderr)
+
+        stats_result = subprocess.run(
+            [sys.executable, str(SCRIPT), "stats", "--days", "7"],
+            text=True,
+            capture_output=True,
+            env=self.env,
+            check=False,
+        )
+
+        self.assertEqual(stats_result.returncode, 0, stats_result.stderr)
+        self.assertIn("hook active: yes", stats_result.stdout)
+        self.assertNotIn("hook last invoked: never", stats_result.stdout)
+        self.assertIn("hook failures: 0", stats_result.stdout)
+        self.assertIn("archives: 0", stats_result.stdout)
+
+    def test_records_failure_metadata_without_payload_content(self) -> None:
+        secret = "credential-do-not-log"
+        result = self.run_raw_hook("{" + secret)
+
+        self.assertEqual(result.returncode, 0)
+        self.assertNotIn(secret, result.stderr)
+        error_files = list((self.cache_dir / ".errors").glob("*.json"))
+        self.assertEqual(len(error_files), 1)
+        error_record = json.loads(error_files[0].read_text())
+        self.assertEqual(error_record["error_type"], "JSONDecodeError")
+        self.assertNotIn(secret, json.dumps(error_record))
+
+        stats_result = subprocess.run(
+            [sys.executable, str(SCRIPT), "stats"],
+            text=True,
+            capture_output=True,
+            env=self.env,
+            check=False,
+        )
+        self.assertIn("hook active: no", stats_result.stdout)
+        self.assertIn("hook failures: 1", stats_result.stdout)
+
+    def test_stats_excludes_archives_and_failures_older_than_window(self) -> None:
+        hook_result = self.run_hook(
+            {
+                "session_id": "session-7",
+                "tool_use_id": "tool-8",
+                "tool_name": "Glob",
+                "tool_response": {"filenames": "old.txt\n" * 500},
+            }
+        )
+        self.assertEqual(hook_result.returncode, 0, hook_result.stderr)
+        error_result = self.run_raw_hook("{old-invalid-json")
+        self.assertEqual(error_result.returncode, 0)
+
+        old_timestamp = time.time() - 8 * 86_400
+        archive_path = next(self.cache_dir.glob("*.json"))
+        error_path = next((self.cache_dir / ".errors").glob("*.json"))
+        os.utime(archive_path, (old_timestamp, old_timestamp))
+        os.utime(error_path, (old_timestamp, old_timestamp))
+
+        stats_result = subprocess.run(
+            [sys.executable, str(SCRIPT), "stats", "--days", "7"],
+            text=True,
+            capture_output=True,
+            env=self.env,
+            check=False,
+        )
+        self.assertEqual(stats_result.returncode, 0, stats_result.stderr)
+        self.assertIn("hook active: yes", stats_result.stdout)
+        self.assertIn("hook failures: 0", stats_result.stdout)
+        self.assertIn("archives: 0", stats_result.stdout)
 
     def test_expand_rejects_an_invalid_archive_id(self) -> None:
         result = subprocess.run(
