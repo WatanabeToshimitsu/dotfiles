@@ -1,0 +1,7 @@
+{
+  "tool_name": "Agent",
+  "tool_input": {
+    "model": "sonnet",
+    "subagent_type": "general-purpose"
+  }
+}

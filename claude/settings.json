@@ -280,47 +280,81 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "npx -y @owloops/claude-powerline@latest"
+    "command": "npx -y @owloops/claude-powerline@1.30.1"
   },
   "enabledPlugins": {
-    "co-mlops-context@hdl-agent-plugins": true,
-    "codex@openai-codex": true,
-    "context7@claude-plugins-official": true,
-    "discernment-nudge@anthropic-agent-skills": true,
-    "typescript-lsp@claude-plugins-official": true
+    "co-mlops-context@dotfiles-pinned-20260826": true,
+    "codex@dotfiles-pinned-20260826": true,
+    "context7@dotfiles-pinned-20260826": true,
+    "discernment-nudge@dotfiles-pinned-20260826": true,
+    "typescript-lsp@dotfiles-pinned-20260826": true,
+    "co-mlops-context@hdl-agent-plugins": false,
+    "codex@openai-codex": false,
+    "context7@claude-plugins-official": false,
+    "discernment-nudge@anthropic-agent-skills": false,
+    "typescript-lsp@claude-plugins-official": false
   },
   "extraKnownMarketplaces": {
-    "claude-powerline": {
+    "dotfiles-pinned-20260826": {
       "source": {
-        "source": "github",
-        "repo": "Owloops/claude-powerline"
+        "source": "settings",
+        "name": "dotfiles-pinned-20260826",
+        "plugins": [
+          {
+            "name": "co-mlops-context",
+            "source": {
+              "source": "git-subdir",
+              "url": "git@github.com:hdwlab/hdl-agent-plugins.git",
+              "path": "plugins/co-mlops-context",
+              "sha": "e3e108c8a395e068f2c49ee7994867974fb64c10"
+            }
+          },
+          {
+            "name": "codex",
+            "source": {
+              "source": "git-subdir",
+              "url": "https://github.com/openai/codex-plugin-cc.git",
+              "path": "plugins/codex",
+              "sha": "db52e28f4d9ded852ab3942cea316258ae4ef346"
+            }
+          },
+          {
+            "name": "context7",
+            "source": {
+              "source": "git-subdir",
+              "url": "https://github.com/anthropics/claude-plugins-official.git",
+              "path": "external_plugins/context7",
+              "sha": "b819188d2eea14e0400556ca29dbd1179a7c595b"
+            }
+          },
+          {
+            "name": "discernment-nudge",
+            "source": {
+              "source": "github",
+              "repo": "anthropics/skills",
+              "sha": "3b3fad96af16a10759d930941b4520ba0c40edae"
+            },
+            "skills": ["./skills/discernment-nudge"]
+          },
+          {
+            "name": "typescript-lsp",
+            "source": {
+              "source": "git-subdir",
+              "url": "https://github.com/anthropics/claude-plugins-official.git",
+              "path": "plugins/typescript-lsp",
+              "sha": "b819188d2eea14e0400556ca29dbd1179a7c595b"
+            }
+          }
+        ]
       },
-      "autoUpdate": true
+      "autoUpdate": false
     },
     "ecc": {
       "source": {
         "source": "git",
         "url": "https://github.com/affaan-m/everything-claude-code.git"
-      }
-    },
-    "hdl-agent-plugins": {
-      "source": {
-        "source": "github",
-        "repo": "hdwlab/hdl-agent-plugins"
-      }
-    },
-    "openai-codex": {
-      "source": {
-        "source": "github",
-        "repo": "openai/codex-plugin-cc"
       },
-      "autoUpdate": true
-    },
-    "anthropic-agent-skills": {
-      "source": {
-        "source": "github",
-        "repo": "anthropics/skills"
-      }
+      "autoUpdate": false
     }
   },
   "language": "Japanese",

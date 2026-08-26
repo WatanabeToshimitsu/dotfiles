@@ -1,0 +1,7 @@
+{
+  "tool_name": "Agent",
+  "tool_input": {
+    "model": "inherit",
+    "subagent_type": "general-purpose"
+  }
+}

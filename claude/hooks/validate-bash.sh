@@ -4,8 +4,12 @@
 # Read JSON input from stdin
 input=$(cat)
 
-tool_name=$(echo "$input" | jq -r '.tool_name // ""')
-command=$(echo "$input" | jq -r '.tool_input.command // ""')
+if ! jq -e . > /dev/null 2>&1 <<< "$input"; then
+  exit 0
+fi
+
+tool_name=$(jq -r '.tool_name // ""' <<< "$input")
+command=$(jq -r '.tool_input.command // ""' <<< "$input")
 
 # Only validate Bash tool
 if [[ "$tool_name" != "Bash" ]]; then

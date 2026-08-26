@@ -1,0 +1,49 @@
+{
+  "$schema": "./dependencies.schema.json",
+  "claudeCode": "2.1.231",
+  "statusLine": {
+    "package": "@owloops/claude-powerline",
+    "version": "1.30.1"
+  },
+  "skillsCli": {
+    "package": "skills",
+    "version": "1.5.23"
+  },
+  "skills": [
+    {
+      "repository": "https://github.com/github/gh-stack.git",
+      "commit": "4f9188e61196f793dcf79ae765ac855cef093060",
+      "names": ["gh-stack"]
+    },
+    {
+      "repository": "https://github.com/vercel-labs/skills.git",
+      "commit": "435076e78988e1e6ec40d00b0b1d76bdbbc5419a",
+      "names": ["find-skills"]
+    },
+    {
+      "repository": "https://github.com/yoshiko-pg/difit.git",
+      "commit": "e4023997f359375cc48fcea71828a528466ac751",
+      "names": ["difit", "difit-review"]
+    },
+    {
+      "repository": "https://github.com/GoogleChrome/modern-web-guidance.git",
+      "commit": "457c381def89ce6213a171238f92eea63e9eaeb2",
+      "names": ["modern-web-guidance"]
+    },
+    {
+      "repository": "https://github.com/vercel-labs/agent-browser.git",
+      "commit": "8934fdb7ff5c016b46d473454ec51c0df814bead",
+      "names": ["agent-browser"]
+    },
+    {
+      "repository": "https://github.com/tokoroten/prompt-review.git",
+      "commit": "0a83fd9eeead58fe92d0b04522da9e6840a71940",
+      "names": ["prompt-review"]
+    },
+    {
+      "repository": "https://github.com/vercel-labs/agent-skills.git",
+      "commit": "dd089a8c752c966dee8bf0f27cb625ba193ffd9e",
+      "names": ["vercel-react-best-practices"]
+    }
+  ]
+}

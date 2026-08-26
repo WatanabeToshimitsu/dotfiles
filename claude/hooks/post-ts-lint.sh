@@ -2,6 +2,9 @@
 set -euo pipefail
 
 input="$(cat)"
+if ! jq -e . > /dev/null 2>&1 <<< "$input"; then
+  exit 0
+fi
 file="$(jq -r '.tool_input.file_path // .tool_input.path // empty' <<< "$input")"
 cwd="$(jq -r '.cwd // empty' <<< "$input")"
 

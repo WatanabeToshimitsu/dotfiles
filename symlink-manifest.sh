@@ -24,6 +24,8 @@ MANIFEST_CONFIG_FILES=(
 MANIFEST_CLAUDE_FILES=(
   CLAUDE.md
   settings.json
+  dependencies.lock.json
+  dependencies.schema.json
   sandbox-canary.json
   claude-powerline.json
   hooks/notification.sh

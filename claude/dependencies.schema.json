@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://watanabetoshimitsu.github.io/dotfiles/claude-dependencies.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["claudeCode", "statusLine", "skillsCli", "skills"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "claudeCode": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "statusLine": {"$ref": "#/$defs/package"},
+    "skillsCli": {"$ref": "#/$defs/package"},
+    "skills": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["repository", "commit", "names"],
+        "properties": {
+          "repository": {"type": "string", "pattern": "^https://github\\.com/.+\\.git$"},
+          "commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+          "names": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "string", "minLength": 1}
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "package": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["package", "version"],
+      "properties": {
+        "package": {"type": "string", "minLength": 1},
+        "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"}
+      }
+    }
+  }
+}

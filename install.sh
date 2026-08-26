@@ -1,5 +1,5 @@
 #!/bin/bash
-DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
+DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WHO=$(whoami)
 BACKUP_TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 
@@ -35,6 +35,7 @@ installApps() {
     curl
     file
     git
+    jq
     less
     procps
     psmisc
@@ -496,42 +497,88 @@ setup_vscode() {
 # ========================================
 # Agent skills (npx skills / skills.sh)
 # ========================================
-# Reinstall global agent skills recorded in ~/.agents/.skill-lock.json.
-# Keep skill_sources in sync when adding skills with `npx skills add`.
+# Reinstall global agent skills from exact commits when the repository lock changes.
 
 setup_agent_skills() {
-  if ! command -v npx > /dev/null 2>&1; then
-    echo "  skipped agent skills (npx not found)"
-    return 0
-  fi
+  local command_name
+  for command_name in git jq npx; do
+    if ! command -v "$command_name" > /dev/null 2>&1; then
+      echo "  skipped agent skills ($command_name not found)"
+      return 0
+    fi
+  done
 
   echo "----------------------------------------------"
   echo "Installing agent skills..."
   echo "----------------------------------------------"
 
-  local skill_sources=(
-    "github/gh-stack:gh-stack"
-    "vercel-labs/skills:find-skills"
-    "yoshiko-pg/difit:difit"
-    "yoshiko-pg/difit:difit-review"
-    "GoogleChrome/modern-web-guidance:modern-web-guidance"
-    "vercel-labs/agent-browser:agent-browser"
-    "tokoroten/prompt-review:prompt-review"
-    "vercel-labs/agent-skills:vercel-react-best-practices"
-  )
+  local lock_file="$DOTFILES_DIR/claude/dependencies.lock.json"
+  local installed_lock="$HOME/.agents/.dotfiles-dependencies.lock.json"
+  local missing_skill=0
+  local skill
 
-  # Newer skills CLI copies into ~/.claude/skills directly; older versions
-  # symlink from ~/.agents/skills — treat either as installed.
-  local entry repo skill
-  for entry in "${skill_sources[@]}"; do
-    repo="${entry%%:*}"
-    skill="${entry##*:}"
-    if [ -e "$HOME/.agents/skills/$skill" ] || [ -e "$HOME/.claude/skills/$skill" ]; then
-      echo "  exists: $skill"
+  if [ -f "$installed_lock" ] && cmp -s "$lock_file" "$installed_lock"; then
+    while IFS= read -r skill; do
+      if [ ! -e "$HOME/.agents/skills/$skill" ] \
+        && [ ! -e "$HOME/.claude/skills/$skill" ]; then
+        missing_skill=1
+        break
+      fi
+    done < <(jq -r '.skills[].names[]' "$lock_file")
+    if [ "$missing_skill" -eq 0 ]; then
+      echo "  exists: agent skills match dependencies.lock.json"
+      return 0
+    fi
+  fi
+
+  local cli_version
+  cli_version=$(jq -r '.skillsCli.version' "$lock_file")
+  local source_entry repository commit checkout actual_commit
+  local install_failed=0
+
+  while IFS= read -r source_entry; do
+    repository=$(printf '%s' "$source_entry" | jq -r '.repository')
+    commit=$(printf '%s' "$source_entry" | jq -r '.commit')
+    checkout=$(mktemp -d)
+
+    if ! git init --quiet "$checkout" \
+      || ! git -C "$checkout" remote add origin "$repository" \
+      || ! git -C "$checkout" fetch --quiet --depth 1 origin "$commit" \
+      || ! git -C "$checkout" checkout --quiet --detach FETCH_HEAD; then
+      echo "  failed: fetch $repository@$commit"
+      install_failed=1
+      rm -rf "$checkout"
       continue
     fi
-    npx -y skills add "$repo" -g -y -s "$skill" -a claude-code || echo "  failed: $entry"
-  done
+
+    actual_commit=$(git -C "$checkout" rev-parse HEAD 2>/dev/null)
+    if [ "$actual_commit" != "$commit" ]; then
+      echo "  failed: commit mismatch for $repository"
+      install_failed=1
+      rm -rf "$checkout"
+      continue
+    fi
+
+    while IFS= read -r skill; do
+      if npx -y "skills@$cli_version" add "$checkout" -g -y \
+        -s "$skill" -a claude-code; then
+        echo "  installed: $skill@$commit"
+      else
+        echo "  failed: $skill@$commit"
+        install_failed=1
+      fi
+    done < <(printf '%s' "$source_entry" | jq -r '.names[]')
+
+    rm -rf "$checkout"
+  done < <(jq -c '.skills[]' "$lock_file")
+
+  if [ "$install_failed" -eq 0 ]; then
+    mkdir -p "$HOME/.agents"
+    cp "$lock_file" "$installed_lock"
+    echo "  recorded: agent skills match dependencies.lock.json"
+  else
+    echo "  warning: agent skill lock was not recorded because installation failed"
+  fi
 }
 
 # ========================================
@@ -658,6 +705,10 @@ setup_linux() {
 # ========================================
 # Main
 # ========================================
+
+if [ "${DOTFILES_LIBRARY_MODE:-0}" = "1" ]; then
+  return 0 2>/dev/null || exit 0
+fi
 
 if [ "${1:-}" = "--symlinks-only" ]; then
   setup_symlinks "$DOTFILES_DIR"

@@ -2,6 +2,9 @@
 set -euo pipefail
 
 input=$(cat)
+if ! jq -e . > /dev/null 2>&1 <<< "$input"; then
+  exit 0
+fi
 tool_name=$(jq -r '.tool_name // ""' <<<"$input")
 
 if [[ "$tool_name" != "Agent" ]]; then
