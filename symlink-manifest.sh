@@ -26,7 +26,6 @@ MANIFEST_CLAUDE_FILES=(
   settings.json
   sandbox-canary.json
   claude-powerline.json
-  hooks/link-worktree-memory.sh
   hooks/notification.sh
   hooks/post-ts-lint.sh
   hooks/compact-tool-output.py
@@ -69,6 +68,7 @@ MANIFEST_CLAUDE_FILES=(
 # shellcheck disable=SC2034  # consumed by install.sh
 MANIFEST_CLAUDE_OBSOLETE_FILES=(
   hooks/deny-check.sh
+  hooks/link-worktree-memory.sh
   rules/common/agents.md
   rules/common/code-review.md
   rules/common/development-workflow.md
