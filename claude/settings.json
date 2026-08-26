@@ -20,7 +20,6 @@
       "Bash(grep:*)",
       "Bash(ls:*)",
       "Bash(cat:*)",
-      "Bash(gh api:*)",
       "Bash(gh pr diff:*)",
       "Bash(gh pr list:*)",
       "Bash(git show:*)",
@@ -155,8 +154,8 @@
       "Read(**/*.pfx)",
       "Read(**/.ssh/**)",
       "Read(**/.gnupg/**)",
-      "Read(**/.npmrc)",
-      "Read(**/.netrc)",
+      "Read(~/.npmrc)",
+      "Read(~/.netrc)",
       "Read(**/credentials/**)",
       "Read(**/credentials.*)",
       "Read(**/*.credentials)",
@@ -172,6 +171,8 @@
       "Edit(**/*.env.*)",
       "Edit(**/*.key)",
       "Edit(**/*.pem)",
+      "Edit(~/.npmrc)",
+      "Edit(~/.netrc)",
       "Edit(**/.ssh/**)",
       "Edit(**/credentials/**)",
       "Edit(**/secrets/**)",
@@ -184,6 +185,8 @@
     ],
     "ask": [
       "Bash(curl:*)",
+      "Bash(dangerouslyDisableSandbox:true)",
+      "Bash(gh api:*)",
       "Bash(git checkout:*)",
       "Bash(git config:*)",
       "Bash(git push:*)",
@@ -234,10 +237,6 @@
       {
         "matcher": "Bash",
         "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/deny-check.sh"
-          },
           {
             "type": "command",
             "command": "~/.claude/hooks/validate-bash.sh"

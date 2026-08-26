@@ -82,6 +82,31 @@ backup_if_real_file() {
   echo "  backed up: $rel_path"
 }
 
+setup_npmrc() {
+  local dotfiles_dir="$1"
+  local target="$HOME/.npmrc"
+  local retired_target="$dotfiles_dir/.npmrc"
+  local template="$dotfiles_dir/.npmrc.example"
+
+  if [ -L "$target" ]; then
+    if [ "$(readlink "$target")" != "$retired_target" ]; then
+      echo "  exists: .npmrc (foreign symlink left unmanaged)"
+      return 0
+    fi
+    rm "$target"
+    echo "  removed retired link: .npmrc"
+  elif [ -e "$target" ]; then
+    echo "  exists: .npmrc (machine-local file left unchanged)"
+    return 0
+  fi
+
+  if [ -f "$template" ]; then
+    cp "$template" "$target"
+    chmod 600 "$target"
+    echo "  bootstrapped: .npmrc (machine-local)"
+  fi
+}
+
 setup_symlinks() {
   local dotfiles_dir="${1:-$DOTFILES_DIR}"
 
@@ -96,6 +121,8 @@ setup_symlinks() {
       echo "  linked: $file"
     fi
   done
+
+  setup_npmrc "$dotfiles_dir"
 
   # .config/ subdirectory files (create parent dirs, then symlink individual files)
   for file in "${MANIFEST_CONFIG_FILES[@]}"; do
