@@ -30,26 +30,34 @@ printf '%s\n' "$@"
 FAKE_CLAUDE
 chmod +x "$TEST_OUTPUT_DIR/bin/claude"
 
+cat > "$TEST_OUTPUT_DIR/bin/uname" <<'FAKE_UNAME'
+#!/usr/bin/env bash
+printf '%s\n' "${FAKE_UNAME:?}"
+FAKE_UNAME
+chmod +x "$TEST_OUTPUT_DIR/bin/uname"
+
 export PATH="$TEST_OUTPUT_DIR/bin:$PATH"
 export CLAUDE_SANDBOX_SETTINGS="$SETTINGS"
+export FAKE_UNAME=Darwin
 
 FAKE_CLAUDE_VERSION=2.1.231 "$LAUNCHER" --check \
   > "$TEST_OUTPUT_DIR/check-231.out" 2> "$TEST_OUTPUT_DIR/check-231.err"
-assert_contains "Sandbox canary ready with Claude Code 2.1.231." "$TEST_OUTPUT_DIR/check-231.out"
-assert_contains "2.1.243 or later improves network-violation diagnostics" "$TEST_OUTPUT_DIR/check-231.err"
+assert_contains "Sandbox canary ready on macOS with Claude Code 2.1.231." "$TEST_OUTPUT_DIR/check-231.out"
+[ ! -s "$TEST_OUTPUT_DIR/check-231.err" ] || fail "check emitted an unexpected warning"
 
-FAKE_CLAUDE_VERSION=2.1.243 "$LAUNCHER" --check \
-  > "$TEST_OUTPUT_DIR/check-243.out" 2> "$TEST_OUTPUT_DIR/check-243.err"
-assert_contains "Sandbox canary ready with Claude Code 2.1.243." "$TEST_OUTPUT_DIR/check-243.out"
-[ ! -s "$TEST_OUTPUT_DIR/check-243.err" ] || fail "2.1.243 emitted an unexpected warning"
-
-if FAKE_CLAUDE_VERSION=2.1.223 "$LAUNCHER" --check \
+if FAKE_CLAUDE_VERSION=2.1.186 "$LAUNCHER" --check \
   > "$TEST_OUTPUT_DIR/check-old.out" 2> "$TEST_OUTPUT_DIR/check-old.err"; then
-  fail "unsupported Claude Code version was accepted"
+  fail "Claude Code without credential protection was accepted"
 fi
-assert_contains "2.1.224 or later is required" "$TEST_OUTPUT_DIR/check-old.err"
+assert_contains "2.1.187 or later is required" "$TEST_OUTPUT_DIR/check-old.err"
 
-FAKE_CLAUDE_VERSION=2.1.243 "$LAUNCHER" --model opus \
+if FAKE_UNAME=Linux FAKE_CLAUDE_VERSION=2.1.231 "$LAUNCHER" --check \
+  > "$TEST_OUTPUT_DIR/check-linux.out" 2> "$TEST_OUTPUT_DIR/check-linux.err"; then
+  fail "unsupported platform was accepted"
+fi
+assert_contains "only supported on macOS" "$TEST_OUTPUT_DIR/check-linux.err"
+
+FAKE_CLAUDE_VERSION=2.1.231 "$LAUNCHER" --model opus \
   > "$TEST_OUTPUT_DIR/launch.out" 2> "$TEST_OUTPUT_DIR/launch.err"
 assert_contains "--settings" "$TEST_OUTPUT_DIR/launch.out"
 assert_contains "$SETTINGS" "$TEST_OUTPUT_DIR/launch.out"

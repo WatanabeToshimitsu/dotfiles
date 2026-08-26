@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-MINIMUM_VERSION="2.1.224"
-FULL_DIAGNOSTICS_VERSION="2.1.243"
+MINIMUM_VERSION="2.1.187"
 SETTINGS_FILE="${CLAUDE_SANDBOX_SETTINGS:-$HOME/.claude/sandbox-canary.json}"
 
 version_ge() {
@@ -16,6 +15,11 @@ claude_version() {
 
 check_canary() {
   local version
+
+  if [ "$(uname -s)" != "Darwin" ]; then
+    echo "The sandbox canary is only supported on macOS." >&2
+    return 1
+  fi
 
   if ! command -v claude > /dev/null 2>&1; then
     echo "Claude Code is not installed." >&2
@@ -44,14 +48,11 @@ check_canary() {
   fi
 
   if ! version_ge "$version" "$MINIMUM_VERSION"; then
-    echo "Claude Code $version is too old for this canary; $MINIMUM_VERSION or later is required." >&2
+    echo "Claude Code $version is too old; $MINIMUM_VERSION or later is required." >&2
     return 1
   fi
 
-  echo "Sandbox canary ready with Claude Code $version."
-  if ! version_ge "$version" "$FULL_DIAGNOSTICS_VERSION"; then
-    echo "Note: $FULL_DIAGNOSTICS_VERSION or later improves network-violation diagnostics; the canary remains usable." >&2
-  fi
+  echo "Sandbox canary ready on macOS with Claude Code $version."
 }
 
 if [ "${1:-}" = "--check" ]; then
