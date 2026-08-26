@@ -6,7 +6,7 @@ MANIFEST_FILES=(
   .zshrc .bashrc .bash_profile .bash_logout
   .profile .zprofile .zshenv .shell-common
   .vimrc .tmux.conf .gitconfig
-  .huskyrc .npmrc
+  .huskyrc
 )
 
 # .config/ subdirectory files
@@ -24,8 +24,8 @@ MANIFEST_CONFIG_FILES=(
 MANIFEST_CLAUDE_FILES=(
   CLAUDE.md
   settings.json
+  sandbox-canary.json
   claude-powerline.json
-  hooks/deny-check.sh
   hooks/link-worktree-memory.sh
   hooks/notification.sh
   hooks/post-ts-lint.sh
@@ -68,6 +68,7 @@ MANIFEST_CLAUDE_FILES=(
 # that still point at these former dotfiles paths.
 # shellcheck disable=SC2034  # consumed by install.sh
 MANIFEST_CLAUDE_OBSOLETE_FILES=(
+  hooks/deny-check.sh
   rules/common/agents.md
   rules/common/code-review.md
   rules/common/development-workflow.md

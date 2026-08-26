@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+MINIMUM_VERSION="2.1.224"
+FULL_DIAGNOSTICS_VERSION="2.1.243"
+SETTINGS_FILE="${CLAUDE_SANDBOX_SETTINGS:-$HOME/.claude/sandbox-canary.json}"
+
+version_ge() {
+  local actual="$1" required="$2"
+  [ "$(printf '%s\n%s\n' "$required" "$actual" | sort -V | head -n 1)" = "$required" ]
+}
+
+claude_version() {
+  claude --version 2> /dev/null | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1
+}
+
+check_canary() {
+  local version
+
+  if ! command -v claude > /dev/null 2>&1; then
+    echo "Claude Code is not installed." >&2
+    return 1
+  fi
+
+  if [ ! -f "$SETTINGS_FILE" ]; then
+    echo "Sandbox canary settings not found: $SETTINGS_FILE" >&2
+    return 1
+  fi
+
+  if ! command -v jq > /dev/null 2>&1; then
+    echo "jq is required to validate the sandbox canary settings." >&2
+    return 1
+  fi
+
+  if ! jq -e . "$SETTINGS_FILE" > /dev/null 2>&1; then
+    echo "Sandbox canary settings are not valid JSON: $SETTINGS_FILE" >&2
+    return 1
+  fi
+
+  version=$(claude_version)
+  if [ -z "$version" ]; then
+    echo "Claude Code version could not be parsed." >&2
+    return 1
+  fi
+
+  if ! version_ge "$version" "$MINIMUM_VERSION"; then
+    echo "Claude Code $version is too old for this canary; $MINIMUM_VERSION or later is required." >&2
+    return 1
+  fi
+
+  echo "Sandbox canary ready with Claude Code $version."
+  if ! version_ge "$version" "$FULL_DIAGNOSTICS_VERSION"; then
+    echo "Note: $FULL_DIAGNOSTICS_VERSION or later improves network-violation diagnostics; the canary remains usable." >&2
+  fi
+}
+
+if [ "${1:-}" = "--check" ]; then
+  check_canary
+  exit $?
+fi
+
+check_canary > /dev/null
+exec claude --settings "$SETTINGS_FILE" "$@"

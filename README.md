@@ -107,6 +107,22 @@ The report distinguishes an active hook with zero threshold crossings from a
 hook that has not run, and counts fail-open hook errors without storing error
 messages or tool payloads.
 
+## Claude Bash Sandbox Canary
+
+The Claude Code Bash sandbox is available as an opt-in canary while compatibility
+and agent retry behavior are evaluated:
+
+```bash
+claude-sandbox --check
+claude-sandbox
+```
+
+The canary keeps the default `claude` command unchanged. It uses OS-enforced Bash
+filesystem and network isolation, blocks common credentials, and preserves normal
+development through explicit cache writes and documented `gh`/Docker exceptions.
+See [`claude/SANDBOX.md`](claude/SANDBOX.md) for the boundary, known limitations,
+promotion criteria, and rollback.
+
 ## Headroom Proxy
 
 `install.sh` installs Headroom 0.36.5 with `uv` and maintains a user-scoped
@@ -158,6 +174,6 @@ Configuration files are organized by target location:
 | `oh-my-posh-theme/`                      | `~/oh-my-posh-theme/` | Direct directory symlink         |
 | `.shell-utils/`                          | `~/.shell-utils/`     | Direct directory symlink         |
 
-**Not tracked by design**: machine-local state (`~/.zshrc.local`, VS Code's live `settings.json` mutations), internal hostnames, and herdr-mirror `hosts.toml` — this repo is public.
+**Not tracked by design**: machine-local state (`~/.zshrc.local`, `~/.npmrc`, VS Code's live `settings.json` mutations), internal hostnames, and herdr-mirror `hosts.toml` — this repo is public. `install.sh` bootstraps a missing `.npmrc` from `.npmrc.example` but never replaces an existing machine-local file.
 
 **Principle**: Follow XDG Base Directory Specification (`.config/`) by default. For CLI tools that do not respect XDG paths, create a dedicated top-level directory named after the tool (e.g., `claude/` for `~/.claude/`).

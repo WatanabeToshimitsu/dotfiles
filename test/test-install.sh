@@ -12,9 +12,13 @@ echo "=== Syntax check ==="
 bash -n "$DOTFILES_DIR/install.sh" || { echo "FAIL: install.sh syntax error"; ERRORS=$((ERRORS + 1)); }
 bash -n "$DOTFILES_DIR/uninstall.sh" || { echo "FAIL: uninstall.sh syntax error"; ERRORS=$((ERRORS + 1)); }
 
-echo "=== Pre-creating a real .npmrc (to verify backup-before-symlink) ==="
+echo "=== Pre-creating a machine-local .npmrc ==="
 NPMRC_CONTENT="pre-existing npmrc content"
 echo "$NPMRC_CONTENT" > "$HOME/.npmrc"
+
+echo "=== Pre-creating the retired deny-check symlink ==="
+mkdir -p "$HOME/.claude/hooks"
+ln -s "$DOTFILES_DIR/claude/hooks/deny-check.sh" "$HOME/.claude/hooks/deny-check.sh"
 
 echo "=== Running install.sh --symlinks-only ==="
 bash "$DOTFILES_DIR/install.sh" --symlinks-only
@@ -42,6 +46,13 @@ for link in "${EXPECTED_LINKS[@]}"; do
     fi
 done
 
+if [ ! -L "$HOME/.claude/hooks/deny-check.sh" ]; then
+    echo "  OK: retired deny-check symlink removed"
+else
+    echo "  FAIL: retired deny-check symlink still present"
+    ERRORS=$((ERRORS + 1))
+fi
+
 echo "=== Directory symlinks ==="
 for dir_link in "$HOME/.shell-utils" "$HOME/oh-my-posh-theme"; do
     if [ -L "$dir_link" ]; then
@@ -52,23 +63,23 @@ for dir_link in "$HOME/.shell-utils" "$HOME/oh-my-posh-theme"; do
     fi
 done
 
-echo "=== Verifying .npmrc was backed up before symlinking ==="
-if [ -L "$HOME/.npmrc" ]; then
-    echo "  OK: $HOME/.npmrc is now a symlink"
+echo "=== Verifying the machine-local .npmrc was preserved ==="
+if [ -f "$HOME/.npmrc" ] && [ ! -L "$HOME/.npmrc" ] && grep -q "$NPMRC_CONTENT" "$HOME/.npmrc"; then
+    echo "  OK: $HOME/.npmrc remains an unchanged machine-local file"
 else
-    echo "  FAIL: $HOME/.npmrc is not a symlink"
+    echo "  FAIL: $HOME/.npmrc was replaced or modified"
     ERRORS=$((ERRORS + 1))
 fi
 
-BACKED_UP_NPMRC=""
-for candidate in "$HOME"/.dotfiles-backup/*/.npmrc; do
-    [ -f "$candidate" ] && BACKED_UP_NPMRC="$candidate"
-done
-
-if [ -n "$BACKED_UP_NPMRC" ] && grep -q "$NPMRC_CONTENT" "$BACKED_UP_NPMRC"; then
-    echo "  OK: backup found at $BACKED_UP_NPMRC"
+echo "=== Verifying migration from the retired .npmrc symlink ==="
+rm "$HOME/.npmrc"
+ln -s "$DOTFILES_DIR/.npmrc" "$HOME/.npmrc"
+bash "$DOTFILES_DIR/install.sh" --symlinks-only > /dev/null
+if [ -f "$HOME/.npmrc" ] && [ ! -L "$HOME/.npmrc" ] \
+    && grep -q "Keep authentication tokens out" "$HOME/.npmrc"; then
+    echo "  OK: retired symlink migrated to a machine-local file"
 else
-    echo "  FAIL: no backup of the pre-existing .npmrc found under ~/.dotfiles-backup"
+    echo "  FAIL: retired .npmrc symlink was not migrated"
     ERRORS=$((ERRORS + 1))
 fi
 
@@ -102,6 +113,13 @@ if [ ! -e "$HOME/.shell-utils" ] && [ ! -L "$HOME/.shell-utils" ]; then
     echo "  OK: $HOME/.shell-utils removed"
 else
     echo "  FAIL: $HOME/.shell-utils still present"
+    ERRORS=$((ERRORS + 1))
+fi
+
+if [ -f "$HOME/.npmrc" ] && [ ! -L "$HOME/.npmrc" ]; then
+    echo "  OK: machine-local .npmrc preserved after uninstall"
+else
+    echo "  FAIL: machine-local .npmrc was removed by uninstall"
     ERRORS=$((ERRORS + 1))
 fi
 

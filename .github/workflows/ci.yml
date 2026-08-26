@@ -11,11 +11,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: shellcheck
-        run: shellcheck -S warning install.sh test/test-install.sh test/test-dotfiles-doctor.sh .shell-utils/*.sh
+        run: shellcheck -S warning install.sh test/test-install.sh test/test-dotfiles-doctor.sh test/test-claude-sandbox.sh claude/hooks/validate-bash.sh .shell-utils/*.sh .shell-utils/claude-sandbox
       - name: Test dotfiles doctor
         run: bash test/test-dotfiles-doctor.sh
+      - name: Test Claude sandbox canary
+        run: bash test/test-claude-sandbox.sh
       - name: Test tool-output compaction
-        run: python3 -m unittest claude/hooks/tests/test_compact_tool_output.py
+        run: python3 -m unittest discover -s claude/hooks/tests -p 'test_*.py'
 
   validate-configs:
     runs-on: ubuntu-latest
@@ -34,7 +36,7 @@ jobs:
         run: |
           python3 - <<'PY'
           import json
-          for path in ["claude/settings.json", "claude/claude-powerline.json", "renovate.json"]:
+          for path in ["claude/settings.json", "claude/sandbox-canary.json", "claude/claude-powerline.json", "renovate.json"]:
               with open(path) as f:
                   json.load(f)
               print("OK", path)

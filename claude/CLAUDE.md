@@ -24,6 +24,12 @@
 
 詳細な進行手順とレビュー基準は、該当時に `delivery-workflow` と `code-review` skill を使う。
 
+# Sandbox 違反
+
+- Bash の結果に sandbox 違反が含まれる場合は、その理由と対象を確認する。別のパスやコマンドを繰り返し試さない。
+- 回復は、必要な権限を求める、sandbox 外での再実行を一度だけ求める、blocker として報告する、のいずれかにする。
+- sandbox 有効時の `gh` と Docker は単独の Bash call で実行する。loop、pipe、command substitution、conditional に包まない。
+
 # 判断が必要な場合
 
 - 低影響、可逆的、既存パターンから明白な判断は自走する。
