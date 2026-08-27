@@ -6,7 +6,6 @@ import stat
 import subprocess
 import sys
 import tempfile
-import time
 import unittest
 
 
@@ -202,13 +201,12 @@ class CompactToolOutputTest(unittest.TestCase):
         )
 
         self.assertEqual(stats_result.returncode, 0, stats_result.stderr)
-        self.assertIn("window: 7 days", stats_result.stdout)
-        self.assertIn("hook active: yes", stats_result.stdout)
-        self.assertIn("hook failures: 0", stats_result.stdout)
         self.assertIn("archives: 1", stats_result.stdout)
         self.assertRegex(stats_result.stdout, r"saved: [1-9][0-9,]* chars")
+        self.assertNotIn("hook active", stats_result.stdout)
+        self.assertNotIn("hook failures", stats_result.stdout)
 
-    def test_stats_distinguishes_active_hook_with_no_compactions(self) -> None:
+    def test_health_reports_recent_hook_without_compactions(self) -> None:
         hook_result = self.run_hook(
             {
                 "session_id": "session-6",
@@ -219,19 +217,19 @@ class CompactToolOutputTest(unittest.TestCase):
         )
         self.assertEqual(hook_result.returncode, 0, hook_result.stderr)
 
-        stats_result = subprocess.run(
-            [sys.executable, str(SCRIPT), "stats", "--days", "7"],
+        health_result = subprocess.run(
+            [sys.executable, str(SCRIPT), "health", "--days", "7"],
             text=True,
             capture_output=True,
             env=self.env,
             check=False,
         )
 
-        self.assertEqual(stats_result.returncode, 0, stats_result.stderr)
-        self.assertIn("hook active: yes", stats_result.stdout)
-        self.assertNotIn("hook last invoked: never", stats_result.stdout)
-        self.assertIn("hook failures: 0", stats_result.stdout)
-        self.assertIn("archives: 0", stats_result.stdout)
+        self.assertEqual(health_result.returncode, 0, health_result.stderr)
+        self.assertIn("hook active: yes", health_result.stdout)
+        self.assertNotIn("hook last invoked: never", health_result.stdout)
+        self.assertIn("hook last error: none", health_result.stdout)
+        self.assertNotIn("archives", health_result.stdout)
 
     def test_records_failure_metadata_without_payload_content(self) -> None:
         secret = "credential-do-not-log"
@@ -239,52 +237,107 @@ class CompactToolOutputTest(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0)
         self.assertNotIn(secret, result.stderr)
-        error_files = list((self.cache_dir / ".errors").glob("*.json"))
-        self.assertEqual(len(error_files), 1)
-        error_record = json.loads(error_files[0].read_text())
+        error_file = self.cache_dir / ".last-error"
+        self.assertTrue(error_file.is_file())
+        error_record = json.loads(error_file.read_text())
         self.assertEqual(error_record["error_type"], "JSONDecodeError")
         self.assertNotIn(secret, json.dumps(error_record))
 
-        stats_result = subprocess.run(
-            [sys.executable, str(SCRIPT), "stats"],
+        health_result = subprocess.run(
+            [sys.executable, str(SCRIPT), "health"],
             text=True,
             capture_output=True,
             env=self.env,
             check=False,
         )
-        self.assertIn("hook active: no", stats_result.stdout)
-        self.assertIn("hook failures: 1", stats_result.stdout)
+        self.assertIn("hook active: no", health_result.stdout)
+        self.assertIn("hook last error: JSONDecodeError at ", health_result.stdout)
 
-    def test_stats_excludes_archives_and_failures_older_than_window(self) -> None:
         hook_result = self.run_hook(
             {
                 "session_id": "session-7",
                 "tool_use_id": "tool-8",
-                "tool_name": "Glob",
-                "tool_response": {"filenames": "old.txt\n" * 500},
+                "tool_name": "Read",
+                "tool_response": {"content": "small"},
             }
         )
         self.assertEqual(hook_result.returncode, 0, hook_result.stderr)
-        error_result = self.run_raw_hook("{old-invalid-json")
-        self.assertEqual(error_result.returncode, 0)
+        self.assertFalse((self.cache_dir / ".last-error").exists())
 
-        old_timestamp = time.time() - 8 * 86_400
-        archive_path = next(self.cache_dir.glob("*.json"))
-        error_path = next((self.cache_dir / ".errors").glob("*.json"))
-        os.utime(archive_path, (old_timestamp, old_timestamp))
-        os.utime(error_path, (old_timestamp, old_timestamp))
-
-        stats_result = subprocess.run(
-            [sys.executable, str(SCRIPT), "stats", "--days", "7"],
+        health_result = subprocess.run(
+            [sys.executable, str(SCRIPT), "health"],
             text=True,
             capture_output=True,
             env=self.env,
             check=False,
         )
-        self.assertEqual(stats_result.returncode, 0, stats_result.stderr)
-        self.assertIn("hook active: yes", stats_result.stdout)
-        self.assertIn("hook failures: 0", stats_result.stdout)
-        self.assertIn("archives: 0", stats_result.stdout)
+        self.assertEqual(health_result.returncode, 0, health_result.stderr)
+        self.assertIn("hook active: yes", health_result.stdout)
+        self.assertIn("hook last error: none", health_result.stdout)
+
+    def test_health_marks_old_invocation_inactive(self) -> None:
+        hook_result = self.run_hook(
+            {
+                "session_id": "session-8",
+                "tool_use_id": "tool-9",
+                "tool_name": "Read",
+                "tool_response": {"content": "small"},
+            }
+        )
+        self.assertEqual(hook_result.returncode, 0, hook_result.stderr)
+        marker = self.cache_dir / ".last-invoked"
+        os.utime(marker, (0, 0))
+
+        health_result = subprocess.run(
+            [sys.executable, str(SCRIPT), "health", "--days", "7"],
+            text=True,
+            capture_output=True,
+            env=self.env,
+            check=False,
+        )
+
+        self.assertEqual(health_result.returncode, 0, health_result.stderr)
+        self.assertIn("hook active: no", health_result.stdout)
+
+    def test_health_reports_and_clears_legacy_error_records(self) -> None:
+        legacy_errors = self.cache_dir / ".errors"
+        legacy_errors.mkdir(parents=True)
+        (legacy_errors / "old.json").write_text(
+            json.dumps({"error_type": "ValueError"}), encoding="utf-8"
+        )
+
+        health_result = subprocess.run(
+            [sys.executable, str(SCRIPT), "health"],
+            text=True,
+            capture_output=True,
+            env=self.env,
+            check=False,
+        )
+        self.assertEqual(health_result.returncode, 0, health_result.stderr)
+        self.assertIn(
+            "hook last error: legacy records pending migration",
+            health_result.stdout,
+        )
+
+        hook_result = self.run_hook(
+            {
+                "session_id": "session-9",
+                "tool_use_id": "tool-10",
+                "tool_name": "Read",
+                "tool_response": {"content": "small"},
+            }
+        )
+        self.assertEqual(hook_result.returncode, 0, hook_result.stderr)
+        self.assertFalse(legacy_errors.exists())
+
+        health_result = subprocess.run(
+            [sys.executable, str(SCRIPT), "health"],
+            text=True,
+            capture_output=True,
+            env=self.env,
+            check=False,
+        )
+        self.assertIn("hook last error: none", health_result.stdout)
 
     def test_expand_rejects_an_invalid_archive_id(self) -> None:
         result = subprocess.run(

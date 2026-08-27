@@ -28,7 +28,8 @@ DEFAULT_PREVIEW_CHARS = 12_000
 DEFAULT_RETENTION_DAYS = 7
 DEFAULT_HEALTH_TOUCH_SECONDS = 300
 LAST_INVOKED_FILE = ".last-invoked"
-ERROR_DIR = ".errors"
+LAST_ERROR_FILE = ".last-error"
+LEGACY_ERROR_DIR = ".errors"
 
 
 def env_int(name: str, default: int, minimum: int) -> int:
@@ -205,6 +206,26 @@ def prepare_cache(root: Path) -> None:
 def mark_hook_invoked(root: Path) -> None:
     """Record supported hook traffic without retaining tool input or output."""
     prepare_cache(root)
+    error_marker = root / LAST_ERROR_FILE
+    try:
+        if error_marker.is_file() and not error_marker.is_symlink():
+            error_marker.unlink()
+    except OSError:
+        pass
+
+    legacy_errors = root / LEGACY_ERROR_DIR
+    if legacy_errors.is_dir() and not legacy_errors.is_symlink():
+        for path in legacy_errors.glob("*.json"):
+            try:
+                if path.is_file() and not path.is_symlink():
+                    path.unlink()
+            except OSError:
+                continue
+        try:
+            legacy_errors.rmdir()
+        except OSError:
+            pass
+
     marker = root / LAST_INVOKED_FILE
     interval = env_int(
         "CLAUDE_TOOL_OUTPUT_HEALTH_TOUCH_SECONDS",
@@ -231,36 +252,17 @@ def mark_hook_invoked(root: Path) -> None:
         "CLAUDE_TOOL_OUTPUT_RETENTION_DAYS", DEFAULT_RETENTION_DAYS, 1
     )
     clean_expired_archives(root, retention_days)
-    clean_expired_errors(root, retention_days)
-
-
-def clean_expired_errors(root: Path, retention_days: int) -> None:
-    errors = root / ERROR_DIR
-    if not errors.is_dir() or errors.is_symlink():
-        return
-    cutoff = time.time() - retention_days * 86_400
-    for path in errors.glob("*.json"):
-        try:
-            if path.is_file() and not path.is_symlink() and path.stat().st_mtime < cutoff:
-                path.unlink()
-        except OSError:
-            continue
 
 
 def record_hook_error(root: Path, error: Exception) -> None:
     """Record only failure metadata; exception text may contain sensitive data."""
     prepare_cache(root)
-    errors = root / ERROR_DIR
-    prepare_cache(errors)
-    retention_days = env_int(
-        "CLAUDE_TOOL_OUTPUT_RETENTION_DAYS", DEFAULT_RETENTION_DAYS, 1
-    )
-    clean_expired_errors(root, retention_days)
-    path = errors / f"{time.time_ns()}-{os.getpid()}.json"
+    path = root / LAST_ERROR_FILE
+    temporary = root / f"{LAST_ERROR_FILE}-{os.getpid()}-{time.time_ns()}.tmp"
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
     if hasattr(os, "O_NOFOLLOW"):
         flags |= os.O_NOFOLLOW
-    descriptor = os.open(path, flags, 0o600)
+    descriptor = os.open(temporary, flags, 0o600)
     with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
         json.dump(
             {
@@ -271,6 +273,8 @@ def record_hook_error(root: Path, error: Exception) -> None:
             stream,
         )
         stream.write("\n")
+    os.replace(temporary, path)
+    os.chmod(path, 0o600)
 
 
 def clean_expired_archives(root: Path, retention_days: int) -> None:
@@ -428,23 +432,34 @@ def expand_archive(args: argparse.Namespace) -> int:
     return 0
 
 
-def show_stats(days: int) -> int:
+def show_stats() -> int:
     root = cache_dir()
-    days = max(days, 1)
-    cutoff = time.time() - days * 86_400
     archives: list[dict[str, Any]] = []
     if root.exists():
         for path in root.glob("*.json"):
             if path.is_symlink():
                 continue
             try:
-                if path.stat().st_mtime < cutoff:
-                    continue
                 with path.open(encoding="utf-8") as stream:
                     archives.append(json.load(stream))
             except (OSError, json.JSONDecodeError):
                 continue
 
+    original = sum(int(item.get("original_chars", 0)) for item in archives)
+    compacted = sum(int(item.get("compacted_chars", 0)) for item in archives)
+    saved = max(original - compacted, 0)
+    percent = saved * 100 / original if original else 0
+    print(f"archives: {len(archives)}")
+    print(f"original chars: {original:,}")
+    print(f"compacted chars: {compacted:,}")
+    print(f"saved: {saved:,} chars ({percent:.1f}%, about {saved // 4:,} tokens)")
+    return 0
+
+
+def show_health(days: int) -> int:
+    root = cache_dir()
+    days = max(days, 1)
+    cutoff = time.time() - days * 86_400
     last_invoked: float | None = None
     marker = root / LAST_INVOKED_FILE
     try:
@@ -454,34 +469,39 @@ def show_stats(days: int) -> int:
     except OSError:
         pass
 
-    failures = 0
-    errors = root / ERROR_DIR
-    if errors.is_dir() and not errors.is_symlink():
-        for path in errors.glob("*.json"):
-            try:
-                if path.is_file() and not path.is_symlink() and path.stat().st_mtime >= cutoff:
-                    failures += 1
-            except OSError:
-                continue
-
-    original = sum(int(item.get("original_chars", 0)) for item in archives)
-    compacted = sum(int(item.get("compacted_chars", 0)) for item in archives)
-    saved = max(original - compacted, 0)
-    percent = saved * 100 / original if original else 0
     active = last_invoked is not None and last_invoked >= cutoff
     last_invoked_text = (
         datetime.fromtimestamp(last_invoked, UTC).isoformat().replace("+00:00", "Z")
         if last_invoked is not None
         else "never"
     )
+    last_error = "none"
+    error_marker = root / LAST_ERROR_FILE
+    try:
+        if error_marker.is_file() and not error_marker.is_symlink():
+            with error_marker.open(encoding="utf-8") as stream:
+                error_record = json.load(stream)
+            last_error = (
+                f"{error_record['error_type']} at {error_record['created_at']}"
+            )
+    except (OSError, KeyError, json.JSONDecodeError):
+        last_error = "unreadable"
+
+    if last_error == "none":
+        legacy_errors = root / LEGACY_ERROR_DIR
+        try:
+            if legacy_errors.is_dir() and not legacy_errors.is_symlink() and any(
+                path.is_file() and not path.is_symlink()
+                for path in legacy_errors.glob("*.json")
+            ):
+                last_error = "legacy records pending migration"
+        except OSError:
+            last_error = "unreadable"
+
     print(f"window: {days} days")
     print(f"hook active: {'yes' if active else 'no'}")
     print(f"hook last invoked: {last_invoked_text}")
-    print(f"hook failures: {failures}")
-    print(f"archives: {len(archives)}")
-    print(f"original chars: {original:,}")
-    print(f"compacted chars: {compacted:,}")
-    print(f"saved: {saved:,} chars ({percent:.1f}%, about {saved // 4:,} tokens)")
+    print(f"hook last error: {last_error}")
     return 0
 
 
@@ -494,8 +514,9 @@ def parse_args() -> argparse.Namespace:
     expand.add_argument("--context", type=int, default=2)
     expand.add_argument("--head", type=int, default=0)
     expand.add_argument("--tail", type=int, default=0)
-    stats_parser = subparsers.add_parser("stats", help="show local compaction savings")
-    stats_parser.add_argument("--days", type=int, default=DEFAULT_RETENTION_DAYS)
+    subparsers.add_parser("stats", help="show savings from retained archives")
+    health_parser = subparsers.add_parser("health", help="show hook health")
+    health_parser.add_argument("--days", type=int, default=DEFAULT_RETENTION_DAYS)
     return parser.parse_args()
 
 
@@ -504,7 +525,9 @@ def main() -> int:
     if args.command == "expand":
         return expand_archive(args)
     if args.command == "stats":
-        return show_stats(args.days)
+        return show_stats()
+    if args.command == "health":
+        return show_health(args.days)
     return run_hook()
 
 

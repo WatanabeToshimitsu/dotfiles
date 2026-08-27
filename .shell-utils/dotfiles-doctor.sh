@@ -71,9 +71,9 @@ compactor_hook_configured() {
   grep -Fq 'compact-tool-output.py' "$HOME/.claude/settings.json" 2> /dev/null
 }
 
-run_compactor_stats() {
+run_compactor_health() {
   python3 "$DOTFILES_DIR/claude/hooks/compact-tool-output.py" \
-    stats --days "$HARNESS_WINDOW_DAYS"
+    health --days "$HARNESS_WINDOW_DAYS"
 }
 
 check_headroom() {
@@ -189,7 +189,7 @@ check_claude_version() {
 check_tool_output_compaction() {
   echo "== Claude tool-output compaction (last ${HARNESS_WINDOW_DAYS} days) =="
   local before=$WARNINGS
-  local stats active last_invoked failures archives saved
+  local health active last_invoked last_error
   local script="$DOTFILES_DIR/claude/hooks/compact-tool-output.py"
 
   if [ ! -f "$script" ]; then
@@ -198,39 +198,28 @@ check_tool_output_compaction() {
     warn "Compaction hook is not configured in Claude settings; next: rerun install.sh"
   elif ! has_command python3; then
     warn "python3 is unavailable, so compaction health cannot be checked; next: rerun install.sh"
-  elif stats=$(run_compactor_stats 2>&1); then
-    active=$(stats_value "hook active" "$stats")
-    last_invoked=$(stats_value "hook last invoked" "$stats")
-    failures=$(stats_value "hook failures" "$stats")
-    archives=$(stats_value "archives" "$stats")
-    saved=$(stats_value "saved" "$stats")
+  elif health=$(run_compactor_health 2>&1); then
+    active=$(stats_value "hook active" "$health")
+    last_invoked=$(stats_value "hook last invoked" "$health")
+    last_error=$(stats_value "hook last error" "$health")
 
     if [ "$active" = "yes" ]; then
       info "hook active; last invoked ${last_invoked:-unknown}"
-      if [ "$archives" = "0" ]; then
-        info "0 compactions is healthy: no supported output crossed the threshold"
-      fi
     else
-      warn "Compaction hook was not observed in ${HARNESS_WINDOW_DAYS} days; next: use a Read/Grep/Glob/Web/MCP tool, then rerun compact-tool-output.py stats"
+      warn "Compaction hook was not observed in ${HARNESS_WINDOW_DAYS} days; next: use a Read/Grep/Glob/Web/MCP tool, then run python3 ~/.claude/hooks/compact-tool-output.py health"
     fi
 
-    case "$failures" in
-      '' | *[!0-9]*)
-        warn "Compaction failure count could not be parsed; next: rerun compact-tool-output.py stats"
+    case "$last_error" in
+      none) ;;
+      '')
+        warn "Compaction error state could not be parsed; next: run python3 ~/.claude/hooks/compact-tool-output.py health"
         ;;
-      0) ;;
       *)
-        warn "$failures compaction hook failure(s) in ${HARNESS_WINDOW_DAYS} days; next: inspect Claude hook stderr and run the hook tests"
+        warn "Compaction hook has an unresolved $last_error; next: run the hook tests, then use a supported tool once"
         ;;
     esac
-
-    if [[ "$archives" =~ ^[0-9]+$ && -n "$saved" ]]; then
-      info "${archives} compaction(s), saved $saved"
-    else
-      warn "Compaction savings could not be parsed; next: rerun compact-tool-output.py stats"
-    fi
   else
-    warn "Compaction stats failed; next: run python3 ~/.claude/hooks/compact-tool-output.py stats"
+    warn "Compaction health check failed; next: run python3 ~/.claude/hooks/compact-tool-output.py health"
   fi
   section_ok "$before"
 }
