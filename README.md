@@ -137,11 +137,13 @@ involved. Target selection is left to auto detection, so every supported tool
 that is installed gets configured. The beta output shaper is enabled, and new
 shell sessions route Claude Code and Codex through the proxy.
 
-`dotfiles-doctor.sh` prints the reported measurement method next to the
-reduction. `ESTIMATED` compares shaped output against a synthetic baseline
-and can report a confidence band wider than the reduction itself, so it is
-not a basis for deciding whether the proxy earns its place. `MEASURED`
-requires an unshaped control arm via `HEADROOM_OUTPUT_HOLDOUT`.
+A 10% holdout leaves one conversation in ten unshaped as a control arm, so
+`headroom output-savings` reports `MEASURED` instead of `ESTIMATED`. That costs
+the shaping on those conversations. Without it the reported reduction is
+compared against a synthetic baseline and comes back with a confidence band
+wider than the reduction itself, which is no basis for deciding whether the
+proxy earns its place. `dotfiles-doctor.sh` prints the reported method next to
+the reduction, and the holdout below it.
 
 Learn the preferred response length again after enough Claude history has
 accumulated:
