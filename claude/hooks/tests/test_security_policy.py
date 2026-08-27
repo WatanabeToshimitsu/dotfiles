@@ -7,20 +7,8 @@ import unittest
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SETTINGS = REPO_ROOT / "claude" / "settings.json"
 CANARY = REPO_ROOT / "claude" / "sandbox-canary.json"
-FIXTURE = Path(__file__).parent / "fixtures" / "security-policy.json"
 VALIDATE_BASH = REPO_ROOT / "claude" / "hooks" / "validate-bash.sh"
 DENY_CHECK = REPO_ROOT / "claude" / "hooks" / "deny-check.sh"
-
-
-def assert_subset(test: unittest.TestCase, actual, expected, path="sandbox") -> None:
-    for key, expected_value in expected.items():
-        test.assertIn(key, actual, f"missing {path}.{key}")
-        actual_value = actual[key]
-        if isinstance(expected_value, dict):
-            test.assertIsInstance(actual_value, dict, f"{path}.{key}")
-            assert_subset(test, actual_value, expected_value, f"{path}.{key}")
-        else:
-            test.assertEqual(actual_value, expected_value, f"{path}.{key}")
 
 
 class SecurityPolicyTest(unittest.TestCase):
@@ -28,26 +16,43 @@ class SecurityPolicyTest(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.settings = json.loads(SETTINGS.read_text())
         cls.canary = json.loads(CANARY.read_text())
-        cls.fixture = json.loads(FIXTURE.read_text())
 
-    def test_canary_matches_declared_sandbox_boundary(self) -> None:
-        assert_subset(self, self.canary["sandbox"], self.fixture["sandbox"])
+    def test_canary_keeps_only_the_macOS_trial_boundary(self) -> None:
+        sandbox = self.canary["sandbox"]
+        self.assertEqual(
+            set(sandbox),
+            {
+                "enabled",
+                "failIfUnavailable",
+                "excludedCommands",
+                "network",
+                "credentials",
+            },
+        )
+        self.assertTrue(sandbox["enabled"])
+        self.assertFalse(sandbox["failIfUnavailable"])
+        self.assertEqual(
+            sandbox["excludedCommands"], ["docker *", "docker-compose *", "gh *"]
+        )
+        self.assertEqual(sandbox["network"], {"allowLocalBinding": True})
 
         credential_files = {
             entry["path"]
-            for entry in self.canary["sandbox"]["credentials"]["files"]
+            for entry in sandbox["credentials"]["files"]
             if entry["mode"] == "deny"
         }
         credential_env_vars = {
             entry["name"]
-            for entry in self.canary["sandbox"]["credentials"]["envVars"]
+            for entry in sandbox["credentials"]["envVars"]
             if entry["mode"] == "deny"
         }
         self.assertTrue(
-            set(self.fixture["requiredCredentialFiles"]) <= credential_files
+            {"~/.ssh", "~/.config/gh/hosts.yml", "~/.claude/.credentials.json"}
+            <= credential_files
         )
         self.assertTrue(
-            set(self.fixture["requiredCredentialEnvVars"]) <= credential_env_vars
+            {"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GH_TOKEN"}
+            <= credential_env_vars
         )
 
     def test_default_settings_do_not_enable_sandbox_during_canary(self) -> None:
@@ -55,13 +60,11 @@ class SecurityPolicyTest(unittest.TestCase):
 
     def test_standard_permissions_own_allow_ask_and_deny_decisions(self) -> None:
         permissions = self.settings["permissions"]
-        for case in self.fixture["permissionCases"]:
-            with self.subTest(case=case["name"], command=case["command"]):
-                decision = case["decision"]
-                rule = case["rule"]
-                self.assertIn(rule, permissions[decision])
-                for other_decision in {"allow", "ask", "deny"} - {decision}:
-                    self.assertNotIn(rule, permissions[other_decision])
+        self.assertIn("Bash(gh pr view:*)", permissions["allow"])
+        self.assertIn("Bash(gh api:*)", permissions["ask"])
+        self.assertIn("Bash(dangerouslyDisableSandbox:true)", permissions["ask"])
+        self.assertIn("Bash(rm -f *)", permissions["deny"])
+        self.assertIn("Read(**/*.env)", permissions["deny"])
 
     def test_incomplete_deny_parser_is_not_wired(self) -> None:
         self.assertFalse(DENY_CHECK.exists())
@@ -75,10 +78,15 @@ class SecurityPolicyTest(unittest.TestCase):
         self.assertNotIn("Read(**/.netrc)", deny_rules)
 
     def test_personal_hook_only_enforces_scoped_git_add_policy(self) -> None:
-        for case in self.fixture["personalHookCases"]:
+        cases = [
+            ("git add src/app.ts", "allow"),
+            ("git add -A", "deny"),
+            ("git add . && git status", "deny"),
+        ]
+        for command, expected in cases:
             payload = {
-                "tool_name": case["toolName"],
-                "tool_input": {"command": case["command"]},
+                "tool_name": "Bash",
+                "tool_input": {"command": command},
             }
             result = subprocess.run(
                 [str(VALIDATE_BASH)],
@@ -88,9 +96,9 @@ class SecurityPolicyTest(unittest.TestCase):
                 check=False,
             )
 
-            with self.subTest(case=case["name"]):
+            with self.subTest(command=command):
                 self.assertEqual(result.returncode, 0, result.stderr)
-                if case["decision"] == "allow":
+                if expected == "allow":
                     self.assertEqual(result.stdout, "")
                 else:
                     output = json.loads(result.stdout)

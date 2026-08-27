@@ -3,43 +3,13 @@
   "sandbox": {
     "enabled": true,
     "failIfUnavailable": false,
-    "autoAllowBashIfSandboxed": true,
-    "allowUnsandboxedCommands": true,
     "excludedCommands": [
       "docker *",
       "docker-compose *",
       "gh *"
     ],
-    "filesystem": {
-      "allowWrite": [
-        "~/.cache",
-        "~/.npm",
-        "~/Library/Caches",
-        "~/.local/share/pnpm/store",
-        "~/Library/pnpm/store",
-        "~/.cargo/registry",
-        "~/.cargo/git",
-        "~/go/pkg/mod",
-        "~/.gradle/caches",
-        "~/.m2/repository"
-      ]
-    },
     "network": {
-      "allowUnixSockets": [],
-      "allowAllUnixSockets": false,
-      "allowLocalBinding": true,
-      "strictAllowlist": false,
-      "allowedDomains": [
-        "objects.githubusercontent.com",
-        "codeload.github.com",
-        "registry.npmjs.org",
-        "pypi.org",
-        "files.pythonhosted.org",
-        "proxy.golang.org",
-        "sum.golang.org",
-        "index.crates.io",
-        "static.crates.io"
-      ]
+      "allowLocalBinding": true
     },
     "credentials": {
       "files": [

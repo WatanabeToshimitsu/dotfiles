@@ -109,19 +109,17 @@ messages or tool payloads.
 
 ## Claude Bash Sandbox Canary
 
-The Claude Code Bash sandbox is available as an opt-in canary while compatibility
-and agent retry behavior are evaluated:
+The Claude Code Bash sandbox is available as a macOS-only opt-in trial:
 
 ```bash
 claude-sandbox --check
 claude-sandbox
 ```
 
-The canary keeps the default `claude` command unchanged. It uses OS-enforced Bash
-filesystem and network isolation, blocks common credentials, and preserves normal
-development through explicit cache writes and documented `gh`/Docker exceptions.
-See [`claude/SANDBOX.md`](claude/SANDBOX.md) for the boundary, known limitations,
-promotion criteria, and rollback.
+The default `claude` command stays unchanged. The trial blocks common credentials,
+does not pre-allow package caches or registries, and keeps only the known `gh` and
+Docker compatibility exceptions. See [`claude/SANDBOX.md`](claude/SANDBOX.md) for
+the boundary and rollback.
 
 ## Claude Auto Memory
 
