@@ -66,6 +66,10 @@ run_compactor_health() {
     'hook last error: none'
 }
 
+run_headroom_runtime_flags() {
+  printf '%s\n' 'HEADROOM_OUTPUT_SHAPER=1' 'HEADROOM_OUTPUT_HOLDOUT='
+}
+
 healthy_output="$TEST_OUTPUT_DIR/healthy"
 WARNINGS=0
 check_agent_harness > "$healthy_output"
@@ -73,6 +77,8 @@ check_agent_harness > "$healthy_output"
 assert_contains "2 MCP server(s) connected" "$healthy_output"
 assert_contains "installed 2.1.241; latest stable 2.1.241" "$healthy_output"
 assert_contains "hook active; last invoked 2026-08-26T00:00:00Z" "$healthy_output"
+assert_contains "output shaper flag reached the proxy" "$healthy_output"
+assert_contains "no output holdout" "$healthy_output"
 
 run_headroom_savings() {
   printf '%s\n' \
@@ -104,6 +110,45 @@ assert_contains "output shaper: MEASURED; 1,950 shaped" "$measured_output"
 
 run_headroom_savings() {
   printf 'No shaped requests recorded yet.\n'
+}
+
+# A reachable proxy that is not shaping is the failure this check exists for.
+run_headroom_runtime_flags() {
+  printf '%s\n' 'HEADROOM_OUTPUT_SHAPER=' 'HEADROOM_OUTPUT_HOLDOUT='
+}
+
+shaper_off_output="$TEST_OUTPUT_DIR/shaper-off"
+WARNINGS=0
+check_headroom > "$shaper_off_output"
+[ "$WARNINGS" -eq 1 ] || fail "shaper off produced $WARNINGS warning(s), expected 1"
+assert_contains "output shaper is off" "$shaper_off_output"
+assert_contains "install.sh --headroom-only" "$shaper_off_output"
+
+# A configured holdout is what turns the reported savings into a measurement.
+run_headroom_runtime_flags() {
+  printf '%s\n' 'HEADROOM_OUTPUT_SHAPER=1' 'HEADROOM_OUTPUT_HOLDOUT=0.1'
+}
+
+holdout_output="$TEST_OUTPUT_DIR/holdout"
+WARNINGS=0
+check_headroom > "$holdout_output"
+[ "$WARNINGS" -eq 0 ] || fail "configured holdout produced $WARNINGS warning(s)"
+assert_contains "output holdout: 0.1" "$holdout_output"
+
+# An unreadable /health must warn rather than claim the shaper is off.
+run_headroom_runtime_flags() {
+  return 1
+}
+
+flags_failed_output="$TEST_OUTPUT_DIR/flags-failed"
+WARNINGS=0
+check_headroom > "$flags_failed_output"
+[ "$WARNINGS" -eq 1 ] || fail "unreadable flags produced $WARNINGS warning(s), expected 1"
+assert_contains "runtime flags could not be read" "$flags_failed_output"
+assert_not_contains "output shaper is off" "$flags_failed_output"
+
+run_headroom_runtime_flags() {
+  printf '%s\n' 'HEADROOM_OUTPUT_SHAPER=1' 'HEADROOM_OUTPUT_HOLDOUT='
 }
 
 run_headroom_status() {
