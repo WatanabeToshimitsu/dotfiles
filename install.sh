@@ -359,7 +359,6 @@ setup_cli_tools() {
 # ========================================
 # Recreates the user-scoped deployment when missing or when the persisted
 # output-shaper settings drift. Prefer Docker and fall back to a native task.
-# A 10% holdout stays unshaped so savings are measured, not estimated.
 
 setup_headroom() {
   if ! command -v headroom > /dev/null 2>&1; then
@@ -384,8 +383,7 @@ setup_headroom() {
        and .preset == $preset
        and .runtime_kind == $runtime
        and .base_env.HEADROOM_ROLLOUT_CHANNEL == "beta"
-       and .base_env.HEADROOM_OUTPUT_SHAPER == "1"
-       and .base_env.HEADROOM_OUTPUT_HOLDOUT == "0.1"' \
+       and .base_env.HEADROOM_OUTPUT_SHAPER == "1"' \
       "$manifest" > /dev/null 2>&1; then
     echo "  exists: Headroom persistent Claude deployment ($preset)"
     if ! headroom install status --profile default 2>/dev/null | grep -q '^Status:.*running'; then
@@ -420,7 +418,6 @@ setup_headroom() {
     --no-telemetry \
     --env HEADROOM_ROLLOUT_CHANNEL=beta \
     --env HEADROOM_OUTPUT_SHAPER=1 \
-    --env HEADROOM_OUTPUT_HOLDOUT=0.1 \
     || echo "  failed: Headroom persistent Claude deployment"
 }
 
