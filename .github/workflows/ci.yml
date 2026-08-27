@@ -14,6 +14,8 @@ jobs:
         run: shellcheck -S warning install.sh test/test-install.sh test/test-dotfiles-doctor.sh test/test-claude-sandbox.sh claude/hooks/validate-bash.sh .shell-utils/*.sh .shell-utils/claude-sandbox
       - name: Test dotfiles doctor
         run: bash test/test-dotfiles-doctor.sh
+      - name: Test headroom proxy check
+        run: zsh test/test-headroom-proxy-check.zsh
       - name: Test Claude sandbox canary
         run: bash test/test-claude-sandbox.sh
       - name: Test tool-output compaction
