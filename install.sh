@@ -358,7 +358,13 @@ setup_cli_tools() {
 # Headroom persistent Claude proxy
 # ========================================
 # Recreates the user-scoped deployment when missing or when the persisted
-# output-shaper settings drift. Prefer Docker and fall back to a native task.
+# output-shaper settings drift. Runs the proxy as a supervised native process
+# (launchd on macOS, systemd on Linux) so it starts at login and is restarted
+# when it dies. The Docker preset needs a running Docker daemon, tracks the
+# :latest image instead of the pinned version installed above, and cannot
+# restart itself from inside the container.
+# Target selection is left to auto detection, so the deployment covers every
+# installed tool and the target list is not treated as drift.
 
 setup_headroom() {
   if ! command -v headroom > /dev/null 2>&1; then
@@ -367,37 +373,20 @@ setup_headroom() {
   fi
 
   local manifest="$HOME/.headroom/deploy/default/manifest.json"
-  local preset runtime
-  if command -v docker > /dev/null 2>&1 && docker info > /dev/null 2>&1; then
-    preset=persistent-docker
-    runtime=docker
-  else
-    preset=persistent-task
-    runtime=python
-  fi
+  local preset=persistent-service
+  local runtime=python
 
   if [ -f "$manifest" ] \
     && jq -e --arg preset "$preset" --arg runtime "$runtime" \
-      '.provider_mode == "manual"
-       and .targets == ["claude"]
+      '.provider_mode == "auto"
        and .preset == $preset
        and .runtime_kind == $runtime
        and .base_env.HEADROOM_ROLLOUT_CHANNEL == "beta"
        and .base_env.HEADROOM_OUTPUT_SHAPER == "1"' \
       "$manifest" > /dev/null 2>&1; then
-    echo "  exists: Headroom persistent Claude deployment ($preset)"
+    echo "  exists: Headroom persistent proxy ($preset)"
     if ! headroom install status --profile default 2>/dev/null | grep -q '^Status:.*running'; then
-      if jq -e '.preset == "persistent-task"' "$manifest" > /dev/null 2>&1; then
-        if [ -x "$HOME/.headroom/deploy/default/ensure-headroom.sh" ]; then
-          echo "  recovering Headroom with scheduled-task watchdog"
-          "$HOME/.headroom/deploy/default/ensure-headroom.sh" ||
-            echo "  failed: Headroom scheduled-task recovery"
-        else
-          echo "  waiting for Headroom scheduled recovery"
-        fi
-      else
-        headroom install start --profile default || echo "  failed: start Headroom deployment"
-      fi
+      headroom install start --profile default || echo "  failed: start Headroom deployment"
     fi
     return 0
   fi
@@ -409,8 +398,7 @@ setup_headroom() {
     --preset "$preset" \
     --runtime "$runtime" \
     --scope user \
-    --providers manual \
-    --target claude \
+    --providers auto \
     --profile default \
     --port 8787 \
     --backend anthropic \
