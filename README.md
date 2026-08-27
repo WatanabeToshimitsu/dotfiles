@@ -131,9 +131,10 @@ legacy-data policy.
 ## Headroom Proxy
 
 `install.sh` installs Headroom 0.36.5 with `uv` and maintains a user-scoped
-Claude proxy on port 8787. It uses Docker when available and a native scheduled
-task otherwise. The beta output shaper is enabled and Claude Code is routed
-through the proxy from new shell sessions.
+proxy on port 8787. It uses Docker when available and a native scheduled task
+otherwise. Target selection is left to auto detection, so every supported tool
+that is installed gets configured. The beta output shaper is enabled, and new
+shell sessions route Claude Code and Codex through the proxy.
 
 `dotfiles-doctor.sh` prints the reported measurement method next to the
 reduction. `ESTIMATED` compares shaped output against a synthetic baseline

@@ -359,6 +359,8 @@ setup_cli_tools() {
 # ========================================
 # Recreates the user-scoped deployment when missing or when the persisted
 # output-shaper settings drift. Prefer Docker and fall back to a native task.
+# Target selection is left to auto detection, so the deployment covers every
+# installed tool and the target list is not treated as drift.
 
 setup_headroom() {
   if ! command -v headroom > /dev/null 2>&1; then
@@ -378,8 +380,7 @@ setup_headroom() {
 
   if [ -f "$manifest" ] \
     && jq -e --arg preset "$preset" --arg runtime "$runtime" \
-      '.provider_mode == "manual"
-       and .targets == ["claude"]
+      '.provider_mode == "auto"
        and .preset == $preset
        and .runtime_kind == $runtime
        and .base_env.HEADROOM_ROLLOUT_CHANNEL == "beta"
@@ -409,8 +410,7 @@ setup_headroom() {
     --preset "$preset" \
     --runtime "$runtime" \
     --scope user \
-    --providers manual \
-    --target claude \
+    --providers auto \
     --profile default \
     --port 8787 \
     --backend anthropic \
