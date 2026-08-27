@@ -131,8 +131,9 @@ legacy-data policy.
 ## Headroom Proxy
 
 `install.sh` installs Headroom 0.36.5 with `uv` and maintains a user-scoped
-proxy on port 8787. It uses Docker when available and a native scheduled task
-otherwise. Target selection is left to auto detection, so every supported tool
+proxy on port 8787. The proxy runs as a supervised native process, so launchd
+starts it at login and restarts it if it dies; no container runtime is
+involved. Target selection is left to auto detection, so every supported tool
 that is installed gets configured. The beta output shaper is enabled, and new
 shell sessions route Claude Code and Codex through the proxy.
 
@@ -164,9 +165,11 @@ connections, Claude Code version drift, and tool-output compaction):
 ~/.shell-utils/dotfiles-doctor.sh --harness-only
 ```
 
-If Docker is unavailable, rerunning `install.sh` migrates an existing Docker
-deployment to Headroom's native scheduled recovery instead of leaving a stale
-container deployment behind.
+Rerunning `install.sh` migrates an existing Docker deployment to the
+supervised native process instead of leaving a stale container behind. The
+Docker preset is not used: it needs a running Docker daemon, tracks the
+`:latest` image rather than the pinned version, and cannot restart itself from
+inside the container.
 
 ```bash
 ./install.sh --headroom-only
