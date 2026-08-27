@@ -338,3 +338,8 @@ export HEADROOM_OUTPUT_SHAPER="1"
 export ANTHROPIC_BASE_URL="http://127.0.0.1:8787"
 export ENABLE_TOOL_SEARCH="true"
 # <<< headroom persistent env <<<
+
+# Tell me when the proxy configured above is down, instead of letting Claude Code
+# and Codex fail against a dead ANTHROPIC_BASE_URL.
+source ~/.shell-utils/headroom-proxy-check.zsh
+headroom_proxy_check
