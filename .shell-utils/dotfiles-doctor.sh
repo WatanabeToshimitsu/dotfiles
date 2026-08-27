@@ -55,6 +55,25 @@ run_headroom_savings() {
   headroom output-savings
 }
 
+# The proxy reports its own feature flags, which is the only view that reflects
+# what the running process actually got. `headroom rollout status` resolves the
+# policy from the shell it runs in, so on the host it answers about the host.
+# /health exposes a fixed whitelist of flags and no credentials.
+run_headroom_runtime_flags() {
+  python3 -c '
+import json
+import sys
+import urllib.request
+
+url = "http://127.0.0.1:%s/health" % sys.argv[1]
+with urllib.request.urlopen(url, timeout=5) as response:
+    flags = json.load(response)["config"]["runtime_env"]
+for name in ("HEADROOM_OUTPUT_SHAPER", "HEADROOM_OUTPUT_HOLDOUT"):
+    value = flags.get(name)
+    print("%s=%s" % (name, "" if value is None else value))
+' "${HEADROOM_PORT:-8787}"
+}
+
 run_claude_mcp_list() {
   claude mcp list
 }
@@ -76,10 +95,34 @@ run_compactor_health() {
     health --days "$HARNESS_WINDOW_DAYS"
 }
 
+check_headroom_shaper() {
+  local flags shaper holdout
+  if ! flags=$(run_headroom_runtime_flags 2> /dev/null); then
+    warn "Headroom runtime flags could not be read; next: run curl -s http://127.0.0.1:${HEADROOM_PORT:-8787}/health"
+    return 0
+  fi
+
+  shaper=$(printf '%s\n' "$flags" | sed -n 's/^HEADROOM_OUTPUT_SHAPER=//p' | head -n 1)
+  holdout=$(printf '%s\n' "$flags" | sed -n 's/^HEADROOM_OUTPUT_HOLDOUT=//p' | head -n 1)
+
+  if [ "$shaper" = "1" ]; then
+    info "output shaper flag reached the proxy"
+  else
+    warn "proxy is answering but its output shaper is off; next: run install.sh --headroom-only"
+  fi
+
+  if [ -n "$holdout" ]; then
+    info "output holdout: $holdout"
+  else
+    info "no output holdout, so the reduction above stays ESTIMATED"
+  fi
+}
+
 check_headroom() {
   echo "== Headroom proxy =="
   local before=$WARNINGS
   local output status healthy savings method requests saved reduction
+  local reachable=0
 
   if ! has_command headroom; then
     warn "Headroom is not installed; next: rerun install.sh"
@@ -91,8 +134,10 @@ check_headroom() {
       healthy=$(printf '%s\n' "$output" | sed -n 's/^Healthy:[[:space:]]*//p' | head -n 1)
       if [[ "$status" == *running* && "$healthy" == yes* ]]; then
         info "deployment is running and proxy is reachable"
+        reachable=1
       elif [[ "$status" != *running* && "$healthy" == yes* ]]; then
         warn "Persistent Headroom deployment is stopped while a temporary proxy is reachable; next: close headroom wrap sessions, then run install.sh --headroom-only"
+        reachable=1
       elif [[ "$status" == *running* ]]; then
         warn "Headroom deployment is running but its proxy is unreachable; next: run headroom doctor"
       else
@@ -118,6 +163,10 @@ check_headroom() {
       fi
     else
       warn "Headroom output-savings check failed; next: run headroom output-savings"
+    fi
+
+    if [ "$reachable" -eq 1 ]; then
+      check_headroom_shaper
     fi
   fi
   section_ok "$before"
