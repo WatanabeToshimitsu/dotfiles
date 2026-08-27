@@ -58,14 +58,12 @@ run_claude_latest_version() {
   printf '2.1.241\n'
 }
 
-run_compactor_stats() {
+run_compactor_health() {
   printf '%s\n' \
     'window: 7 days' \
     'hook active: yes' \
     'hook last invoked: 2026-08-26T00:00:00Z' \
-    'hook failures: 0' \
-    'archives: 0' \
-    'saved: 0 chars (0.0%, about 0 tokens)'
+    'hook last error: none'
 }
 
 healthy_output="$TEST_OUTPUT_DIR/healthy"
@@ -74,7 +72,7 @@ check_agent_harness > "$healthy_output"
 [ "$WARNINGS" -eq 0 ] || fail "healthy harness produced $WARNINGS warning(s)"
 assert_contains "2 MCP server(s) connected" "$healthy_output"
 assert_contains "installed 2.1.241; latest stable 2.1.241" "$healthy_output"
-assert_contains "0 compactions is healthy" "$healthy_output"
+assert_contains "hook active; last invoked 2026-08-26T00:00:00Z" "$healthy_output"
 
 run_headroom_status() {
   printf 'Status: stopped\nHealthy: yes\n'
@@ -101,14 +99,12 @@ run_claude_version() {
   printf '2.1.231 (Claude Code)\n'
 }
 
-run_compactor_stats() {
+run_compactor_health() {
   printf '%s\n' \
     'window: 7 days' \
     'hook active: no' \
     'hook last invoked: never' \
-    'hook failures: 1' \
-    'archives: 0' \
-    'saved: 0 chars (0.0%, about 0 tokens)'
+    'hook last error: JSONDecodeError at 2026-08-26T00:00:00Z'
 }
 
 unhealthy_output="$TEST_OUTPUT_DIR/unhealthy"
@@ -119,7 +115,7 @@ assert_contains "run install.sh --headroom-only" "$unhealthy_output"
 assert_contains "MCP server 'serena' is not connected" "$unhealthy_output"
 assert_contains "Claude Code installed 2.1.231; latest stable 2.1.241" "$unhealthy_output"
 assert_contains "Compaction hook was not observed in 7 days" "$unhealthy_output"
-assert_contains "1 compaction hook failure(s) in 7 days" "$unhealthy_output"
+assert_contains "unresolved JSONDecodeError" "$unhealthy_output"
 assert_not_contains "credential-do-not-log" "$unhealthy_output"
 
 printf 'dotfiles-doctor tests: ok\n'

@@ -97,15 +97,15 @@ Large Read, Grep, Glob, Web, and MCP results are shortened before entering the
 conversation. The full result is retained locally for seven days with user-only
 permissions and can be queried through the `expand-tool-output` skill.
 
-Show health and savings for the last seven days:
+Show savings from the retained archives when deciding whether the hook is useful:
 
 ```bash
 python3 ~/.claude/hooks/compact-tool-output.py stats
 ```
 
-The report distinguishes an active hook with zero threshold crossings from a
-hook that has not run, and counts fail-open hook errors without storing error
-messages or tool payloads.
+The weekly doctor checks only the last hook invocation and one unresolved error.
+It does not aggregate compaction counts or savings. Error records contain the
+exception type and time, never tool payloads or exception messages.
 
 ## Claude Bash Sandbox Canary
 
