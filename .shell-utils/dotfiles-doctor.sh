@@ -79,7 +79,7 @@ run_compactor_health() {
 check_headroom() {
   echo "== Headroom proxy =="
   local before=$WARNINGS
-  local output status healthy savings requests saved reduction
+  local output status healthy savings method requests saved reduction
 
   if ! has_command headroom; then
     warn "Headroom is not installed; next: rerun install.sh"
@@ -106,11 +106,12 @@ check_headroom() {
       if [[ "$savings" == *"No shaped requests recorded yet."* ]]; then
         info "output shaper: 0 shaped requests recorded"
       else
+        method=$(printf '%s\n' "$savings" | sed -n 's/^[[:space:]]*Method:[[:space:]]*\([A-Z][A-Z]*\).*/\1/p' | head -n 1)
         requests=$(printf '%s\n' "$savings" | sed -n 's/^[[:space:]]*Requests:[[:space:]]*//p' | head -n 1)
         saved=$(printf '%s\n' "$savings" | sed -n 's/^[[:space:]]*Saved:[[:space:]]*//p' | head -n 1)
         reduction=$(printf '%s\n' "$savings" | sed -n 's/^[[:space:]]*Reduction:[[:space:]]*//p' | head -n 1)
         if [ -n "$requests" ]; then
-          info "output shaper: $requests; ${saved:-saved amount unavailable}; ${reduction:-reduction unavailable}"
+          info "output shaper: ${method:+$method; }$requests; ${saved:-saved amount unavailable}; ${reduction:-reduction unavailable}"
         else
           info "output shaper: data exists; next: run headroom output-savings for details"
         fi

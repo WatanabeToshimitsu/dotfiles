@@ -135,6 +135,11 @@ Claude proxy on port 8787. It uses Docker when available and a native scheduled
 task otherwise. The beta output shaper is enabled and Claude Code is routed
 through the proxy from new shell sessions.
 
+A 10% holdout stays unshaped, so `headroom output-savings` reports
+`Method: MEASURED` against a real control arm instead of an estimate against
+a synthetic baseline. `dotfiles-doctor.sh` prints that method alongside the
+reduction so an estimated number is never read as a measured one.
+
 Learn the preferred response length again after enough Claude history has
 accumulated:
 

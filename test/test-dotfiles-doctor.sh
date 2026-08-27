@@ -74,6 +74,38 @@ assert_contains "2 MCP server(s) connected" "$healthy_output"
 assert_contains "installed 2.1.241; latest stable 2.1.241" "$healthy_output"
 assert_contains "hook active; last invoked 2026-08-26T00:00:00Z" "$healthy_output"
 
+run_headroom_savings() {
+  printf '%s\n' \
+    '  Method:    ESTIMATED (synthetic control)' \
+    '  Requests:  1,950 shaped' \
+    '  Saved:     1,402,159 output tokens' \
+    '  Reduction: 63.5%   (95% CI 12.9% … 114.2%)'
+}
+
+estimated_output="$TEST_OUTPUT_DIR/estimated-savings"
+WARNINGS=0
+check_headroom > "$estimated_output"
+[ "$WARNINGS" -eq 0 ] || fail "estimated savings produced $WARNINGS warning(s)"
+assert_contains "output shaper: ESTIMATED; 1,950 shaped; 1,402,159 output tokens; 63.5%" "$estimated_output"
+
+run_headroom_savings() {
+  printf '%s\n' \
+    '  Method:    MEASURED' \
+    '  Requests:  1,950 shaped' \
+    '  Saved:     1,402,159 output tokens' \
+    '  Reduction: 63.5%'
+}
+
+measured_output="$TEST_OUTPUT_DIR/measured-savings"
+WARNINGS=0
+check_headroom > "$measured_output"
+[ "$WARNINGS" -eq 0 ] || fail "measured savings produced $WARNINGS warning(s)"
+assert_contains "output shaper: MEASURED; 1,950 shaped" "$measured_output"
+
+run_headroom_savings() {
+  printf 'No shaped requests recorded yet.\n'
+}
+
 run_headroom_status() {
   printf 'Status: stopped\nHealthy: yes\n'
 }
