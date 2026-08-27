@@ -382,7 +382,8 @@ setup_headroom() {
        and .preset == $preset
        and .runtime_kind == $runtime
        and .base_env.HEADROOM_ROLLOUT_CHANNEL == "beta"
-       and .base_env.HEADROOM_OUTPUT_SHAPER == "1"' \
+       and .base_env.HEADROOM_OUTPUT_SHAPER == "1"
+       and .base_env.HEADROOM_OUTPUT_HOLDOUT == "0.1"' \
       "$manifest" > /dev/null 2>&1; then
     echo "  exists: Headroom persistent proxy ($preset)"
     if ! headroom install status --profile default 2>/dev/null | grep -q '^Status:.*running'; then
@@ -406,6 +407,7 @@ setup_headroom() {
     --no-telemetry \
     --env HEADROOM_ROLLOUT_CHANNEL=beta \
     --env HEADROOM_OUTPUT_SHAPER=1 \
+    --env HEADROOM_OUTPUT_HOLDOUT=0.1 \
     || echo "  failed: Headroom persistent Claude deployment"
 }
 
