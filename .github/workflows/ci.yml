@@ -46,6 +46,11 @@ jobs:
               with open(path) as f:
                   json.load(f)
               print("OK", path)
+
+          command = json.load(open("claude/settings.json"))["statusLine"]["command"]
+          if "@latest" in command:
+              raise SystemExit("statusLine must pin a version, got: %s" % command)
+          print("OK statusLine is pinned:", command)
           PY
       - name: Validate JSONC (VS Code)
         run: |
