@@ -11,9 +11,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: shellcheck
-        run: shellcheck -S warning install.sh test/test-install.sh test/test-dotfiles-doctor.sh test/test-claude-sandbox.sh claude/hooks/validate-bash.sh .shell-utils/*.sh .shell-utils/claude-sandbox
+        run: shellcheck -S warning install.sh test/test-install.sh test/test-dotfiles-doctor.sh test/test-claude-sandbox.sh test/test-claude-hooks.sh claude/hooks/*.sh .shell-utils/*.sh .shell-utils/claude-sandbox
       - name: Test dotfiles doctor
         run: bash test/test-dotfiles-doctor.sh
+      - name: Test Claude hooks
+        run: bash test/test-claude-hooks.sh
       - name: Install zsh
         run: sudo apt-get update -qq && sudo apt-get install -y -qq zsh
       - name: Test headroom proxy check
