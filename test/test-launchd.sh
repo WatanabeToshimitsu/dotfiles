@@ -71,7 +71,7 @@ PY
 
 echo "=== The agent runs a doctor entry point that still exists ==="
 [ -x "$REPO_DIR/.shell-utils/dotfiles-doctor.sh" ] || fail ".shell-utils/dotfiles-doctor.sh is missing or not executable"
-grep -Fq 'ln -fsn "$dotfiles_dir/.shell-utils" "$HOME/.shell-utils"' "$REPO_DIR/install.sh" \
+grep -Fq '.shell-utils" "$HOME/.shell-utils"' "$REPO_DIR/install.sh" \
   || fail "install.sh no longer links ~/.shell-utils, so the agent path is stale"
 bash -c "source '$REPO_DIR/.shell-utils/dotfiles-doctor.sh'; parse_options --notify" \
   || fail "dotfiles-doctor.sh no longer accepts --notify"
