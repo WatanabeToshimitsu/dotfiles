@@ -1,5 +1,5 @@
 #!/bin/bash
-DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
+DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WHO=$(whoami)
 BACKUP_TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 
@@ -648,6 +648,10 @@ setup_linux() {
 # ========================================
 # Main
 # ========================================
+
+if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
+  return 0
+fi
 
 if [ "${1:-}" = "--symlinks-only" ]; then
   setup_symlinks "$DOTFILES_DIR"
