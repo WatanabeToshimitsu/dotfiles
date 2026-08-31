@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: shellcheck
-        run: shellcheck -S warning install.sh test/test-install.sh test/test-dotfiles-doctor.sh test/test-claude-sandbox.sh test/test-claude-hooks.sh claude/hooks/*.sh .shell-utils/*.sh .shell-utils/claude-sandbox
+        run: shellcheck -S warning install.sh test/test-install.sh test/test-dotfiles-doctor.sh test/test-claude-sandbox.sh test/test-claude-hooks.sh test/test-launchd.sh claude/hooks/*.sh .shell-utils/*.sh .shell-utils/claude-sandbox
       - name: Test dotfiles doctor
         run: bash test/test-dotfiles-doctor.sh
       - name: Test Claude hooks
@@ -22,6 +22,8 @@ jobs:
         run: zsh test/test-headroom-proxy-check.zsh
       - name: Test Claude sandbox canary
         run: bash test/test-claude-sandbox.sh
+      - name: Test launchd agent
+        run: bash test/test-launchd.sh
       - name: Test tool-output compaction
         run: python3 -m unittest discover -s claude/hooks/tests -p 'test_*.py'
 
@@ -51,6 +53,19 @@ jobs:
         run: |
           npx --yes json5 vscode/settings.json > /dev/null
           npx --yes json5 vscode/keybindings.json > /dev/null
+
+  smoke-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test launchd agent
+        run: bash test/test-launchd.sh
+      - name: Test dotfiles doctor
+        run: bash test/test-dotfiles-doctor.sh
+      - name: Test Claude hooks
+        run: bash test/test-claude-hooks.sh
+      - name: Test headroom proxy check
+        run: zsh test/test-headroom-proxy-check.zsh
 
   install-ubuntu:
     runs-on: ubuntu-latest
