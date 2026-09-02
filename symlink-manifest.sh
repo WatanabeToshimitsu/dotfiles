@@ -33,7 +33,6 @@ MANIFEST_CLAUDE_FILES=(
   hooks/validate-bash.sh
   rules/common/coding-style.md
   rules/common/hooks.md
-  rules/common/patterns.md
   rules/common/security.md
   rules/common/testing.md
   agents/fable-deep.md
@@ -74,5 +73,6 @@ MANIFEST_CLAUDE_OBSOLETE_FILES=(
   rules/common/code-review.md
   rules/common/development-workflow.md
   rules/common/git-workflow.md
+  rules/common/patterns.md
   rules/common/performance.md
 )
