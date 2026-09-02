@@ -70,7 +70,8 @@ zinit wait"0b" load lucid for \
     autoload'#manydots-magic' \
         knu/zsh-manydots-magic \
     mollifier/cd-gitroot \
-    zsh-users/zsh-history-substring-search
+    atload'bindkey "^[[A" history-substring-search-up; bindkey "^[[B" history-substring-search-down' \
+        zsh-users/zsh-history-substring-search
 
 #####################
 # SETOPT            #
@@ -174,14 +175,6 @@ export FZF_CTRL_T_OPTS='--preview "bat  --color=always --style=header,grid --lin
 # COLORING          #
 #####################
 autoload colors && colors
-
-###############
-# * key bind  #
-###############
-# * zsh-history-substring
-source ~/.shell-utils/zsh-history-substrig-search.zsh
-bindkey '^[[A' history-substring-search-up
-bindkey '^[[B' history-substring-search-down
 
 #########
 # funcs

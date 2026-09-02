@@ -10,7 +10,7 @@ This is a personal dotfiles repository that manages shell configurations, editor
 
 - **Shell configs**: `.zshrc` (primary shell), `.bashrc`, `.bash_profile`, `.zprofile`, `.zshenv`, `.profile`
 - **Editor configs**: `.vimrc`, `.tmux.conf`
-- **Utilities**: `.shell-utils/` contains helper scripts (`ghq-rm.sh`, `zsh-history-substrig-search.zsh`)
+- **Utilities**: `.shell-utils/` contains helper scripts (`ghq-rm.sh`, `git-branch-prune.zsh`, `dotfiles-doctor.sh`)
 - **Package management**: `Brewfile` for Homebrew dependencies
 - **Prompt theme**: `oh-my-posh-theme/` contains the oh-my-posh configuration
 - **Claude Code config**: `claude/` contains global Claude Code settings, hooks, and rules (file-level symlinks to `~/.claude/`)
