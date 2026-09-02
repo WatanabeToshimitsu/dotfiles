@@ -11,9 +11,6 @@ source "$HOME/.local/share/zinit/zinit.git/zinit.zsh"
 autoload -Uz _zinit
 (( ${+_comps} )) && _comps[zinit]=_zinit
 
-#####################
-# Completion setup  #
-#####################
 # Pre-compinit: fpath/FPATH expansion (must be before compinit)
 mkdir -p ~/.zsh/completion
 fpath=(~/.zsh/completion $fpath)
@@ -33,8 +30,7 @@ command -v wtp &>/dev/null && eval "$(wtp shell-init zsh)"
 # Reclaim stand-alone `gtr` from zsh's built-in _tr (GNU coreutils prefix map)
 command -v git-gtr &>/dev/null && compdef _git-gtr gtr
 
-# Load a few important annexes, without Turbo
-# (this is currently required for annexes)
+# Annexes currently require loading without Turbo.
 zinit light-mode for \
     zdharma-continuum/zinit-annex-as-monitor \
     zdharma-continuum/zinit-annex-bin-gem-node \
@@ -44,12 +40,7 @@ zinit light-mode for \
 # End of Zinit's installer chunk
 
 # enhancd: fuzzy find cd "cd .." and "cd" and "cd -" is useful!
-# git-open: when on local git repository, git-open is open remote repository on github(* not gitlab etc)
-# anyframe: some convinient func
-# tab-fzf: tab = fzf activate
-# exa: colorful ls with icon and more.
 # manydots: comvertor manydots to parent directry on interactive shell e.g. ... -> ../..
-# zsh-completion: slow but rich kubectl completion
 
 zinit wait"0a" lucid for \
     atinit"zicdreplay" \
@@ -73,40 +64,29 @@ zinit wait"0b" load lucid for \
     atload'bindkey "^[[A" history-substring-search-up; bindkey "^[[B" history-substring-search-down' \
         zsh-users/zsh-history-substring-search
 
-#####################
-# SETOPT            #
-#####################
-export LANG=ja_JP.UTF-8 # * 日本語化
-setopt auto_cd # * 入力したコマンドが存在せず、かつディレクトリ名と一致するなら、ディレクトリに cd する
+export LANG=ja_JP.UTF-8
+setopt auto_cd
 setopt print_eight_bit # * 日本語ファイル名を表示可能にする
-setopt extended_glob # * `man zshexpn` の FILENAME GENERATION を参照 # * 拡張 glob を有効にする
-setopt auto_list # * 補完候補を一覧表示にする
+setopt extended_glob # * `man zshexpn` の FILENAME GENERATION を参照
+setopt auto_list
 setopt extended_history       # record timestamp of command in HISTFILE
-setopt hist_expire_dups_first # delete duplicates first when HISTFILE size exceeds HISTSIZE
-setopt hist_ignore_all_dups   # ignore duplicated commands history list
-setopt hist_ignore_space      # ignore commands that start with space
+setopt hist_expire_dups_first
+setopt hist_ignore_all_dups
+setopt hist_ignore_space
 setopt hist_verify            # show command with history expansion to user before running it
-setopt inc_append_history     # add commands to HISTFILE in order of execution
-setopt share_history          # share command history data
+setopt inc_append_history
+setopt share_history
 setopt always_to_end          # cursor moved to the end in full completion
-setopt hash_list_all          # hash everything before completion
+setopt hash_list_all
 setopt automenu
-setopt correct # spell correct
+setopt correct
 setopt vi
 unsetopt beep
 unsetopt completealiases      # こいつがONだとaliasに補完が付かない
 
-# chpwd() exa --git --icons --classify --group-directories-first --color-scale
 chpwd() { command -v lsd &>/dev/null && lsd || ls; }
 
-###############
-#   ZSTYLE    #
-###############
-# set list-colors to enable filename colorizing
 zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
-# preview directory's content with exa when completing cd
-# zstyle ':fzf-tab:complete:cd:*' fzf-preview 'exa -1 --color=always $realpath'
-# switch group using `,` and `.`
 zstyle ':fzf-tab:*' switch-group ',' '.'
 
 zstyle ':completion:*' completer _expand _complete _ignored _approximate
@@ -121,26 +101,16 @@ zstyle ':completion:*:*:*:*:processes' command "ps -u $USER -o pid,user,comm,cmd
 zstyle ':fzf-tab:complete:kill:argument-rest' extra-opts --preview=$extract'ps --pid=$in[(w)1] -o cmd --no-headers -w -w' --preview-window=down:3:wrap
 zstyle ":completion:*:git-checkout:*" sort false
 
-########################
-# bookmarks
-########################
 # * cd ~hoge と入力すると /long/path/to/hogehoge ディレクトリに移動
 hash -d dev=~/dev
 hash -d ghq=~/ghq
 hash -d zshrc=~/.zshrc
 hash -d dotfiles=~/dotfiles
 
-########################
-# * cmd history setteing
-########################
 HISTFILE=$HOME/.zsh-history
 HISTSIZE=30000
 SAVEHIST=30000
 
-#####################
-# ENV VARIABLE      #
-#####################
-# * enable some cli
 export PATH=$PATH:/usr/local/go/bin
 export PATH=$PATH:$HOME/go/bin
 
@@ -152,39 +122,24 @@ export PATH="/Users/kz86n/.local/bin:$PATH"
 # * shared env (Volta, Cargo) — POSIX file shared with bash/sh
 . "$HOME/.shell-common"
 
-# * use utils
 export PATH="$HOME/.shell-utils:$PATH"
 
-# * Docker experimental func enable
 export COMPOSE_DOCKER_CLI_BUILD=1
 export DOCKER_BUILDKIT=1
 
 export OPEN_BY_MY_EDITOR='code'
 
-# java
 export PATH="/opt/homebrew/opt/openjdk/bin:$PATH"
 
-# * REACT ENV
 REACT_EDITOR=code
 
-# fzf shortcuts customize
 export FZF_CTRL_T_COMMAND='rg --files --hidden --follow --glob "!.git/*"'
 export FZF_CTRL_T_OPTS='--preview "bat  --color=always --style=header,grid --line-range :100 {}"'
 
-#####################
-# COLORING          #
-#####################
 autoload colors && colors
 
-#########
-# funcs
-#########
 source ~/.shell-utils/git-branch-prune.zsh
 
-#####################
-# ALIASES           #
-#####################
-# * alias
 alias vi='/usr/bin/vim'
 command -v nvim &>/dev/null && alias vim='nvim'
 
@@ -233,11 +188,10 @@ alias gb-prune='git-branch-prune'
 alias git-branch-open='git open' # * need paulirish/git-open
 alias gbo='git-branch-open'
 if command -v gh &>/dev/null; then
-  alias git-pr-open='gh pr view --web' # open PR linked to current branch
+  alias git-pr-open='gh pr view --web'
   alias gpo='git-pr-open'
 fi
 alias gcode='${OPEN_BY_MY_EDITOR} $(ghq root)/$(ghq list | fzf --preview "bat --color=always --style=header,grid --line-range :80 $(ghq root)/{}/README.*")'
-# gvim: pick a ghq repo with fzf, cd into it, and open nvim (shell stays there on exit)
 if command -v nvim &>/dev/null; then
   function gvim() {
     local repo
@@ -253,9 +207,6 @@ alias ff='fzf'
 
 alias ghq-rm='ghq-rm.sh'
 
-##################################
-# fzf key bindings & completion  #
-##################################
 # NOTE: must stay AFTER `setopt vi` so ^I (Tab) binding lands on viins keymap
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
@@ -263,12 +214,10 @@ alias ghq-rm='ghq-rm.sh'
 # Depend on Env #
 #################
 # *  for private PC
-# * kubeconfig
 export KUBECONFIG=$KUBECONFIG:$HOME/.kube/config
 kubeconfigs=$(echo ~/.kube/config.*)
 export KUBECONFIG=${KUBECONFIG}:$(echo ${kubeconfigs// /:})
 
-# * 1password
 [[ -S "$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock" ]] && \
   export SSH_AUTH_SOCK="$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
 
@@ -289,10 +238,8 @@ python() {
 command -v safe-rm &>/dev/null && alias rm='safe-rm'
 export PATH="$HOME/.local/bin:$PATH"
 
-# oh-my-posh prompt theming
 command -v oh-my-posh &>/dev/null && eval "$(oh-my-posh init zsh --config ~/oh-my-posh-theme/myconfig.omp.json)"
 
-# Claude experimental agent teams feature
 export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
 [[ -f ~/.safe-chain/scripts/init-posix.sh ]] && source ~/.safe-chain/scripts/init-posix.sh
 
@@ -304,7 +251,6 @@ else
 fi
 eval "$(direnv hook zsh)"
 
-# For SkyPilot shell completion
 . ~/.sky/.sky-complete.zsh
 
 # herdr: vim-herdr-navigation passthrough — node TUIs (Claude Code etc.) keep

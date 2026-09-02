@@ -1,5 +1,3 @@
-# Warn when the Headroom proxy is not answering.
-#
 # ANTHROPIC_BASE_URL and OPENAI_BASE_URL point at the proxy, so Claude Code and
 # Codex both fail while it is stopped, with no hint about why. The proxy is a
 # launchd job that starts at login, so this only fires when something actually
