@@ -61,6 +61,7 @@ MANIFEST_CLAUDE_FILES=(
   rules/typescript/security.md
   rules/typescript/testing.md
   rules/typescript/type-safety.md
+  rules/web/security.md
 )
 
 # Claude files retired from this repository. install.sh removes only symlinks
