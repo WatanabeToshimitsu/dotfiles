@@ -30,12 +30,10 @@ for real_dir in "$HOME/.shell-utils" "$HOME/oh-my-posh-theme"; do
 done
 
 echo "=== Pre-creating a ~/.gitconfig symlink into the repository ==="
+# The repository copy is untracked after #74, so it is absent in a fresh clone and
+# the link starts out dangling. Never create it here: the checkout is read-only
+# under Docker.
 GITCONFIG_RETIRED="$DOTFILES_DIR/.gitconfig"
-GITCONFIG_TEMP=0
-if [ ! -e "$GITCONFIG_RETIRED" ]; then
-    printf '[user]\n\tname = sentinel\n' > "$GITCONFIG_RETIRED"
-    GITCONFIG_TEMP=1
-fi
 ln -sfn "$GITCONFIG_RETIRED" "$HOME/.gitconfig"
 
 echo "=== Running install.sh --symlinks-only ==="
@@ -95,16 +93,15 @@ for dir_link in "$HOME/.shell-utils" "$HOME/oh-my-posh-theme"; do
     fi
 done
 
-echo "=== Verifying the retired .gitconfig symlink became a machine-local file ==="
-if [ -f "$HOME/.gitconfig" ] && [ ! -L "$HOME/.gitconfig" ] \
-    && cmp -s "$HOME/.gitconfig" "$GITCONFIG_RETIRED"; then
-    echo "  OK: .gitconfig detached with its contents intact"
-else
-    echo "  FAIL: .gitconfig was not detached into a machine-local file"
+echo "=== Verifying the retired .gitconfig symlink was detached from the repository ==="
+if [ -L "$HOME/.gitconfig" ]; then
+    echo "  FAIL: .gitconfig still points into the repository"
     ERRORS=$((ERRORS + 1))
-fi
-if [ "$GITCONFIG_TEMP" -eq 1 ]; then
-    rm -f "$GITCONFIG_RETIRED"
+elif [ -e "$GITCONFIG_RETIRED" ] && ! cmp -s "$HOME/.gitconfig" "$GITCONFIG_RETIRED"; then
+    echo "  FAIL: .gitconfig was detached without preserving its contents"
+    ERRORS=$((ERRORS + 1))
+else
+    echo "  OK: .gitconfig no longer points into the repository"
 fi
 
 echo "=== Verifying pre-existing directory contents were backed up, not deleted ==="
@@ -138,10 +135,14 @@ else
 fi
 
 echo "=== Verifying a machine-local .gitconfig is not replaced on re-run ==="
-if [ -f "$HOME/.gitconfig" ] && [ ! -L "$HOME/.gitconfig" ]; then
-    echo "  OK: .gitconfig left as a machine-local file"
+GITCONFIG_LOCAL_MARKER="name = machine local identity"
+printf '[user]\n\t%s\n' "$GITCONFIG_LOCAL_MARKER" > "$HOME/.gitconfig"
+bash "$DOTFILES_DIR/install.sh" --symlinks-only > /dev/null
+if [ -f "$HOME/.gitconfig" ] && [ ! -L "$HOME/.gitconfig" ] \
+    && grep -q "$GITCONFIG_LOCAL_MARKER" "$HOME/.gitconfig"; then
+    echo "  OK: .gitconfig left as an unchanged machine-local file"
 else
-    echo "  FAIL: .gitconfig was replaced by a symlink"
+    echo "  FAIL: .gitconfig was replaced or modified"
     ERRORS=$((ERRORS + 1))
 fi
 
@@ -186,7 +187,8 @@ else
 fi
 
 echo "=== Verifying uninstall left the machine-local .gitconfig alone ==="
-if [ -f "$HOME/.gitconfig" ] && [ ! -L "$HOME/.gitconfig" ]; then
+if [ -f "$HOME/.gitconfig" ] && [ ! -L "$HOME/.gitconfig" ] \
+    && grep -q "$GITCONFIG_LOCAL_MARKER" "$HOME/.gitconfig"; then
     echo "  OK: machine-local .gitconfig preserved after uninstall"
 else
     echo "  FAIL: machine-local .gitconfig was removed by uninstall"
