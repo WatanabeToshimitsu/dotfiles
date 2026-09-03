@@ -21,6 +21,14 @@ mkdir -p "$HOME/.claude/hooks"
 ln -s "$DOTFILES_DIR/claude/hooks/deny-check.sh" "$HOME/.claude/hooks/deny-check.sh"
 ln -s "$DOTFILES_DIR/claude/hooks/link-worktree-memory.sh" "$HOME/.claude/hooks/link-worktree-memory.sh"
 
+echo "=== Pre-creating real directories that install.sh must not delete ==="
+SENTINEL_CONTENT="machine-local file that predates the symlink"
+for real_dir in "$HOME/.shell-utils" "$HOME/oh-my-posh-theme"; do
+    rm -rf "$real_dir"
+    mkdir -p "$real_dir"
+    echo "$SENTINEL_CONTENT" > "$real_dir/sentinel.txt"
+done
+
 echo "=== Running install.sh --symlinks-only ==="
 bash "$DOTFILES_DIR/install.sh" --symlinks-only
 
@@ -74,6 +82,16 @@ for dir_link in "$HOME/.shell-utils" "$HOME/oh-my-posh-theme"; do
         echo "  OK: $dir_link"
     else
         echo "  FAIL: $dir_link is not a symlink"
+        ERRORS=$((ERRORS + 1))
+    fi
+done
+
+echo "=== Verifying pre-existing directory contents were backed up, not deleted ==="
+for rel in .shell-utils oh-my-posh-theme; do
+    if grep -rqs "$SENTINEL_CONTENT" "$HOME/.dotfiles-backup"/*/"$rel"/sentinel.txt; then
+        echo "  OK: $rel contents preserved under ~/.dotfiles-backup"
+    else
+        echo "  FAIL: $rel contents were deleted instead of backed up"
         ERRORS=$((ERRORS + 1))
     fi
 done
