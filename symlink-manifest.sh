@@ -5,7 +5,7 @@
 MANIFEST_FILES=(
   .zshrc .bashrc .bash_profile .bash_logout
   .profile .zprofile .zshenv .shell-common
-  .vimrc .tmux.conf .gitconfig
+  .vimrc .tmux.conf
   .huskyrc
 )
 

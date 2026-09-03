@@ -101,6 +101,29 @@ setup_npmrc() {
   fi
 }
 
+# .gitconfig is no longer tracked (#74). An existing symlink has to become a real
+# file before the repository copy goes away, or the next clone leaves the machine
+# with no Git identity at all.
+setup_gitconfig() {
+  local dotfiles_dir="$1"
+  local target="$HOME/.gitconfig"
+  local retired_target="$dotfiles_dir/.gitconfig"
+
+  [ -L "$target" ] || return 0
+  if [ "$(readlink "$target")" != "$retired_target" ]; then
+    echo "  exists: .gitconfig (foreign symlink left unmanaged)"
+    return 0
+  fi
+
+  rm "$target"
+  if [ -f "$retired_target" ]; then
+    cp "$retired_target" "$target"
+    echo "  detached: .gitconfig (now a machine-local file)"
+  else
+    echo "  removed dangling link: .gitconfig"
+  fi
+}
+
 setup_symlinks() {
   local dotfiles_dir="${1:-$DOTFILES_DIR}"
 
@@ -117,6 +140,7 @@ setup_symlinks() {
   done
 
   setup_npmrc "$dotfiles_dir"
+  setup_gitconfig "$dotfiles_dir"
 
   for file in "${MANIFEST_CONFIG_FILES[@]}"; do
     if [ -f "$dotfiles_dir/$file" ]; then

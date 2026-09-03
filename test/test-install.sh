@@ -29,6 +29,15 @@ for real_dir in "$HOME/.shell-utils" "$HOME/oh-my-posh-theme"; do
     echo "$SENTINEL_CONTENT" > "$real_dir/sentinel.txt"
 done
 
+echo "=== Pre-creating a ~/.gitconfig symlink into the repository ==="
+GITCONFIG_RETIRED="$DOTFILES_DIR/.gitconfig"
+GITCONFIG_TEMP=0
+if [ ! -e "$GITCONFIG_RETIRED" ]; then
+    printf '[user]\n\tname = sentinel\n' > "$GITCONFIG_RETIRED"
+    GITCONFIG_TEMP=1
+fi
+ln -sfn "$GITCONFIG_RETIRED" "$HOME/.gitconfig"
+
 echo "=== Running install.sh --symlinks-only ==="
 bash "$DOTFILES_DIR/install.sh" --symlinks-only
 
@@ -86,6 +95,18 @@ for dir_link in "$HOME/.shell-utils" "$HOME/oh-my-posh-theme"; do
     fi
 done
 
+echo "=== Verifying the retired .gitconfig symlink became a machine-local file ==="
+if [ -f "$HOME/.gitconfig" ] && [ ! -L "$HOME/.gitconfig" ] \
+    && cmp -s "$HOME/.gitconfig" "$GITCONFIG_RETIRED"; then
+    echo "  OK: .gitconfig detached with its contents intact"
+else
+    echo "  FAIL: .gitconfig was not detached into a machine-local file"
+    ERRORS=$((ERRORS + 1))
+fi
+if [ "$GITCONFIG_TEMP" -eq 1 ]; then
+    rm -f "$GITCONFIG_RETIRED"
+fi
+
 echo "=== Verifying pre-existing directory contents were backed up, not deleted ==="
 for rel in .shell-utils oh-my-posh-theme; do
     if grep -rqs "$SENTINEL_CONTENT" "$HOME/.dotfiles-backup"/*/"$rel"/sentinel.txt; then
@@ -113,6 +134,14 @@ if [ -f "$HOME/.npmrc" ] && [ ! -L "$HOME/.npmrc" ] \
     echo "  OK: retired symlink migrated to a machine-local file"
 else
     echo "  FAIL: retired .npmrc symlink was not migrated"
+    ERRORS=$((ERRORS + 1))
+fi
+
+echo "=== Verifying a machine-local .gitconfig is not replaced on re-run ==="
+if [ -f "$HOME/.gitconfig" ] && [ ! -L "$HOME/.gitconfig" ]; then
+    echo "  OK: .gitconfig left as a machine-local file"
+else
+    echo "  FAIL: .gitconfig was replaced by a symlink"
     ERRORS=$((ERRORS + 1))
 fi
 
@@ -153,6 +182,24 @@ if [ -f "$HOME/.npmrc" ] && [ ! -L "$HOME/.npmrc" ]; then
     echo "  OK: machine-local .npmrc preserved after uninstall"
 else
     echo "  FAIL: machine-local .npmrc was removed by uninstall"
+    ERRORS=$((ERRORS + 1))
+fi
+
+echo "=== Verifying uninstall left the machine-local .gitconfig alone ==="
+if [ -f "$HOME/.gitconfig" ] && [ ! -L "$HOME/.gitconfig" ]; then
+    echo "  OK: machine-local .gitconfig preserved after uninstall"
+else
+    echo "  FAIL: machine-local .gitconfig was removed by uninstall"
+    ERRORS=$((ERRORS + 1))
+fi
+
+echo "=== Verifying install does not create a .gitconfig where none exists ==="
+rm -f "$HOME/.gitconfig"
+bash "$DOTFILES_DIR/install.sh" --symlinks-only > /dev/null
+if [ ! -e "$HOME/.gitconfig" ] && [ ! -L "$HOME/.gitconfig" ]; then
+    echo "  OK: no .gitconfig created on a machine without one"
+else
+    echo "  FAIL: install created $HOME/.gitconfig"
     ERRORS=$((ERRORS + 1))
 fi
 
