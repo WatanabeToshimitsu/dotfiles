@@ -65,7 +65,7 @@ installAppsNeedsBrew() {
   done
 }
 
-backup_if_real_file() {
+backup_if_real_path() {
   local target=$1
   [ -e "$target" ] && [ ! -L "$target" ] || return 0
 
@@ -73,7 +73,7 @@ backup_if_real_file() {
   local dest="$HOME/.dotfiles-backup/$BACKUP_TIMESTAMP/$rel_path"
   mkdir -p "$(dirname "$dest")"
   mv "$target" "$dest"
-  echo "  backed up: $rel_path"
+  echo "  backed up: $rel_path -> ~/.dotfiles-backup/$BACKUP_TIMESTAMP/$rel_path"
 }
 
 setup_npmrc() {
@@ -110,7 +110,7 @@ setup_symlinks() {
 
   for file in "${MANIFEST_FILES[@]}"; do
     if [ -f "$dotfiles_dir/$file" ]; then
-      backup_if_real_file "$HOME/$file"
+      backup_if_real_path "$HOME/$file"
       ln -fs "$dotfiles_dir/$file" "$HOME/$file"
       echo "  linked: $file"
     fi
@@ -121,7 +121,7 @@ setup_symlinks() {
   for file in "${MANIFEST_CONFIG_FILES[@]}"; do
     if [ -f "$dotfiles_dir/$file" ]; then
       mkdir -p "$HOME/$(dirname "$file")"
-      backup_if_real_file "$HOME/$file"
+      backup_if_real_path "$HOME/$file"
       ln -fs "$dotfiles_dir/$file" "$HOME/$file"
       echo "  linked: $file"
     fi
@@ -130,7 +130,7 @@ setup_symlinks() {
   for file in "${MANIFEST_CLAUDE_FILES[@]}"; do
     if [ -f "$dotfiles_dir/claude/$file" ]; then
       mkdir -p "$HOME/.claude/$(dirname "$file")"
-      backup_if_real_file "$HOME/.claude/$file"
+      backup_if_real_path "$HOME/.claude/$file"
       ln -fs "$dotfiles_dir/claude/$file" "$HOME/.claude/$file"
       echo "  linked: .claude/$file"
     fi
@@ -145,13 +145,13 @@ setup_symlinks() {
     fi
   done
 
-  # Directory symlinks: use -n to avoid following existing symlinks into the target
-  # and rm -rf guard for the case where a real (non-symlink) directory exists
-  [ -d "$HOME/.shell-utils" ] && [ ! -L "$HOME/.shell-utils" ] && rm -rf "$HOME/.shell-utils"
+  # Directory symlinks: use -n so an existing symlink is replaced rather than
+  # followed into the directory it points at
+  backup_if_real_path "$HOME/.shell-utils"
   ln -fsn "$dotfiles_dir/.shell-utils" "$HOME/.shell-utils"
   echo "  linked: .shell-utils/"
 
-  [ -d "$HOME/oh-my-posh-theme" ] && [ ! -L "$HOME/oh-my-posh-theme" ] && rm -rf "$HOME/oh-my-posh-theme"
+  backup_if_real_path "$HOME/oh-my-posh-theme"
   ln -fsn "$dotfiles_dir/oh-my-posh-theme" "$HOME/oh-my-posh-theme"
   echo "  linked: oh-my-posh-theme/"
 
@@ -163,6 +163,10 @@ setup_symlinks() {
   mkdir -p "$HOME/.config"
   ln -fsn "$dotfiles_dir/.config/nvim" "$HOME/.config/nvim"
   echo "  linked: .config/nvim/"
+
+  if [ -d "$HOME/.dotfiles-backup/$BACKUP_TIMESTAMP" ]; then
+    echo "  restore a backup with: mv ~/.dotfiles-backup/$BACKUP_TIMESTAMP/<path> ~/<path>"
+  fi
 }
 
 # Restore Neovim plugins pinned by lazy-lock.json (first run also clones lazy.nvim)
@@ -443,7 +447,7 @@ setup_vscode() {
   local user_dir="$HOME/Library/Application Support/Code/User"
   [ -d "$user_dir" ] || return 0
 
-  backup_if_real_file "$user_dir/keybindings.json"
+  backup_if_real_path "$user_dir/keybindings.json"
   ln -fs "$DOTFILES_DIR/vscode/keybindings.json" "$user_dir/keybindings.json"
   echo "  linked: vscode keybindings.json"
 
