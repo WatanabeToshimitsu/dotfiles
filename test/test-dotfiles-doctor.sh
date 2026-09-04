@@ -40,10 +40,6 @@ headroom_deployment_configured() {
   return 0
 }
 
-compactor_hook_configured() {
-  return 0
-}
-
 run_headroom_status() {
   printf 'Status: running\nHealthy: yes\n'
 }
@@ -79,14 +75,6 @@ run_claude_latest_version() {
   printf '2.1.241\n'
 }
 
-run_compactor_health() {
-  printf '%s\n' \
-    'window: 7 days' \
-    'hook active: yes' \
-    'hook last invoked: 2026-08-26T00:00:00Z' \
-    'hook last error: none'
-}
-
 run_headroom_runtime_flags() {
   printf '%s\n' 'HEADROOM_OUTPUT_SHAPER=1' 'HEADROOM_OUTPUT_HOLDOUT='
 }
@@ -97,7 +85,6 @@ check_agent_harness > "$healthy_output"
 [ "$WARNINGS" -eq 0 ] || fail "healthy harness produced $WARNINGS warning(s)"
 assert_contains "2 MCP server(s) connected" "$healthy_output"
 assert_contains "installed 2.1.241; latest stable 2.1.241" "$healthy_output"
-assert_contains "hook active; last invoked 2026-08-26T00:00:00Z" "$healthy_output"
 assert_contains "output shaper flag reached the proxy" "$healthy_output"
 assert_contains "no output holdout" "$healthy_output"
 
@@ -111,7 +98,6 @@ check_agent_harness > "$mcp_timeout_output"
 [ "$WARNINGS" -eq 0 ] || fail "MCP timeout produced $WARNINGS warning(s), expected 0"
 assert_contains "MCP status check timed out after 8s" "$mcp_timeout_output"
 assert_contains "installed 2.1.241; latest stable 2.1.241" "$mcp_timeout_output"
-assert_contains "hook active; last invoked" "$mcp_timeout_output"
 
 run_claude_mcp_list() {
   printf 'broken: missing-command - ✗ Failed: command not found\n'
@@ -223,23 +209,13 @@ run_claude_version() {
   printf '2.1.231 (Claude Code)\n'
 }
 
-run_compactor_health() {
-  printf '%s\n' \
-    'window: 7 days' \
-    'hook active: no' \
-    'hook last invoked: never' \
-    'hook last error: JSONDecodeError at 2026-08-26T00:00:00Z'
-}
-
 unhealthy_output="$TEST_OUTPUT_DIR/unhealthy"
 WARNINGS=0
 check_agent_harness > "$unhealthy_output"
-[ "$WARNINGS" -eq 4 ] || fail "unhealthy harness produced $WARNINGS warning(s), expected 4"
+[ "$WARNINGS" -eq 2 ] || fail "unhealthy harness produced $WARNINGS warning(s), expected 2"
 assert_contains "run install.sh --headroom-only" "$unhealthy_output"
 assert_contains "MCP server 'serena' is not connected (possibly temporary)" "$unhealthy_output"
 assert_contains "Claude Code installed 2.1.231; latest stable 2.1.241" "$unhealthy_output"
-assert_contains "Compaction hook was not observed in 7 days" "$unhealthy_output"
-assert_contains "unresolved JSONDecodeError" "$unhealthy_output"
 assert_not_contains "credential-do-not-log" "$unhealthy_output"
 
 printf 'dotfiles-doctor tests: ok\n'
