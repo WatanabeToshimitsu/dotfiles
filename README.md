@@ -13,7 +13,6 @@ Personal dotfiles for macOS, Linux, and WSL2 environments.
 | `.vimrc`                             | Vim settings (UTF-8, 2-space tabs, smart search)                                 |
 | `.tmux.conf`                         | tmux settings — kept as fallback for remote/ssh hosts without herdr              |
 | `.zprofile` / `.zshenv` / `.profile` | Shell profile and environment files                                              |
-| `.gitconfig`                         | Git configuration                                                                |
 | `.huskyrc`                           | Husky git hooks configuration                                                    |
 | `.shell-utils/`                      | Utility scripts (`ghq-rm.sh`, `git-branch-prune.zsh`, ...)                       |
 | `claude/`                            | [Claude Code](https://claude.ai/code) global settings, hooks, rules, statusline  |
