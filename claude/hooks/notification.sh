@@ -23,11 +23,18 @@ esac
 
 # osascript -e "display notification \"${NOTIFY_MSG}\" with title \"Claude Code\" sound name \"Glass\""
 
-# Pushover notification
-curl -s \
+# Pushover is opt-in because the notification body is sent to an external API.
+if [ -z "${PUSHOVER_API_TOKEN:-}" ] || [ -z "${PUSHOVER_USER_KEY:-}" ]; then
+  exit 0
+fi
+
+curl --silent --show-error \
+    --connect-timeout 3 \
+    --max-time 5 \
     --form-string "token=${PUSHOVER_API_TOKEN}" \
     --form-string "user=${PUSHOVER_USER_KEY}" \
     --form-string "message=${NOTIFY_MSG}" \
     --form-string "device=iphone15" \
     --form-string "title=Claude Code" \
-    https://api.pushover.net/1/messages.json
+    https://api.pushover.net/1/messages.json \
+    > /dev/null 2>&1 || :
