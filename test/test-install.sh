@@ -8,6 +8,23 @@ ERRORS=0
 # shellcheck source=../symlink-manifest.sh
 source "$DOTFILES_DIR/symlink-manifest.sh"
 
+# Every link install.sh is expected to create, as "target|source" pairs derived
+# from the manifest. Adding a manifest entry extends the assertions below with
+# no further edit here.
+MANAGED_LINKS=()
+for file in "${MANIFEST_FILES[@]}"; do
+    MANAGED_LINKS+=("$HOME/$file|$DOTFILES_DIR/$file")
+done
+for file in "${MANIFEST_CONFIG_FILES[@]}"; do
+    MANAGED_LINKS+=("$HOME/$file|$DOTFILES_DIR/$file")
+done
+for file in "${MANIFEST_CLAUDE_FILES[@]}"; do
+    MANAGED_LINKS+=("$HOME/.claude/$file|$DOTFILES_DIR/claude/$file")
+done
+for dir in "${MANIFEST_DIRS[@]}"; do
+    MANAGED_LINKS+=("$HOME/$dir|$DOTFILES_DIR/$dir")
+done
+
 echo "=== Syntax check ==="
 bash -n "$DOTFILES_DIR/install.sh" || { echo "FAIL: install.sh syntax error"; ERRORS=$((ERRORS + 1)); }
 bash -n "$DOTFILES_DIR/uninstall.sh" || { echo "FAIL: uninstall.sh syntax error"; ERRORS=$((ERRORS + 1)); }
@@ -16,17 +33,20 @@ echo "=== Pre-creating a machine-local .npmrc ==="
 NPMRC_CONTENT="pre-existing npmrc content"
 echo "$NPMRC_CONTENT" > "$HOME/.npmrc"
 
-echo "=== Pre-creating retired Claude hook symlinks ==="
-mkdir -p "$HOME/.claude/hooks"
-ln -s "$DOTFILES_DIR/claude/hooks/deny-check.sh" "$HOME/.claude/hooks/deny-check.sh"
-ln -s "$DOTFILES_DIR/claude/hooks/link-worktree-memory.sh" "$HOME/.claude/hooks/link-worktree-memory.sh"
+echo "=== Pre-creating retired Claude symlinks ==="
+# These point at paths the repository no longer carries, so the links are
+# deliberately left dangling; install.sh matches them by readlink target.
+for file in "${MANIFEST_CLAUDE_OBSOLETE_FILES[@]}"; do
+    mkdir -p "$HOME/.claude/$(dirname "$file")"
+    ln -sfn "$DOTFILES_DIR/claude/$file" "$HOME/.claude/$file"
+done
 
 echo "=== Pre-creating real directories that install.sh must not delete ==="
 SENTINEL_CONTENT="machine-local file that predates the symlink"
-for real_dir in "$HOME/.shell-utils" "$HOME/oh-my-posh-theme"; do
-    rm -rf "$real_dir"
-    mkdir -p "$real_dir"
-    echo "$SENTINEL_CONTENT" > "$real_dir/sentinel.txt"
+for dir in "${MANIFEST_DIRS[@]}"; do
+    rm -rf "${HOME:?}/$dir"
+    mkdir -p "$HOME/$dir"
+    echo "$SENTINEL_CONTENT" > "$HOME/$dir/sentinel.txt"
 done
 
 echo "=== Pre-creating a ~/.gitconfig symlink into the repository ==="
@@ -39,42 +59,34 @@ ln -sfn "$GITCONFIG_RETIRED" "$HOME/.gitconfig"
 echo "=== Running install.sh --symlinks-only ==="
 bash "$DOTFILES_DIR/install.sh" --symlinks-only
 
-echo "=== Verifying symlinks ==="
-EXPECTED_LINKS=(
-    "$HOME/.zshrc"
-    "$HOME/.bashrc"
-    "$HOME/.bash_profile"
-    "$HOME/.profile"
-    "$HOME/.vimrc"
-    "$HOME/.tmux.conf"
-)
-
-for file in "${MANIFEST_CLAUDE_FILES[@]}"; do
-    EXPECTED_LINKS+=("$HOME/.claude/$file")
-done
-
-for link in "${EXPECTED_LINKS[@]}"; do
-    if [ -L "$link" ]; then
-        echo "  OK: $link"
-    else
-        echo "  FAIL: $link is not a symlink"
+echo "=== Verifying every managed link resolves into the repository ==="
+for entry in "${MANAGED_LINKS[@]}"; do
+    target="${entry%%|*}"
+    source="${entry#*|}"
+    rel="${target#"$HOME/"}"
+    if [ ! -e "$source" ]; then
+        echo "  FAIL: $rel is in the manifest but $source is missing from the repo"
         ERRORS=$((ERRORS + 1))
+    elif [ ! -L "$target" ]; then
+        echo "  FAIL: $rel is not a symlink"
+        ERRORS=$((ERRORS + 1))
+    elif [ "$(readlink "$target")" != "$source" ]; then
+        echo "  FAIL: $rel points at $(readlink "$target"), expected $source"
+        ERRORS=$((ERRORS + 1))
+    else
+        echo "  OK: $rel"
     fi
 done
 
-if [ ! -L "$HOME/.claude/hooks/deny-check.sh" ]; then
-    echo "  OK: retired deny-check symlink removed"
-else
-    echo "  FAIL: retired deny-check symlink still present"
-    ERRORS=$((ERRORS + 1))
-fi
-
-if [ ! -L "$HOME/.claude/hooks/link-worktree-memory.sh" ]; then
-    echo "  OK: retired worktree-memory symlink removed"
-else
-    echo "  FAIL: retired worktree-memory symlink still present"
-    ERRORS=$((ERRORS + 1))
-fi
+echo "=== Verifying retired Claude symlinks were removed ==="
+for file in "${MANIFEST_CLAUDE_OBSOLETE_FILES[@]}"; do
+    if [ ! -L "$HOME/.claude/$file" ]; then
+        echo "  OK: retired .claude/$file removed"
+    else
+        echo "  FAIL: retired .claude/$file still present"
+        ERRORS=$((ERRORS + 1))
+    fi
+done
 
 if ! grep -q "link-worktree-memory" "$DOTFILES_DIR/claude/settings.json"; then
     echo "  OK: retired worktree-memory hook is not configured"
@@ -82,16 +94,6 @@ else
     echo "  FAIL: retired worktree-memory hook is still configured"
     ERRORS=$((ERRORS + 1))
 fi
-
-echo "=== Directory symlinks ==="
-for dir_link in "$HOME/.shell-utils" "$HOME/oh-my-posh-theme"; do
-    if [ -L "$dir_link" ]; then
-        echo "  OK: $dir_link"
-    else
-        echo "  FAIL: $dir_link is not a symlink"
-        ERRORS=$((ERRORS + 1))
-    fi
-done
 
 echo "=== Verifying the retired .gitconfig symlink was detached from the repository ==="
 if [ -L "$HOME/.gitconfig" ]; then
@@ -105,7 +107,7 @@ else
 fi
 
 echo "=== Verifying pre-existing directory contents were backed up, not deleted ==="
-for rel in .shell-utils oh-my-posh-theme; do
+for rel in "${MANIFEST_DIRS[@]}"; do
     if grep -rqs "$SENTINEL_CONTENT" "$HOME/.dotfiles-backup"/*/"$rel"/sentinel.txt; then
         echo "  OK: $rel contents preserved under ~/.dotfiles-backup"
     else
@@ -152,32 +154,17 @@ ln -sf /etc/hosts "$HOME/.foreign"
 echo "=== Running uninstall.sh ==="
 bash "$DOTFILES_DIR/uninstall.sh"
 
-echo "=== Verifying tracked symlinks were removed ==="
-for link in "$HOME/.zshrc" "$HOME/.vimrc"; do
-    if [ ! -e "$link" ] && [ ! -L "$link" ]; then
-        echo "  OK: $link removed"
+echo "=== Verifying every managed link was removed ==="
+for entry in "${MANAGED_LINKS[@]}"; do
+    target="${entry%%|*}"
+    rel="${target#"$HOME/"}"
+    if [ ! -e "$target" ] && [ ! -L "$target" ]; then
+        echo "  OK: $rel removed"
     else
-        echo "  FAIL: $link still present"
+        echo "  FAIL: $rel still present"
         ERRORS=$((ERRORS + 1))
     fi
 done
-
-for file in "${MANIFEST_CLAUDE_FILES[@]}"; do
-    link="$HOME/.claude/$file"
-    if [ ! -e "$link" ] && [ ! -L "$link" ]; then
-        echo "  OK: $link removed"
-    else
-        echo "  FAIL: $link still present"
-        ERRORS=$((ERRORS + 1))
-    fi
-done
-
-if [ ! -e "$HOME/.shell-utils" ] && [ ! -L "$HOME/.shell-utils" ]; then
-    echo "  OK: $HOME/.shell-utils removed"
-else
-    echo "  FAIL: $HOME/.shell-utils still present"
-    ERRORS=$((ERRORS + 1))
-fi
 
 if [ -f "$HOME/.npmrc" ] && [ ! -L "$HOME/.npmrc" ]; then
     echo "  OK: machine-local .npmrc preserved after uninstall"
