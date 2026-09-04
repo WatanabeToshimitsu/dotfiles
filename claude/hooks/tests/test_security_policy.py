@@ -76,6 +76,49 @@ class SecurityPolicyTest(unittest.TestCase):
         self.assertIn("Bash(rm -f *)", permissions["deny"])
         self.assertIn("Read(**/*.env)", permissions["deny"])
 
+    def test_routine_git_delivery_is_not_gated(self) -> None:
+        permissions = self.settings["permissions"]
+        gated = set(permissions["ask"]) | set(permissions["deny"])
+        for rule in (
+            "Bash(git push:*)",
+            "Bash(git checkout:*)",
+            "Bash(git switch:*)",
+            "Bash(git rm:*)",
+            "Bash(git rebase:*)",
+            "Bash(git reset:*)",
+            "Bash(git branch -D *)",
+        ):
+            self.assertNotIn(rule, gated)
+
+    def test_delivery_commands_are_preapproved(self) -> None:
+        allow_rules = self.settings["permissions"]["allow"]
+        for rule in (
+            "Bash(git add:*)",
+            "Bash(git commit:*)",
+            "Bash(git push:*)",
+            "Bash(git branch:*)",
+            "Bash(git switch:*)",
+            "Bash(git checkout:*)",
+            "Bash(git worktree:*)",
+            "Bash(git fetch:*)",
+            "Bash(git diff:*)",
+            "Bash(gh pr create:*)",
+        ):
+            self.assertIn(rule, allow_rules)
+
+    def test_destructive_git_forms_stay_denied(self) -> None:
+        deny_rules = self.settings["permissions"]["deny"]
+        for rule in (
+            "Bash(git push --force*)",
+            "Bash(git push -f *)",
+            "Bash(git checkout -f*)",
+            "Bash(git checkout --force*)",
+            "Bash(git switch --discard-changes*)",
+            "Bash(git reset --hard*)",
+            "Bash(git clean -f*)",
+        ):
+            self.assertIn(rule, deny_rules)
+
     def test_incomplete_deny_parser_is_not_wired(self) -> None:
         self.assertFalse(DENY_CHECK.exists())
         self.assertNotIn("deny-check.sh", json.dumps(self.settings["hooks"]))
