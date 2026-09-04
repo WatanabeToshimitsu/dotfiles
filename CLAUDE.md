@@ -47,3 +47,31 @@ bash install.sh --symlinks-only
 - Git aliases use short prefixes: `g`=git, `gb`=branch, `gpl`=pull, `gps`=push, `gco`=checkout
 - The `git-branch-prune` function handles both traditional merge and squash-merge cleanup via `gh` CLI
 - All tool-dependent aliases use `command -v` guards so `.zshrc` loads safely without those tools installed
+
+## Parallel Agents
+
+More than one agent (Claude Code and Codex/GPT) works these issues at the same
+time. Before starting an issue, confirm nobody else is on it, then claim it.
+
+The `agent:*` labels only help once the other agent cooperates, so check the
+observable traces first:
+
+```bash
+gh issue view <N> --json state,labels,assignees,comments
+gh pr list --state all --search "<N>"
+git fetch --prune && git branch -r --list "*<N>*"
+git log --oneline origin/main -15
+```
+
+If any of those show work already in progress, stop and ask rather than starting
+a second implementation.
+
+Claim the issue before touching any file:
+
+```bash
+gh issue edit <N> --add-label "agent:claude"   # or agent:codex
+```
+
+Leave a comment naming the agent, the branch, and the date. Remove the label with
+`--remove-label` if the work is abandoned; a merged PR closes the issue, so the
+label can stay in that case.
