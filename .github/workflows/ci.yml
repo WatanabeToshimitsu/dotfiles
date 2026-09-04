@@ -9,12 +9,23 @@ permissions:
   contents: read
 
 jobs:
+  pin-actions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Verify pinned GitHub Actions
+        uses: suzuki-shunsuke/pinact-action@896d595f299e71d65b9d28349d6956abe144390a # v3.0.0
+        with:
+          fix: "false"
+
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: shellcheck
-        run: shellcheck -S warning install.sh test/test-install.sh test/test-dotfiles-doctor.sh test/test-dotfiles-secrets.sh test/test-claude-sandbox.sh test/test-claude-hooks.sh test/test-launchd.sh test/test-secret-scan.sh claude/hooks/*.sh .shell-utils/*.sh .shell-utils/claude-sandbox
+        run: shellcheck -S warning install.sh test/test-install.sh test/test-dotfiles-doctor.sh test/test-dotfiles-secrets.sh test/test-external-dependencies.sh test/test-claude-sandbox.sh test/test-claude-hooks.sh test/test-launchd.sh test/test-secret-scan.sh claude/hooks/*.sh .shell-utils/*.sh .shell-utils/claude-sandbox
       - name: Test 1Password secret rendering
         run: bash test/test-dotfiles-secrets.sh
       - name: Test dotfiles doctor
@@ -39,7 +50,7 @@ jobs:
       GITLEAKS_VERSION: 8.30.1
       GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Install Gitleaks
@@ -57,11 +68,13 @@ jobs:
         run: gitleaks git --redact --verbose --timeout 300 .
       - name: Test public-repository boundary
         run: bash test/test-secret-scan.sh
+      - name: Test external dependency boundary
+        run: bash test/test-external-dependencies.sh
 
   validate-configs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Validate TOML (herdr)
         run: |
           python3 - <<'PY'
@@ -82,13 +95,13 @@ jobs:
           PY
       - name: Validate JSONC (VS Code)
         run: |
-          npx --yes json5 vscode/settings.json > /dev/null
-          npx --yes json5 vscode/keybindings.json > /dev/null
+          npx --yes json5@2.2.3 vscode/settings.json > /dev/null
+          npx --yes json5@2.2.3 vscode/keybindings.json > /dev/null
 
   smoke-macos:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Test launchd agent
         run: bash test/test-launchd.sh
       - name: Test dotfiles doctor
@@ -102,7 +115,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build test image
         run: docker build -f test/Dockerfile.ubuntu -t dotfiles-test .
       - name: Run install test

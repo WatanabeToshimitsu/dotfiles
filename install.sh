@@ -226,11 +226,16 @@ install_ghq() {
     else
       GO_BIN_DIR=~/go/bin
       GHQ_BUILD_DIR=~/.ghq-build
-      GHQ_VERSION=$(curl -s https://api.github.com/repos/x-motemen/ghq/releases/latest | grep '"tag_name"' | sed -E 's/.*"v([^"]+)".*/\1/')
+      GHQ_VERSION=1.10.1
+      GHQ_SHA256=32e380aa8ac76fdd58758cc06174d9ee5db7270bd0cbcc18138b5d36def91b6b
+      GHQ_ARCHIVE=ghq_linux_amd64.zip
       mkdir -p "$GHQ_BUILD_DIR"
       cd "$GHQ_BUILD_DIR" || exit
-      curl -OL "https://github.com/x-motemen/ghq/releases/download/v${GHQ_VERSION}/ghq_linux_amd64.zip"
-      unzip ghq_linux_amd64.zip
+      curl --fail --location --silent --show-error \
+        "https://github.com/x-motemen/ghq/releases/download/v${GHQ_VERSION}/${GHQ_ARCHIVE}" \
+        --output "$GHQ_ARCHIVE"
+      printf '%s  %s\n' "$GHQ_SHA256" "$GHQ_ARCHIVE" | sha256sum --check --strict -
+      unzip "$GHQ_ARCHIVE"
       mkdir -p "$GO_BIN_DIR"
       mv "${GHQ_BUILD_DIR}/ghq_linux_amd64/ghq" "$GO_BIN_DIR"
       rm -fr "$GHQ_BUILD_DIR"
