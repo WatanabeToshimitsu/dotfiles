@@ -225,3 +225,26 @@ GitHub push protection is the first remote guard and Gitleaks CI is the
 repository-owned, reproducible check. A machine-local pre-commit scanner may be
 used as extra protection, but this repository does not install or depend on a
 global hook.
+
+## External Dependency Policy
+
+Code that CI or unattended setup executes is pinned where the repository can
+verify it:
+
+- GitHub Actions use full commit SHAs, with release tags left as comments for
+  Renovate and reviewers. The `pin-actions` job rejects floating references.
+- CI invokes `json5` at an exact npm version. Gitleaks and the Linux fallback
+  download of `ghq` use exact releases and SHA-256 checksums. Headroom is also
+  installed at an exact Python package version.
+
+Some first-run bootstrap operations intentionally follow upstream. The
+Homebrew installer runs only when Homebrew is absent; agent Skills, fzf, GitHub
+CLI extensions, and language tool inventories are fetched only during an
+explicit `install.sh` run and are skipped when already installed. Update these
+through a reviewed `install.sh` or `Brewfile` run rather than adding a separate
+commit-SHA registry for every Plugin or Skill.
+
+The Claude status line remains on `@latest` by the maintainer's explicit choice
+in #67, so it updates without repository changes. If it regresses, replace the
+tag with the version reported by `npm view @owloops/claude-powerline version`,
+verify it with a representative status-line payload, and commit that change.
