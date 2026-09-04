@@ -10,6 +10,7 @@ NOTIFY=0
 HARNESS_ONLY=0
 WARNINGS=0
 HARNESS_WINDOW_DAYS=7
+EXTERNAL_CHECK_TIMEOUT_SECONDS=8
 
 warn() {
   printf '  WARN: %s\n' "$*"
@@ -28,6 +29,32 @@ section_ok() {
 
 has_command() {
   command -v "$1" > /dev/null 2>&1
+}
+
+run_with_timeout() {
+  local seconds="$1"
+  shift
+  python3 - "$seconds" "$@" <<'PY'
+import subprocess
+import sys
+import os
+import signal
+
+try:
+    process = subprocess.Popen(sys.argv[2:], start_new_session=True)
+    result = process.wait(timeout=float(sys.argv[1]))
+except subprocess.TimeoutExpired:
+    os.killpg(process.pid, signal.SIGTERM)
+    try:
+        process.wait(timeout=1)
+    except subprocess.TimeoutExpired:
+        os.killpg(process.pid, signal.SIGKILL)
+        process.wait()
+    raise SystemExit(124)
+except FileNotFoundError:
+    raise SystemExit(127)
+raise SystemExit(result)
+PY
 }
 
 strip_ansi() {
@@ -75,7 +102,7 @@ for name in ("HEADROOM_OUTPUT_SHAPER", "HEADROOM_OUTPUT_HOLDOUT"):
 }
 
 run_claude_mcp_list() {
-  claude mcp list
+  run_with_timeout "$EXTERNAL_CHECK_TIMEOUT_SECONDS" claude mcp list
 }
 
 run_claude_version() {
@@ -83,7 +110,21 @@ run_claude_version() {
 }
 
 run_claude_latest_version() {
-  npm view @anthropic-ai/claude-code version
+  run_with_timeout "$EXTERNAL_CHECK_TIMEOUT_SECONDS" \
+    npm view @anthropic-ai/claude-code version
+}
+
+run_brew_leaves() {
+  brew leaves
+}
+
+normalize_brew_formulae() {
+  sed -E 's|.*/||' | LC_ALL=C sort -u
+}
+
+brewfile_formulae() {
+  sed -nE 's/^brew "([^"]+)".*/\1/p' "$DOTFILES_DIR/Brewfile" \
+    | normalize_brew_formulae
 }
 
 compactor_hook_configured() {
@@ -175,7 +216,7 @@ check_headroom() {
 check_mcp_servers() {
   echo "== Claude MCP servers =="
   local before=$WARNINGS
-  local output plain name line
+  local output plain name line status
   local rows=0 connected=0
 
   if ! has_command claude; then
@@ -189,8 +230,12 @@ check_mcp_servers() {
       [ -n "$name" ] || name="unknown"
       if [[ "$plain" == *Connected* ]]; then
         connected=$((connected + 1))
+      elif [[ "$plain" == *"command not found"* || "$plain" == *ENOENT* || "$plain" == *Invalid* || "$plain" == *invalid* ]]; then
+        warn "MCP server '$name' has a configuration error; next: run claude mcp list and inspect its command"
+      elif [[ "$plain" == *Failed* || "$plain" == *Disconnected* || "$plain" == *"Not connected"* ]]; then
+        info "MCP server '$name' is not connected (possibly temporary); retry with claude mcp list when you need it"
       else
-        warn "MCP server '$name' is not connected; next: run claude mcp list and inspect that server"
+        warn "MCP server '$name' returned an unrecognized status; next: run claude mcp list and inspect its configuration"
       fi
     done <<< "$output"
 
@@ -200,7 +245,12 @@ check_mcp_servers() {
       info "$connected MCP server(s) connected"
     fi
   else
-    warn "Claude MCP status check failed; next: run claude mcp list"
+    status=$?
+    if [ "$status" -eq 124 ]; then
+      info "MCP status check timed out after ${EXTERNAL_CHECK_TIMEOUT_SECONDS}s; skipped as a possibly temporary outage"
+    else
+      warn "Claude MCP status check failed; next: run claude mcp list"
+    fi
   fi
   section_ok "$before"
 }
@@ -208,7 +258,7 @@ check_mcp_servers() {
 check_claude_version() {
   echo "== Claude Code version =="
   local before=$WARNINGS
-  local local_output latest_output local_version latest_version
+  local local_output latest_output local_version latest_version status
 
   if ! has_command claude; then
     warn "Claude Code is not installed; next: rerun install.sh"
@@ -228,7 +278,12 @@ check_claude_version() {
         warn "Claude Code installed $local_version; latest stable $latest_version; next: run claude update"
       fi
     else
-      warn "Latest Claude Code version check failed; next: run npm view @anthropic-ai/claude-code version"
+      status=$?
+      if [ "$status" -eq 124 ]; then
+        info "Latest Claude Code version check timed out after ${EXTERNAL_CHECK_TIMEOUT_SECONDS}s; skipped"
+      else
+        warn "Latest Claude Code version check failed; next: run npm view @anthropic-ai/claude-code version"
+      fi
     fi
   else
     warn "Claude Code version check failed; next: run claude --version"
@@ -281,10 +336,25 @@ check_agent_harness() {
   check_tool_output_compaction
 }
 
+check_brew_drift() {
+  echo "== brew leaves not in Brewfile =="
+  local before=$WARNINGS
+  local formula
+
+  if has_command brew; then
+    while IFS= read -r formula; do
+      [ -n "$formula" ] && warn "installed but untracked: $formula"
+    done < <(comm -23 \
+      <(run_brew_leaves | normalize_brew_formulae) \
+      <(brewfile_formulae))
+  fi
+  section_ok "$before"
+}
+
 check_local_drift() {
   echo "== broken symlinks (~/, ~/.config, ~/.claude, VS Code) =="
   local before=$WARNINGS
-  local name dir formula link
+  local name dir link
   while IFS= read -r link; do
     warn "broken symlink: $link"
   done < <(
@@ -294,15 +364,7 @@ check_local_drift() {
   )
   section_ok "$before"
 
-  echo "== brew leaves not in Brewfile =="
-  before=$WARNINGS
-  if has_command brew; then
-    while IFS= read -r formula; do
-      [ -n "$formula" ] && warn "installed but untracked: $formula"
-    done < <(comm -23 <(brew leaves | sort) \
-      <(grep '^brew "' "$DOTFILES_DIR/Brewfile" | perl -pe 's/^brew "([^"]+)".*/$1/; s|.*/||' | sort))
-  fi
-  section_ok "$before"
+  check_brew_drift
 
   echo "== agent skills not restored by install.sh =="
   before=$WARNINGS
