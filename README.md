@@ -193,3 +193,21 @@ Configuration files are organized by target location:
 **Not tracked by design**: machine-local state (`~/.zshrc.local`, `~/.npmrc`, VS Code's live `settings.json` mutations), internal hostnames, and herdr-mirror `hosts.toml` — this repo is public. `install.sh` bootstraps a missing `.npmrc` from `.npmrc.example` but never replaces an existing machine-local file.
 
 **Principle**: Follow XDG Base Directory Specification (`.config/`) by default. For CLI tools that do not respect XDG paths, create a dedicated top-level directory named after the tool (e.g., `claude/` for `~/.claude/`).
+
+## Public Repository Safety
+
+The root `.gitignore` excludes machine-local tool state, `.env` variants, npm
+credentials, and common private-key formats. Placeholder files such as
+`.env.example` and `.npmrc.example` remain trackable.
+
+Every pull request and push to `main` scans the complete Git history with the
+checksum-verified Gitleaks version pinned in CI. `test/test-secret-scan.sh`
+checks both sides of the boundary: a synthetic credential must be detected,
+while placeholder-only configuration must pass. There are currently no
+`.gitleaksignore` or custom allowlist exceptions; add any future exception as
+narrowly as possible and document why it is safe.
+
+GitHub push protection is the first remote guard and Gitleaks CI is the
+repository-owned, reproducible check. A machine-local pre-commit scanner may be
+used as extra protection, but this repository does not install or depend on a
+global hook.
