@@ -115,10 +115,13 @@ claude-sandbox --check
 claude-sandbox
 ```
 
-The default `claude` command stays unchanged. The trial blocks common credentials,
-does not pre-allow package caches or registries, and keeps only the known `gh` and
-Docker compatibility exceptions. See [`claude/SANDBOX.md`](claude/SANDBOX.md) for
-the boundary and rollback.
+Normal `claude` uses Auto mode for trusted, routine work; the classifier is not an
+OS sandbox, and bypass permissions is disabled. Use the canary for sensitive
+repositories or data, unfamiliar external code, or stronger filesystem and
+network isolation. The trial blocks common credentials, does not pre-allow
+package caches or registries, and keeps only the known `gh` and Docker
+compatibility exceptions. See [`claude/SANDBOX.md`](claude/SANDBOX.md) for the
+boundary, verification, and rollback.
 
 ## Claude Auto Memory
 
