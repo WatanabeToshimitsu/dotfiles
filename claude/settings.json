@@ -208,7 +208,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/notification.sh"
+            "command": "~/.claude/hooks/notification.sh",
+            "timeout": 8
           }
         ]
       }

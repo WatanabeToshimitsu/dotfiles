@@ -67,6 +67,12 @@ an existing file unless passed `--force`, writes with mode `0600`, and preserves
 the old file if 1Password cannot render the template. Keep only `op://`
 references—not plaintext secrets—in the tracked template.
 
+Pushover notifications are disabled unless both `PUSHOVER_API_TOKEN` and
+`PUSHOVER_USER_KEY` are present in the environment. Enabling them sends the
+Claude notification text to the Pushover API. Store these values only in the
+machine-local `~/.zshrc.local`; notification failures and timeouts do not block
+Claude.
+
 ## Key Tools
 
 - **Shell**: Zsh with [Zinit](https://github.com/zdharma-continuum/zinit) (lazy-loaded plugins)

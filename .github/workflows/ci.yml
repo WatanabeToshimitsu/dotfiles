@@ -25,13 +25,15 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: shellcheck
-        run: shellcheck -S warning install.sh test/test-install.sh test/test-dotfiles-doctor.sh test/test-dotfiles-secrets.sh test/test-external-dependencies.sh test/test-claude-sandbox.sh test/test-claude-hooks.sh test/test-launchd.sh test/test-secret-scan.sh claude/hooks/*.sh .shell-utils/*.sh .shell-utils/claude-sandbox
+        run: shellcheck -S warning install.sh test/test-install.sh test/test-dotfiles-doctor.sh test/test-dotfiles-secrets.sh test/test-external-dependencies.sh test/test-notification.sh test/test-claude-sandbox.sh test/test-claude-hooks.sh test/test-launchd.sh test/test-secret-scan.sh claude/hooks/*.sh .shell-utils/*.sh .shell-utils/claude-sandbox
       - name: Test 1Password secret rendering
         run: bash test/test-dotfiles-secrets.sh
       - name: Test dotfiles doctor
         run: bash test/test-dotfiles-doctor.sh
       - name: Test Claude hooks
         run: bash test/test-claude-hooks.sh
+      - name: Test Claude notification
+        run: bash test/test-notification.sh
       - name: Install zsh
         run: sudo apt-get update -qq && sudo apt-get install -y -qq zsh
       - name: Test headroom proxy check
