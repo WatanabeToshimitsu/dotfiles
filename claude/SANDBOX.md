@@ -9,8 +9,25 @@ claude-sandbox
 ```
 
 The launcher loads `~/.claude/sandbox-canary.json` through `--settings`. The local
-stable Claude Code 2.1.231 is the tested version. Claude Code 2.1.187 is the minimum
+Claude Code 2.1.260 is the tested version. Claude Code 2.1.187 is the minimum
 because credential protection is unavailable before that version.
+
+## Choosing the execution boundary
+
+- Use normal `claude` for routine work in a trusted repository. Its default
+  [Auto mode](https://code.claude.com/docs/en/permission-modes) uses a background
+  classifier to reduce prompts, but it is a research preview and is not OS
+  isolation. Explicit deny rules still provide hard blocks.
+- Use `claude-sandbox` for sensitive repositories or data, unfamiliar external
+  code, and work that needs stronger
+  [filesystem or network isolation](https://code.claude.com/docs/en/sandboxing).
+  The canary currently supports macOS only.
+- Bypass permissions is disabled in both standard and canary settings. It is not
+  a recovery path. A deliberately isolated container or VM must own a separate
+  configuration if that mode is ever required.
+
+`skipAutoPermissionPrompt` only keeps the chosen Auto default from prompting at
+startup. It does not re-enable bypass permissions.
 
 ## Boundary
 
@@ -50,3 +67,19 @@ not acceptable recovery behavior.
 Stop the trial if sandbox handling adds repeated retries or unrelated workaround
 commands. Exit the session and start normal `claude`; no setting is promoted to
 the default configuration.
+
+## Verify the effective settings
+
+In a normal `claude` session, `/permissions` should show Auto as the default,
+bypass permissions as disabled, and the configured allow, ask, and deny rules.
+`/sandbox` should show that OS sandboxing is off.
+
+In a `claude-sandbox` session, `/permissions` should still show bypass permissions
+as disabled and `/sandbox` should show the canary as enabled. Run
+`claude-sandbox --check` before the session. The repository fixtures verify the
+same static boundary with:
+
+```bash
+bash test/test-claude-sandbox.sh
+python3 -m unittest claude.hooks.tests.test_security_policy
+```

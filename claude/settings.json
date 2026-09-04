@@ -195,7 +195,8 @@
       "Bash(git rm:*)",
       "Bash(git switch:*)"
     ],
-    "defaultMode": "auto"
+    "defaultMode": "auto",
+    "disableBypassPermissionsMode": "disable"
   },
   "model": "claude-fable-5-1[1m]",
   "skillOverrides": {
@@ -329,7 +330,6 @@
   "askUserQuestionTimeout": "never",
   "autoUpdatesChannel": "latest",
   "tui": "fullscreen",
-  "skipDangerousModePermissionPrompt": true,
   "skipWorkflowUsageWarning": true,
   "theme": "light-daltonized",
   "editorMode": "normal",
