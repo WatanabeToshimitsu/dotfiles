@@ -31,6 +31,7 @@ MANIFEST_DIRS=(
 # shellcheck disable=SC2034  # consumed by install.sh / uninstall.sh via source
 MANIFEST_CLAUDE_FILES=(
   CLAUDE.md
+  loop.md
   settings.json
   sandbox-canary.json
   claude-powerline.json
