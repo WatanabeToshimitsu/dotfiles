@@ -49,9 +49,9 @@ for file in "${MANIFEST_CLAUDE_FILES[@]}"; do
   remove_if_dotfiles_symlink "$HOME/.claude/$file"
 done
 
-remove_if_dotfiles_symlink "$HOME/.shell-utils"
-remove_if_dotfiles_symlink "$HOME/oh-my-posh-theme"
-remove_if_dotfiles_symlink "$HOME/.config/nvim"
+for dir in "${MANIFEST_DIRS[@]}"; do
+  remove_if_dotfiles_symlink "$HOME/$dir"
+done
 
 if [ "$(uname -s)" = "Darwin" ]; then
   remove_if_dotfiles_symlink "$HOME/Library/Application Support/Code/User/keybindings.json"

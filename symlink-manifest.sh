@@ -19,6 +19,14 @@ MANIFEST_CONFIG_FILES=(
   .config/yazi/yazi.toml
 )
 
+# Directories linked whole, at the same relative path under ~/
+# shellcheck disable=SC2034  # consumed by install.sh / uninstall.sh via source
+MANIFEST_DIRS=(
+  .shell-utils
+  oh-my-posh-theme
+  .config/nvim
+)
+
 # Claude Code global settings (claude/ → ~/.claude/)
 # shellcheck disable=SC2034  # consumed by install.sh / uninstall.sh via source
 MANIFEST_CLAUDE_FILES=(

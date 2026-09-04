@@ -169,24 +169,15 @@ setup_symlinks() {
     fi
   done
 
-  # Directory symlinks: use -n so an existing symlink is replaced rather than
-  # followed into the directory it points at
-  backup_if_real_path "$HOME/.shell-utils"
-  ln -fsn "$dotfiles_dir/.shell-utils" "$HOME/.shell-utils"
-  echo "  linked: .shell-utils/"
-
-  backup_if_real_path "$HOME/oh-my-posh-theme"
-  ln -fsn "$dotfiles_dir/oh-my-posh-theme" "$HOME/oh-my-posh-theme"
-  echo "  linked: oh-my-posh-theme/"
-
-  if [ -d "$HOME/.config/nvim" ] && [ ! -L "$HOME/.config/nvim" ]; then
-    mkdir -p "$HOME/.dotfiles-backup/$BACKUP_TIMESTAMP/.config"
-    mv "$HOME/.config/nvim" "$HOME/.dotfiles-backup/$BACKUP_TIMESTAMP/.config/nvim"
-    echo "  backed up: .config/nvim"
-  fi
-  mkdir -p "$HOME/.config"
-  ln -fsn "$dotfiles_dir/.config/nvim" "$HOME/.config/nvim"
-  echo "  linked: .config/nvim/"
+  local dir
+  for dir in "${MANIFEST_DIRS[@]}"; do
+    mkdir -p "$HOME/$(dirname "$dir")"
+    backup_if_real_path "$HOME/$dir"
+    # -n so an existing symlink is replaced rather than followed into the
+    # directory it points at
+    ln -fsn "$dotfiles_dir/$dir" "$HOME/$dir"
+    echo "  linked: $dir/"
+  done
 
   if [ -d "$HOME/.dotfiles-backup/$BACKUP_TIMESTAMP" ]; then
     echo "  restore a backup with: mv ~/.dotfiles-backup/$BACKUP_TIMESTAMP/<path> ~/<path>"
