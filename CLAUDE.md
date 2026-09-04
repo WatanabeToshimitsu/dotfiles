@@ -47,6 +47,7 @@ bash install.sh --symlinks-only
 - Git aliases use short prefixes: `g`=git, `gb`=branch, `gpl`=pull, `gps`=push, `gco`=checkout
 - The `git-branch-prune` function handles both traditional merge and squash-merge cleanup via `gh` CLI
 - All tool-dependent aliases use `command -v` guards so `.zshrc` loads safely without those tools installed
+- PR and issue bodies are written in Japanese, because they are read for review. Commit messages, titles, code, and comments stay in English
 
 ## Parallel Agents
 
