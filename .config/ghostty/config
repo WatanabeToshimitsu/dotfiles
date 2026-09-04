@@ -73,5 +73,33 @@ keybind = super+digit_8=unbind
 keybind = super+k=unbind
 
 # cmd+h normally hides the window (macOS menu); send it to the terminal
-# instead, encoded as kitty-keyboard super+h for herdr's pane navigation.
+# instead, encoded as kitty-keyboard super+h (nvim: previous buffer).
 keybind = super+h=text:\x1b[104;9u
+
+# --- VSCode-style cmd keybindings (dotfiles issue #32) -------------------
+# herdr pane focus lives on cmd+shift+h/j/k/l (VSCode "navigate views");
+# freed cmd+h/j/k/l reach nvim (buffer switch / completion menus).
+# Unbind Ghostty defaults that collide; unclaimed cmd keys pass through.
+# was scroll_to_selection:
+keybind = super+j=unbind
+# was write_screen_file:paste:
+keybind = super+shift+j=unbind
+# was end_search (use herdr prefix+e for scrollback search instead):
+keybind = super+shift+f=unbind
+# was navigate_search:previous (cmd+shift+g opens the herdr lazygit pane):
+keybind = super+shift+g=unbind
+# was undo (cmd+shift+t toggles the nvim terminal):
+keybind = super+shift+t=unbind
+# was close_window (also a macOS menu item, so forward as kitty CSI-u
+# like super+h above); cmd+shift+w opens the herdr workspace/agent picker.
+keybind = super+shift+w=text:\x1b[119;10u
+# was select_all (terminal-level); forward to nvim as CSI-u for select-all.
+# Terminal text can still be copied via herdr copy mode (prefix+[).
+keybind = super+a=text:\x1b[97;9u
+
+# --- cursor visibility ----------------------------------------------------
+# The theme-default cursor is too faint; force high-contrast tokyonight
+# orange and thicken bar cursors (nvim insert mode, shell prompts).
+cursor-color = #ff9e64
+cursor-text = #1a1b26
+adjust-cursor-thickness = 2

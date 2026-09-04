@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "sandbox": {
+    "enabled": true,
+    "failIfUnavailable": false,
+    "excludedCommands": [
+      "docker *",
+      "docker-compose *",
+      "gh *"
+    ],
+    "network": {
+      "allowLocalBinding": true
+    },
+    "credentials": {
+      "files": [
+        { "path": "~/.ssh", "mode": "deny" },
+        { "path": "~/.gnupg", "mode": "deny" },
+        { "path": "~/.aws", "mode": "deny" },
+        { "path": "~/.config/gcloud", "mode": "deny" },
+        { "path": "~/.azure", "mode": "deny" },
+        { "path": "~/.kube/config", "mode": "deny" },
+        { "path": "~/.docker/config.json", "mode": "deny" },
+        { "path": "~/.config/gh/hosts.yml", "mode": "deny" },
+        { "path": "~/.npmrc", "mode": "deny" },
+        { "path": "~/.netrc", "mode": "deny" },
+        { "path": "~/.claude/.credentials.json", "mode": "deny" },
+        { "path": "~/.claude.json", "mode": "deny" }
+      ],
+      "envVars": [
+        { "name": "ANTHROPIC_API_KEY", "mode": "deny" },
+        { "name": "OPENAI_API_KEY", "mode": "deny" },
+        { "name": "GITHUB_TOKEN", "mode": "deny" },
+        { "name": "GH_TOKEN", "mode": "deny" },
+        { "name": "NPM_TOKEN", "mode": "deny" },
+        { "name": "AWS_ACCESS_KEY_ID", "mode": "deny" },
+        { "name": "AWS_SECRET_ACCESS_KEY", "mode": "deny" },
+        { "name": "AWS_SESSION_TOKEN", "mode": "deny" },
+        { "name": "GOOGLE_APPLICATION_CREDENTIALS", "mode": "deny" },
+        { "name": "AZURE_CLIENT_SECRET", "mode": "deny" }
+      ]
+    }
+  },
+  "permissions": {
+    "disableBypassPermissionsMode": "disable",
+    "ask": [
+      "Bash(dangerouslyDisableSandbox:true)",
+      "Bash(gh api:*)"
+    ]
+  }
+}

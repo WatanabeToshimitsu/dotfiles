@@ -11,9 +11,8 @@ Personal dotfiles for macOS, Linux, and WSL2 environments.
 | `.zshrc`                             | Zsh configuration (primary shell) with Zinit plugin manager                      |
 | `.bashrc` / `.bash_profile`          | Bash configuration (NVM, Volta, Docker)                                          |
 | `.vimrc`                             | Vim settings (UTF-8, 2-space tabs, smart search)                                 |
-| `.tmux.conf`                         | tmux settings (prefix: `C-j`, vim-style pane/copy keybindings)                   |
+| `.tmux.conf`                         | tmux settings — kept as fallback for remote/ssh hosts without herdr              |
 | `.zprofile` / `.zshenv` / `.profile` | Shell profile and environment files                                              |
-| `.gitconfig`                         | Git configuration                                                                |
 | `.huskyrc`                           | Husky git hooks configuration                                                    |
 | `.shell-utils/`                      | Utility scripts (`ghq-rm.sh`, `git-branch-prune.zsh`, ...)                       |
 | `claude/`                            | [Claude Code](https://claude.ai/code) global settings, hooks, rules, statusline  |
@@ -45,13 +44,28 @@ bash install.sh
 
 Machine-specific shell config goes in `~/.zshrc.local` (sourced last, never tracked here).
 
+To reapply only the managed symlinks without installing packages or tools:
+
+```bash
+bash install.sh --symlinks-only
+```
+
+### Codespaces
+
+GitHub Settings → Codespaces → enable "Automatically install dotfiles" and select this repo.
+`install.sh` then runs automatically on codespace creation.
+Machine-specific config still goes in `~/.zshrc.local`.
+
 ### Secrets
 
 Machine-local secrets also live in `~/.zshrc.local`, generated from
 [`templates/zshrc.local.tpl`](templates/zshrc.local.tpl) by running
 `dotfiles-secrets.sh` (on `PATH` after `install.sh`). Rendering requires a
 signed-in [1Password CLI](https://developer.1password.com/docs/cli/) (`op`);
-the resulting file is never tracked by this repo.
+the resulting file is never tracked by this repo. The script refuses to replace
+an existing file unless passed `--force`, writes with mode `0600`, and preserves
+the old file if 1Password cannot render the template. Keep only `op://`
+references—not plaintext secrets—in the tracked template.
 
 ## Key Tools
 
@@ -63,6 +77,18 @@ the resulting file is never tracked by this repo.
 - **Repository management**: [ghq](https://github.com/x-motemen/ghq) + fzf integration
 - **Modern CLI**: [lsd](https://github.com/lsd-rs/lsd) (ls), [bat](https://github.com/sharkdp/bat) (cat), [ripgrep](https://github.com/BurntSushi/ripgrep) (grep), [zoxide](https://github.com/ajeetdsouza/zoxide) (`z`/`zi` jump)
 - **Terminal workspace**: [herdr](https://herdr.dev) on [Ghostty](https://ghostty.org) (agent multiplexer; prefix `cmd+space`)
+- **Editor**: [Neovim](https://neovim.io) with [LazyVim](https://www.lazyvim.org) (`$EDITOR`; vscodevim keymaps ported, plugins pinned via `lazy-lock.json`)
+- **File manager**: [yazi](https://yazi-rs.github.io) (image/video/PDF preview via kitty graphics)
+
+## Terminal File Workflow
+
+View and edit files entirely inside herdr panes — both yazi and Neovim render
+images through the kitty graphics protocol (Ghostty and herdr both support it):
+
+- **Browse**: `y` (yazi, shell cwd follows on exit) or `prefix+y` (temporary herdr pane); `Enter` opens `$EDITOR`
+- **Edit**: `nvim` = LazyVim; `gvim` picks a ghq repo via fzf and opens it at the repo root
+- **Images in the editor**: snacks.image renders PNG inline (JPG/WebP/GIF need imagemagick); `<leader>fy` opens yazi.nvim inside Neovim
+- **Fallbacks**: `.vimrc` stays for servers (`vi` = plain vim), VS Code remains installed (`gcode`)
 
 ## Notable Aliases
 
@@ -70,8 +96,99 @@ the resulting file is never tracked by this repo.
 | ---------- | ------------------------------------------------------------- |
 | `gcd`      | `cd` into a ghq-managed repository via fzf                    |
 | `gcode`    | Open a ghq-managed repository in VS Code via fzf              |
+| `gvim`     | Open a ghq-managed repository in Neovim via fzf (cwd follows) |
+| `y`        | yazi file manager (shell cwd follows on exit)                 |
 | `gb-prune` | Clean up merged branches (supports squash merge via `gh` CLI) |
 | `ghq-rm`   | Remove a ghq-managed repository interactively                 |
+
+## Claude Tool Output Compaction
+
+Large Read, Grep, Glob, Web, and MCP results are shortened before entering the
+conversation. The full result is retained locally for seven days with user-only
+permissions and can be queried through the `expand-tool-output` skill.
+
+Show savings from the retained archives when deciding whether the hook is useful:
+
+```bash
+python3 ~/.claude/hooks/compact-tool-output.py stats
+```
+
+The weekly doctor checks only the last hook invocation and one unresolved error.
+It does not aggregate compaction counts or savings. Error records contain the
+exception type and time, never tool payloads or exception messages.
+
+## Claude Bash Sandbox Canary
+
+The Claude Code Bash sandbox is available as a macOS-only opt-in trial:
+
+```bash
+claude-sandbox --check
+claude-sandbox
+```
+
+Normal `claude` uses Auto mode for trusted, routine work; the classifier is not an
+OS sandbox, and bypass permissions is disabled. Use the canary for sensitive
+repositories or data, unfamiliar external code, or stronger filesystem and
+network isolation. The trial blocks common credentials, does not pre-allow
+package caches or registries, and keeps only the known `gh` and Docker
+compatibility exceptions. See [`claude/SANDBOX.md`](claude/SANDBOX.md) for the
+boundary, verification, and rollback.
+
+## Claude Auto Memory
+
+Claude Code's repository-scoped auto memory is the only active project-learning
+path. It is shared across worktrees without a custom hook. See
+[`claude/AUTO-MEMORY.md`](claude/AUTO-MEMORY.md) for the verified behavior and
+legacy-data policy.
+
+## Headroom Proxy
+
+`install.sh` installs Headroom 0.36.5 with `uv` and maintains a user-scoped
+proxy on port 8787. The proxy runs as a supervised native process, so launchd
+starts it at login and restarts it if it dies; no container runtime is
+involved. Target selection is left to auto detection, so every supported tool
+that is installed gets configured. The beta output shaper is enabled, and new
+shell sessions route Claude Code and Codex through the proxy.
+
+A 10% holdout leaves one conversation in ten unshaped as a control arm, so
+`headroom output-savings` reports `MEASURED` instead of `ESTIMATED`. That costs
+the shaping on those conversations. Without it the reported reduction is
+compared against a synthetic baseline and comes back with a confidence band
+wider than the reduction itself, which is no basis for deciding whether the
+proxy earns its place. `dotfiles-doctor.sh` prints the reported method next to
+the reduction, and the holdout below it.
+
+Learn the preferred response length again after enough Claude history has
+accumulated:
+
+```bash
+headroom learn --verbosity --apply --all
+```
+
+Check the proxy and output-shaping savings:
+
+```bash
+headroom install status
+headroom doctor
+headroom output-savings
+```
+
+Run the complete agent-harness diagnostic (Headroom reachability, MCP
+connections, Claude Code version drift, and tool-output compaction):
+
+```bash
+~/.shell-utils/dotfiles-doctor.sh --harness-only
+```
+
+Rerunning `install.sh` migrates an existing Docker deployment to the
+supervised native process instead of leaving a stale container behind. The
+Docker preset is not used: it needs a running Docker daemon, tracks the
+`:latest` image rather than the pinned version, and cannot restart itself from
+inside the container.
+
+```bash
+./install.sh --headroom-only
+```
 
 ## Configuration Storage Strategy
 
@@ -87,6 +204,24 @@ Configuration files are organized by target location:
 | `oh-my-posh-theme/`                      | `~/oh-my-posh-theme/` | Direct directory symlink         |
 | `.shell-utils/`                          | `~/.shell-utils/`     | Direct directory symlink         |
 
-**Not tracked by design**: machine-local state (`~/.zshrc.local`, VS Code's live `settings.json` mutations), internal hostnames, and herdr-mirror `hosts.toml` — this repo is public.
+**Not tracked by design**: machine-local state (`~/.zshrc.local`, `~/.npmrc`, VS Code's live `settings.json` mutations), internal hostnames, and herdr-mirror `hosts.toml` — this repo is public. `install.sh` bootstraps a missing `.npmrc` from `.npmrc.example` but never replaces an existing machine-local file.
 
 **Principle**: Follow XDG Base Directory Specification (`.config/`) by default. For CLI tools that do not respect XDG paths, create a dedicated top-level directory named after the tool (e.g., `claude/` for `~/.claude/`).
+
+## Public Repository Safety
+
+The root `.gitignore` excludes machine-local tool state, `.env` variants, npm
+credentials, and common private-key formats. Placeholder files such as
+`.env.example` and `.npmrc.example` remain trackable.
+
+Every pull request and push to `main` scans the complete Git history with the
+checksum-verified Gitleaks version pinned in CI. `test/test-secret-scan.sh`
+checks both sides of the boundary: a synthetic credential must be detected,
+while placeholder-only configuration must pass. There are currently no
+`.gitleaksignore` or custom allowlist exceptions; add any future exception as
+narrowly as possible and document why it is safe.
+
+GitHub push protection is the first remote guard and Gitleaks CI is the
+repository-owned, reproducible check. A machine-local pre-commit scanner may be
+used as extra protection, but this repository does not install or depend on a
+global hook.

@@ -1,16 +1,21 @@
 #!/usr/bin/env bash
-# dotfiles-secrets: render ~/.zshrc.local from templates/zshrc.local.tpl via `op inject`.
-# Requires the 1Password CLI (`op`) signed in. --force overwrites an existing ~/.zshrc.local.
-set -uo pipefail
-# secret-bearing output: ensure files are born 0600, not chmod-ed after the fact
+set -euo pipefail
+
 umask 077
 
-# -P resolves ~/.shell-utils (a symlink) so the parent is the real repo
 DOTFILES_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
 TEMPLATE="$DOTFILES_DIR/templates/zshrc.local.tpl"
 TARGET="$HOME/.zshrc.local"
 FORCE=0
-[ "${1:-}" = "--force" ] && FORCE=1
+
+case "${1:-}" in
+  "") ;;
+  --force) FORCE=1 ;;
+  *)
+    echo "usage: dotfiles-secrets.sh [--force]" >&2
+    exit 2
+    ;;
+esac
 
 if ! command -v op > /dev/null 2>&1; then
   echo "error: 1Password CLI (op) not found; install it first" >&2
@@ -22,7 +27,12 @@ if [ ! -f "$TEMPLATE" ]; then
   exit 1
 fi
 
-if [ -e "$TARGET" ] && [ "$FORCE" -ne 1 ]; then
+if [ -d "$TARGET" ]; then
+  echo "error: $TARGET is a directory; refusing to replace it" >&2
+  exit 1
+fi
+
+if { [ -e "$TARGET" ] || [ -L "$TARGET" ]; } && [ "$FORCE" -ne 1 ]; then
   echo "error: $TARGET already exists; re-run with --force to overwrite" >&2
   exit 1
 fi
@@ -32,10 +42,27 @@ if ! op account get > /dev/null 2>&1; then
   exit 1
 fi
 
-if [ "$FORCE" -eq 1 ]; then
-  op inject -f -i "$TEMPLATE" -o "$TARGET"
-else
-  op inject -i "$TEMPLATE" -o "$TARGET"
+TEMP_OUTPUT="$(mktemp "$(dirname "$TARGET")/.zshrc.local.XXXXXX")"
+cleanup() {
+  rm -f "$TEMP_OUTPUT"
+}
+trap cleanup EXIT HUP INT TERM
+
+if ! op inject -f -i "$TEMPLATE" -o "$TEMP_OUTPUT"; then
+  echo "error: 1Password failed to render $TEMPLATE" >&2
+  exit 1
 fi
-chmod 600 "$TARGET"
+chmod 600 "$TEMP_OUTPUT"
+
+if [ "$FORCE" -eq 1 ]; then
+  mv -f "$TEMP_OUTPUT" "$TARGET"
+else
+  mv -n "$TEMP_OUTPUT" "$TARGET"
+  if [ -e "$TEMP_OUTPUT" ]; then
+    echo "error: $TARGET was created while secrets were rendering; left it unchanged" >&2
+    exit 1
+  fi
+fi
+trap - EXIT HUP INT TERM
+
 echo "rendered $TARGET from $TEMPLATE"

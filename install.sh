@@ -1,15 +1,15 @@
 #!/bin/bash
-DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
+DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WHO=$(whoami)
+BACKUP_TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
+
+# shellcheck source=symlink-manifest.sh
+source "$DOTFILES_DIR/symlink-manifest.sh"
 
 echo ""
 echo " ---------------"
 echo "| Hello ${WHO}! |"
 echo " ---------------"
-
-# ========================================
-# Shared helpers
-# ========================================
 
 installApp() {
   local manager=$1
@@ -65,85 +65,141 @@ installAppsNeedsBrew() {
   done
 }
 
+backup_if_real_path() {
+  local target=$1
+  [ -e "$target" ] && [ ! -L "$target" ] || return 0
+
+  local rel_path=${target#"$HOME/"}
+  local dest="$HOME/.dotfiles-backup/$BACKUP_TIMESTAMP/$rel_path"
+  mkdir -p "$(dirname "$dest")"
+  mv "$target" "$dest"
+  echo "  backed up: $rel_path -> ~/.dotfiles-backup/$BACKUP_TIMESTAMP/$rel_path"
+}
+
+setup_npmrc() {
+  local dotfiles_dir="$1"
+  local target="$HOME/.npmrc"
+  local retired_target="$dotfiles_dir/.npmrc"
+  local template="$dotfiles_dir/.npmrc.example"
+
+  if [ -L "$target" ]; then
+    if [ "$(readlink "$target")" != "$retired_target" ]; then
+      echo "  exists: .npmrc (foreign symlink left unmanaged)"
+      return 0
+    fi
+    rm "$target"
+    echo "  removed retired link: .npmrc"
+  elif [ -e "$target" ]; then
+    echo "  exists: .npmrc (machine-local file left unchanged)"
+    return 0
+  fi
+
+  if [ -f "$template" ]; then
+    cp "$template" "$target"
+    chmod 600 "$target"
+    echo "  bootstrapped: .npmrc (machine-local)"
+  fi
+}
+
+# .gitconfig is no longer tracked (#74). An existing symlink has to become a real
+# file before the repository copy goes away, or the next clone leaves the machine
+# with no Git identity at all.
+setup_gitconfig() {
+  local dotfiles_dir="$1"
+  local target="$HOME/.gitconfig"
+  local retired_target="$dotfiles_dir/.gitconfig"
+
+  [ -L "$target" ] || return 0
+  if [ "$(readlink "$target")" != "$retired_target" ]; then
+    echo "  exists: .gitconfig (foreign symlink left unmanaged)"
+    return 0
+  fi
+
+  rm "$target"
+  if [ -f "$retired_target" ]; then
+    cp "$retired_target" "$target"
+    echo "  detached: .gitconfig (now a machine-local file)"
+  else
+    echo "  removed dangling link: .gitconfig"
+  fi
+}
+
 setup_symlinks() {
   local dotfiles_dir="${1:-$DOTFILES_DIR}"
-  local files=(
-    .zshrc .bashrc .bash_profile .bash_logout
-    .profile .zprofile .zshenv .shell-common
-    .vimrc .tmux.conf .gitconfig
-    .huskyrc .npmrc
-  )
 
   echo "----------------------------------------------"
   echo "Setting up symlinks..."
   echo "----------------------------------------------"
 
-  for file in "${files[@]}"; do
+  for file in "${MANIFEST_FILES[@]}"; do
     if [ -f "$dotfiles_dir/$file" ]; then
+      backup_if_real_path "$HOME/$file"
       ln -fs "$dotfiles_dir/$file" "$HOME/$file"
       echo "  linked: $file"
     fi
   done
 
-  # .config/ subdirectory files (create parent dirs, then symlink individual files)
-  local config_files=(
-    .config/git/ignore
-    .config/gh/config.yml
-    .config/ghostty/config
-    .config/herdr/config.toml
-  )
+  setup_npmrc "$dotfiles_dir"
+  setup_gitconfig "$dotfiles_dir"
 
-  for file in "${config_files[@]}"; do
+  for file in "${MANIFEST_CONFIG_FILES[@]}"; do
     if [ -f "$dotfiles_dir/$file" ]; then
       mkdir -p "$HOME/$(dirname "$file")"
+      backup_if_real_path "$HOME/$file"
       ln -fs "$dotfiles_dir/$file" "$HOME/$file"
       echo "  linked: $file"
     fi
   done
 
-  # Claude Code global settings (claude/ → ~/.claude/)
-  local claude_files=(
-    CLAUDE.md
-    RTK.md
-    settings.json
-    statusline.sh
-    claude-powerline.json
-    hooks/deny-check.sh
-    hooks/notification.sh
-    hooks/rtk-rewrite.sh
-    hooks/validate-bash.sh
-    rules/testing/vitest.md
-    rules/typescript/documentation.md
-    rules/typescript/type-safety.md
-    rules/common/agents.md
-    rules/common/code-review.md
-    rules/common/coding-style.md
-    rules/common/development-workflow.md
-    rules/common/git-workflow.md
-    rules/common/hooks.md
-    rules/common/patterns.md
-    rules/common/performance.md
-    rules/common/security.md
-    rules/common/testing.md
-  )
-
-  for file in "${claude_files[@]}"; do
+  for file in "${MANIFEST_CLAUDE_FILES[@]}"; do
     if [ -f "$dotfiles_dir/claude/$file" ]; then
       mkdir -p "$HOME/.claude/$(dirname "$file")"
+      backup_if_real_path "$HOME/.claude/$file"
       ln -fs "$dotfiles_dir/claude/$file" "$HOME/.claude/$file"
       echo "  linked: .claude/$file"
     fi
   done
 
-  # Directory symlinks: use -n to avoid following existing symlinks into the target
-  # and rm -rf guard for the case where a real (non-symlink) directory exists
-  [ -d "$HOME/.shell-utils" ] && [ ! -L "$HOME/.shell-utils" ] && rm -rf "$HOME/.shell-utils"
+  local obsolete_file obsolete_target
+  for obsolete_file in "${MANIFEST_CLAUDE_OBSOLETE_FILES[@]}"; do
+    obsolete_target="$HOME/.claude/$obsolete_file"
+    if [ -L "$obsolete_target" ] && [ "$(readlink "$obsolete_target")" = "$dotfiles_dir/claude/$obsolete_file" ]; then
+      rm "$obsolete_target"
+      echo "  removed obsolete link: .claude/$obsolete_file"
+    fi
+  done
+
+  # Directory symlinks: use -n so an existing symlink is replaced rather than
+  # followed into the directory it points at
+  backup_if_real_path "$HOME/.shell-utils"
   ln -fsn "$dotfiles_dir/.shell-utils" "$HOME/.shell-utils"
   echo "  linked: .shell-utils/"
 
-  [ -d "$HOME/oh-my-posh-theme" ] && [ ! -L "$HOME/oh-my-posh-theme" ] && rm -rf "$HOME/oh-my-posh-theme"
+  backup_if_real_path "$HOME/oh-my-posh-theme"
   ln -fsn "$dotfiles_dir/oh-my-posh-theme" "$HOME/oh-my-posh-theme"
   echo "  linked: oh-my-posh-theme/"
+
+  if [ -d "$HOME/.config/nvim" ] && [ ! -L "$HOME/.config/nvim" ]; then
+    mkdir -p "$HOME/.dotfiles-backup/$BACKUP_TIMESTAMP/.config"
+    mv "$HOME/.config/nvim" "$HOME/.dotfiles-backup/$BACKUP_TIMESTAMP/.config/nvim"
+    echo "  backed up: .config/nvim"
+  fi
+  mkdir -p "$HOME/.config"
+  ln -fsn "$dotfiles_dir/.config/nvim" "$HOME/.config/nvim"
+  echo "  linked: .config/nvim/"
+
+  if [ -d "$HOME/.dotfiles-backup/$BACKUP_TIMESTAMP" ]; then
+    echo "  restore a backup with: mv ~/.dotfiles-backup/$BACKUP_TIMESTAMP/<path> ~/<path>"
+  fi
+}
+
+# Restore Neovim plugins pinned by lazy-lock.json (first run also clones lazy.nvim)
+bootstrap_neovim() {
+  command -v nvim > /dev/null 2>&1 || return 0
+  echo "----------------------------------------------"
+  echo "Bootstrapping Neovim plugins (lazy.nvim restore)..."
+  echo "----------------------------------------------"
+  nvim --headless "+Lazy! restore" +qa
 }
 
 install_fzf() {
@@ -202,9 +258,6 @@ install_gh_cli() {
   fi
 }
 
-# ========================================
-# launchd agents (macOS)
-# ========================================
 # Weekly dotfiles-doctor drift check; notifies only when warnings are found.
 # The plist is generated here (not stored in the repo) so $HOME is baked in.
 
@@ -247,11 +300,6 @@ EOF
   fi
 }
 
-# ========================================
-# CLI tool inventories (gh extensions, pipx, volta)
-# ========================================
-# Idempotent: skips anything already installed.
-
 setup_cli_tools() {
   echo "----------------------------------------------"
   echo "Installing CLI tool inventories..."
@@ -289,13 +337,85 @@ setup_cli_tools() {
     else
       volta install node || echo "  failed: volta install node"
     fi
+
+    local node_tool binary
+    for node_tool in typescript typescript-language-server; do
+      case "$node_tool" in
+        typescript) binary=tsc ;;
+        *) binary="$node_tool" ;;
+      esac
+
+      if command -v "$binary" > /dev/null 2>&1; then
+        echo "  exists: volta $node_tool"
+      else
+        volta install "$node_tool" || echo "  failed: volta install $node_tool"
+      fi
+    done
+  fi
+
+  if command -v uv > /dev/null 2>&1; then
+    if command -v headroom > /dev/null 2>&1 \
+      && headroom --version 2>/dev/null | grep -q 'version 0\.36\.5$'; then
+      echo "  exists: uv tool headroom-ai 0.36.5"
+    else
+      uv tool install --force "headroom-ai==0.36.5" || echo "  failed: uv tool headroom-ai"
+    fi
+  else
+    echo "  skipped headroom-ai (uv not found)"
   fi
 }
 
-# ========================================
-# herdr integrations and plugins
-# ========================================
-# Idempotent: skips anything already installed/linked.
+# Runs the proxy as a supervised native process (launchd on macOS, systemd on
+# Linux) so it starts at login and is restarted when it dies. The Docker preset
+# needs a running Docker daemon, tracks the :latest image instead of the pinned
+# version installed above, and cannot restart itself from inside the container.
+# Target selection is left to auto detection, so the deployment covers every
+# installed tool and the target list is not treated as drift.
+
+setup_headroom() {
+  if ! command -v headroom > /dev/null 2>&1; then
+    echo "  skipped Headroom deployment (headroom not found)"
+    return 0
+  fi
+
+  local manifest="$HOME/.headroom/deploy/default/manifest.json"
+  local preset=persistent-service
+  local runtime=python
+
+  if [ -f "$manifest" ] \
+    && jq -e --arg preset "$preset" --arg runtime "$runtime" \
+      '.provider_mode == "auto"
+       and .preset == $preset
+       and .runtime_kind == $runtime
+       and .base_env.HEADROOM_ROLLOUT_CHANNEL == "beta"
+       and .base_env.HEADROOM_OUTPUT_SHAPER == "1"
+       and .base_env.HEADROOM_OUTPUT_HOLDOUT == "0.1"' \
+      "$manifest" > /dev/null 2>&1; then
+    echo "  exists: Headroom persistent proxy ($preset)"
+    if ! headroom install status --profile default 2>/dev/null | grep -q '^Status:.*running'; then
+      headroom install start --profile default || echo "  failed: start Headroom deployment"
+    fi
+    return 0
+  fi
+
+  echo "----------------------------------------------"
+  echo "Installing Headroom persistent Claude proxy..."
+  echo "----------------------------------------------"
+  headroom install apply \
+    --preset "$preset" \
+    --runtime "$runtime" \
+    --scope user \
+    --providers auto \
+    --profile default \
+    --port 8787 \
+    --backend anthropic \
+    --mode cache \
+    --no-telemetry \
+    --env HEADROOM_ROLLOUT_CHANNEL=beta \
+    --env HEADROOM_OUTPUT_SHAPER=1 \
+    --env HEADROOM_OUTPUT_HOLDOUT=0.1 \
+    || echo "  failed: Headroom persistent Claude deployment"
+}
 
 setup_herdr() {
   if ! command -v herdr > /dev/null 2>&1; then
@@ -342,9 +462,6 @@ setup_herdr() {
   fi
 }
 
-# ========================================
-# VS Code user config (macOS)
-# ========================================
 # keybindings.json is symlinked (never auto-modified by VS Code).
 # settings.json is copied only when absent: VS Code rewrites it with
 # machine-local state (SSH host maps etc.), so a symlink would leak
@@ -354,6 +471,7 @@ setup_vscode() {
   local user_dir="$HOME/Library/Application Support/Code/User"
   [ -d "$user_dir" ] || return 0
 
+  backup_if_real_path "$user_dir/keybindings.json"
   ln -fs "$DOTFILES_DIR/vscode/keybindings.json" "$user_dir/keybindings.json"
   echo "  linked: vscode keybindings.json"
 
@@ -363,10 +481,6 @@ setup_vscode() {
   fi
 }
 
-# ========================================
-# Agent skills (npx skills / skills.sh)
-# ========================================
-# Reinstall global agent skills recorded in ~/.agents/.skill-lock.json.
 # Keep skill_sources in sync when adding skills with `npx skills add`.
 
 setup_agent_skills() {
@@ -404,20 +518,16 @@ setup_agent_skills() {
   done
 }
 
-# ========================================
-# macOS setup
-# ========================================
-
 setup_macos() {
   echo "=========================================="
   echo "Setting up macOS environment"
   echo "=========================================="
 
-  # Install Homebrew if not present
   if ! command -v brew > /dev/null 2>&1; then
     echo "----------------------------------------------"
     echo "Installing Homebrew..."
     echo "----------------------------------------------"
+    export NONINTERACTIVE=1
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     eval "$(/opt/homebrew/bin/brew shellenv)"
   fi
@@ -428,16 +538,14 @@ setup_macos() {
   brew bundle --file="$DOTFILES_DIR/Brewfile"
 
   setup_symlinks "$DOTFILES_DIR"
+  bootstrap_neovim
   setup_vscode
   setup_agent_skills
   setup_herdr
   setup_cli_tools
+  setup_headroom
   setup_launchd
 }
-
-# ========================================
-# Linux setup
-# ========================================
 
 setup_linux() {
   echo "=========================================="
@@ -448,7 +556,7 @@ setup_linux() {
   echo "Run apt/yum update..."
   echo "----------------------------------------------"
   apt-get update -y || yum update -y || dnf update -y
-  # Remove stale lock files if they exist (only needed when previous apt was interrupted)
+  # Only needed when a previous apt run was interrupted.
   [ -f /var/lib/dpkg/lock ] && sudo rm -f /var/lib/dpkg/lock
   [ -f /var/lib/dpkg/lock-frontend ] && sudo rm -f /var/lib/dpkg/lock-frontend
   [ -f /var/cache/apt/archives/lock ] && sudo rm -f /var/cache/apt/archives/lock
@@ -464,6 +572,7 @@ setup_linux() {
     echo "----------------------------------------------"
     echo "Now, start installing brew"
     echo "----------------------------------------------"
+    export NONINTERACTIVE=1
     command -v brew || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   fi
 
@@ -505,6 +614,7 @@ setup_linux() {
   setup_agent_skills
   setup_herdr
   setup_cli_tools
+  setup_headroom
 
   install_fzf
   install_ghq
@@ -520,9 +630,27 @@ setup_linux() {
   fi
 }
 
-# ========================================
-# Main
-# ========================================
+if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
+  return 0
+fi
+
+if [ "${1:-}" = "--symlinks-only" ]; then
+  setup_symlinks "$DOTFILES_DIR"
+  echo ""
+  echo "=========================================="
+  echo "Symlink setup complete!"
+  echo "=========================================="
+  exit 0
+fi
+
+if [ "${1:-}" = "--headroom-only" ]; then
+  setup_headroom
+  echo ""
+  echo "=========================================="
+  echo "Headroom setup complete!"
+  echo "=========================================="
+  exit 0
+fi
 
 OS="$(uname -s)"
 case "$OS" in

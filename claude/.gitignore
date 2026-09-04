@@ -14,7 +14,15 @@ projects/
 session-env/
 sessions/
 shell-snapshots/
-skills/
+skills/*
+!skills/code-review/
+!skills/delivery-workflow/
+!skills/expand-tool-output/
+!skills/prepare-compaction/
+!skills/repository-audit/
+!skills/ticket/
+# Concrete IDs, board URLs, and option labels stay local: this repo is public
+skills/ticket/reference.md
 statsig/
 tasks/
 teams/

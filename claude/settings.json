@@ -2,11 +2,11 @@
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "cleanupPeriodDays": 365,
   "env": {
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "MAX_MCP_OUTPUT_TOKENS": "10000"
   },
   "permissions": {
     "allow": [
-      "Bash(npm run *)",
       "Bash(npm run test:*)",
       "Bash(npm run lint:*)",
       "Bash(npm run format:*)",
@@ -20,7 +20,6 @@
       "Bash(grep:*)",
       "Bash(ls:*)",
       "Bash(cat:*)",
-      "Bash(gh api:*)",
       "Bash(gh pr diff:*)",
       "Bash(gh pr list:*)",
       "Bash(git show:*)",
@@ -36,10 +35,6 @@
       "WebFetch(domain:stackoverflow.com)",
       "WebFetch(domain:zenn.dev)",
       "WebFetch(domain:docs.anthropic.com)",
-      "mcp__serena",
-      "mcp__chrome",
-      "mcp__github",
-      "mcp__context7",
       "Read(src/**)",
       "Edit(src/**)",
       "Bash(gh pr view:*)"
@@ -159,8 +154,8 @@
       "Read(**/*.pfx)",
       "Read(**/.ssh/**)",
       "Read(**/.gnupg/**)",
-      "Read(**/.npmrc)",
-      "Read(**/.netrc)",
+      "Read(~/.npmrc)",
+      "Read(~/.netrc)",
       "Read(**/credentials/**)",
       "Read(**/credentials.*)",
       "Read(**/*.credentials)",
@@ -172,22 +167,26 @@
       "Read(**/*.production.*)",
       "Read(**/id_ed25519)",
       "Read(**/id_rsa)",
-      "Write(**/*.env)",
-      "Write(**/*.env.*)",
-      "Write(**/*.key)",
-      "Write(**/*.pem)",
-      "Write(**/.ssh/**)",
-      "Write(**/credentials/**)",
-      "Write(**/secrets/**)",
-      "Write(**/*.secrets)",
-      "Write(**/*.token)",
-      "Write(**/.production/**)",
-      "Write(**/*.production.*)",
-      "Write(**/id_ed25519)",
-      "Write(**/id_rsa)"
+      "Edit(**/*.env)",
+      "Edit(**/*.env.*)",
+      "Edit(**/*.key)",
+      "Edit(**/*.pem)",
+      "Edit(~/.npmrc)",
+      "Edit(~/.netrc)",
+      "Edit(**/.ssh/**)",
+      "Edit(**/credentials/**)",
+      "Edit(**/secrets/**)",
+      "Edit(**/*.secrets)",
+      "Edit(**/*.token)",
+      "Edit(**/.production/**)",
+      "Edit(**/*.production.*)",
+      "Edit(**/id_ed25519)",
+      "Edit(**/id_rsa)"
     ],
     "ask": [
       "Bash(curl:*)",
+      "Bash(dangerouslyDisableSandbox:true)",
+      "Bash(gh api:*)",
       "Bash(git checkout:*)",
       "Bash(git config:*)",
       "Bash(git push:*)",
@@ -196,9 +195,13 @@
       "Bash(git rm:*)",
       "Bash(git switch:*)"
     ],
-    "defaultMode": "default"
+    "defaultMode": "auto",
+    "disableBypassPermissionsMode": "disable"
   },
-  "model": "claude-fable-5[1m]",
+  "model": "claude-fable-5-1[1m]",
+  "skillOverrides": {
+    "difit": "user-invocable-only"
+  },
   "hooks": {
     "Notification": [
       {
@@ -216,16 +219,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/post-ts-lint.sh"
+            "command": "bash \"$HOME/.claude/hooks/post-ts-lint.sh\""
           }
         ]
       },
       {
-        "matcher": "Bash",
+        "matcher": "Read|Grep|Glob|WebFetch|WebSearch|mcp__.*",
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/deny-check.sh"
+            "command": "python3 \"$HOME/.claude/hooks/compact-tool-output.py\"",
+            "timeout": 10
           }
         ]
       }
@@ -237,6 +241,24 @@
           {
             "type": "command",
             "command": "~/.claude/hooks/validate-bash.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$HOME/.claude/hooks/require-subagent-model.sh\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "rtk hook claude"
           }
         ]
       }
@@ -254,37 +276,18 @@
       }
     ]
   },
+  "worktree": {
+    "baseRef": "fresh"
+  },
   "statusLine": {
     "type": "command",
     "command": "npx -y @owloops/claude-powerline@latest"
   },
   "enabledPlugins": {
-    "claude-code-setup@claude-plugins-official": false,
-    "claude-md-management@claude-plugins-official": false,
-    "claude-powerline@claude-powerline": true,
     "co-mlops-context@hdl-agent-plugins": true,
-    "code-review@claude-plugins-official": true,
-    "code-review@hdl-agent-plugins": true,
-    "code-simplifier@claude-plugins-official": false,
-    "codex-integration@hdl-agent-plugins": true,
     "codex@openai-codex": true,
-    "commit-commands@claude-plugins-official": true,
     "context7@claude-plugins-official": true,
-    "experiment-planner@hdl-agent-plugins": false,
-    "feature-dev@claude-plugins-official": false,
-    "frontend-design@claude-plugins-official": false,
-    "github@claude-plugins-official": false,
-    "gopls-lsp@claude-plugins-official": false,
-    "japanese-proofreader@hdl-agent-plugins": false,
-    "playwright@claude-plugins-official": false,
-    "plugin-dev@hdl-agent-plugins": true,
-    "pr-review-toolkit@claude-plugins-official": true,
-    "pyright-lsp@claude-plugins-official": true,
-    "report-instructor@hdl-agent-plugins": false,
-    "security-guidance@claude-plugins-official": true,
-    "serena@claude-plugins-official": true,
-    "skypilot@skypilot": true,
-    "superpowers@claude-plugins-official": true,
+    "discernment-nudge@anthropic-agent-skills": true,
     "typescript-lsp@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
@@ -314,21 +317,37 @@
       },
       "autoUpdate": true
     },
-    "skypilot": {
+    "anthropic-agent-skills": {
       "source": {
         "source": "github",
-        "repo": "skypilot-org/skypilot"
+        "repo": "anthropics/skills"
       }
     }
   },
   "language": "Japanese",
   "syntaxHighlightingDisabled": false,
-  "alwaysThinkingEnabled": true,
   "effortLevel": "xhigh",
+  "askUserQuestionTimeout": "never",
+  "autoUpdatesChannel": "latest",
   "tui": "fullscreen",
-  "skipDangerousModePermissionPrompt": true,
   "skipWorkflowUsageWarning": true,
   "theme": "light-daltonized",
+  "editorMode": "normal",
+  "preferredNotifChannel": "auto",
+  "switchModelsOnFlag": true,
   "teammateMode": "tmux",
-  "skipAutoPermissionPrompt": true
+  "inputNeededNotifEnabled": false,
+  "skipAutoPermissionPrompt": true,
+  "autoMode": {
+    "allow": [
+      "$defaults",
+      "Bash(agent-browser:*) for routine browser automation in a trusted workspace",
+      "Bash(npx:*) for an existing project's configured toolchain; package installation still requires approval"
+    ],
+    "environment": [
+      "Trust and repository scope must come from the current repository's own remote and project configuration; never reuse another repository's trust assumptions",
+      "Treat credentials, personal data, confidential business data, and regulated data as sensitive; public paste and gist services are outside the trust boundary unless explicitly approved",
+      "Treat remote targets or infrastructure whose name contains prod or production as sensitive"
+    ]
+  }
 }
