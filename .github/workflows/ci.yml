@@ -14,7 +14,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: shellcheck
-        run: shellcheck -S warning install.sh test/test-install.sh test/test-dotfiles-doctor.sh test/test-claude-sandbox.sh test/test-claude-hooks.sh test/test-launchd.sh test/test-secret-scan.sh claude/hooks/*.sh .shell-utils/*.sh .shell-utils/claude-sandbox
+        run: shellcheck -S warning install.sh test/test-install.sh test/test-dotfiles-doctor.sh test/test-dotfiles-secrets.sh test/test-claude-sandbox.sh test/test-claude-hooks.sh test/test-launchd.sh test/test-secret-scan.sh claude/hooks/*.sh .shell-utils/*.sh .shell-utils/claude-sandbox
+      - name: Test 1Password secret rendering
+        run: bash test/test-dotfiles-secrets.sh
       - name: Test dotfiles doctor
         run: bash test/test-dotfiles-doctor.sh
       - name: Test Claude hooks

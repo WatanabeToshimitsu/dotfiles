@@ -56,6 +56,17 @@ GitHub Settings → Codespaces → enable "Automatically install dotfiles" and s
 `install.sh` then runs automatically on codespace creation.
 Machine-specific config still goes in `~/.zshrc.local`.
 
+### Secrets
+
+Machine-local secrets also live in `~/.zshrc.local`, generated from
+[`templates/zshrc.local.tpl`](templates/zshrc.local.tpl) by running
+`dotfiles-secrets.sh` (on `PATH` after `install.sh`). Rendering requires a
+signed-in [1Password CLI](https://developer.1password.com/docs/cli/) (`op`);
+the resulting file is never tracked by this repo. The script refuses to replace
+an existing file unless passed `--force`, writes with mode `0600`, and preserves
+the old file if 1Password cannot render the template. Keep only `op://`
+references—not plaintext secrets—in the tracked template.
+
 ## Key Tools
 
 - **Shell**: Zsh with [Zinit](https://github.com/zdharma-continuum/zinit) (lazy-loaded plugins)
