@@ -58,6 +58,16 @@ class SecurityPolicyTest(unittest.TestCase):
     def test_default_settings_do_not_enable_sandbox_during_canary(self) -> None:
         self.assertNotIn("sandbox", self.settings)
 
+    def test_auto_mode_keeps_bypass_permissions_disabled(self) -> None:
+        permissions = self.settings["permissions"]
+        self.assertEqual(permissions["defaultMode"], "auto")
+        self.assertEqual(permissions["disableBypassPermissionsMode"], "disable")
+        self.assertTrue(self.settings["skipAutoPermissionPrompt"])
+        self.assertNotIn("skipDangerousModePermissionPrompt", self.settings)
+        self.assertEqual(
+            self.canary["permissions"]["disableBypassPermissionsMode"], "disable"
+        )
+
     def test_standard_permissions_own_allow_ask_and_deny_decisions(self) -> None:
         permissions = self.settings["permissions"]
         self.assertIn("Bash(gh pr view:*)", permissions["allow"])

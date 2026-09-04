@@ -13,7 +13,6 @@ Personal dotfiles for macOS, Linux, and WSL2 environments.
 | `.vimrc`                             | Vim settings (UTF-8, 2-space tabs, smart search)                                 |
 | `.tmux.conf`                         | tmux settings — kept as fallback for remote/ssh hosts without herdr              |
 | `.zprofile` / `.zshenv` / `.profile` | Shell profile and environment files                                              |
-| `.gitconfig`                         | Git configuration                                                                |
 | `.huskyrc`                           | Husky git hooks configuration                                                    |
 | `.shell-utils/`                      | Utility scripts (`ghq-rm.sh`, `git-branch-prune.zsh`, ...)                       |
 | `claude/`                            | [Claude Code](https://claude.ai/code) global settings, hooks, rules, statusline  |
@@ -116,10 +115,13 @@ claude-sandbox --check
 claude-sandbox
 ```
 
-The default `claude` command stays unchanged. The trial blocks common credentials,
-does not pre-allow package caches or registries, and keeps only the known `gh` and
-Docker compatibility exceptions. See [`claude/SANDBOX.md`](claude/SANDBOX.md) for
-the boundary and rollback.
+Normal `claude` uses Auto mode for trusted, routine work; the classifier is not an
+OS sandbox, and bypass permissions is disabled. Use the canary for sensitive
+repositories or data, unfamiliar external code, or stronger filesystem and
+network isolation. The trial blocks common credentials, does not pre-allow
+package caches or registries, and keeps only the known `gh` and Docker
+compatibility exceptions. See [`claude/SANDBOX.md`](claude/SANDBOX.md) for the
+boundary, verification, and rollback.
 
 ## Claude Auto Memory
 
@@ -137,11 +139,13 @@ involved. Target selection is left to auto detection, so every supported tool
 that is installed gets configured. The beta output shaper is enabled, and new
 shell sessions route Claude Code and Codex through the proxy.
 
-`dotfiles-doctor.sh` prints the reported measurement method next to the
-reduction. `ESTIMATED` compares shaped output against a synthetic baseline
-and can report a confidence band wider than the reduction itself, so it is
-not a basis for deciding whether the proxy earns its place. `MEASURED`
-requires an unshaped control arm via `HEADROOM_OUTPUT_HOLDOUT`.
+A 10% holdout leaves one conversation in ten unshaped as a control arm, so
+`headroom output-savings` reports `MEASURED` instead of `ESTIMATED`. That costs
+the shaping on those conversations. Without it the reported reduction is
+compared against a synthetic baseline and comes back with a confidence band
+wider than the reduction itself, which is no basis for deciding whether the
+proxy earns its place. `dotfiles-doctor.sh` prints the reported method next to
+the reduction, and the holdout below it.
 
 Learn the preferred response length again after enough Claude history has
 accumulated:
@@ -192,3 +196,21 @@ Configuration files are organized by target location:
 **Not tracked by design**: machine-local state (`~/.zshrc.local`, `~/.npmrc`, VS Code's live `settings.json` mutations), internal hostnames, and herdr-mirror `hosts.toml` — this repo is public. `install.sh` bootstraps a missing `.npmrc` from `.npmrc.example` but never replaces an existing machine-local file.
 
 **Principle**: Follow XDG Base Directory Specification (`.config/`) by default. For CLI tools that do not respect XDG paths, create a dedicated top-level directory named after the tool (e.g., `claude/` for `~/.claude/`).
+
+## Public Repository Safety
+
+The root `.gitignore` excludes machine-local tool state, `.env` variants, npm
+credentials, and common private-key formats. Placeholder files such as
+`.env.example` and `.npmrc.example` remain trackable.
+
+Every pull request and push to `main` scans the complete Git history with the
+checksum-verified Gitleaks version pinned in CI. `test/test-secret-scan.sh`
+checks both sides of the boundary: a synthetic credential must be detected,
+while placeholder-only configuration must pass. There are currently no
+`.gitleaksignore` or custom allowlist exceptions; add any future exception as
+narrowly as possible and document why it is safe.
+
+GitHub push protection is the first remote guard and Gitleaks CI is the
+repository-owned, reproducible check. A machine-local pre-commit scanner may be
+used as extra protection, but this repository does not install or depend on a
+global hook.

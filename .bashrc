@@ -29,6 +29,8 @@ export HEADROOM_BACKEND="anthropic"
 export HEADROOM_TELEMETRY="off"
 export HEADROOM_ROLLOUT_CHANNEL="beta"
 export HEADROOM_OUTPUT_SHAPER="1"
+export HEADROOM_OUTPUT_HOLDOUT="0.1"
 export ANTHROPIC_BASE_URL="http://127.0.0.1:8787"
 export ENABLE_TOOL_SEARCH="true"
+export OPENAI_BASE_URL="http://127.0.0.1:8787/v1"
 # <<< headroom persistent env <<<

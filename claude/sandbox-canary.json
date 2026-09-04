@@ -41,6 +41,7 @@
     }
   },
   "permissions": {
+    "disableBypassPermissionsMode": "disable",
     "ask": [
       "Bash(dangerouslyDisableSandbox:true)",
       "Bash(gh api:*)"

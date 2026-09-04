@@ -195,9 +195,10 @@
       "Bash(git rm:*)",
       "Bash(git switch:*)"
     ],
-    "defaultMode": "auto"
+    "defaultMode": "auto",
+    "disableBypassPermissionsMode": "disable"
   },
-  "model": "claude-fable-5[1m]",
+  "model": "claude-fable-5-1[1m]",
   "skillOverrides": {
     "difit": "user-invocable-only"
   },
@@ -325,11 +326,10 @@
   },
   "language": "Japanese",
   "syntaxHighlightingDisabled": false,
-  "effortLevel": "medium",
+  "effortLevel": "xhigh",
   "askUserQuestionTimeout": "never",
-  "autoUpdatesChannel": "stable",
+  "autoUpdatesChannel": "latest",
   "tui": "fullscreen",
-  "skipDangerousModePermissionPrompt": true,
   "skipWorkflowUsageWarning": true,
   "theme": "light-daltonized",
   "editorMode": "normal",

@@ -13,22 +13,11 @@ Follow the repository's existing coverage gates and test conventions. Choose uni
 
 For bug fixes, first add the smallest regression test that reproduces the reported bug. Do not expand into unrelated cases unless they expose the same root cause and materially reduce recurrence risk.
 
-## Test-Driven Development
-
-MANDATORY workflow:
-1. Write test first (RED)
-2. Run test - it should FAIL
-3. Write minimal implementation (GREEN)
-4. Run test - it should PASS
-5. Refactor (IMPROVE)
-6. Run the repository's relevant verification and coverage gates
-
 ## Troubleshooting Test Failures
 
 1. Read the failure and identify whether it is caused by the implementation, the test, or the environment.
 2. Check test isolation and mocks.
 3. Fix the implementation unless the test expectation is demonstrably wrong.
-4. Delegate verbose or independent diagnosis to a Sonnet subagent only when isolation is useful.
 
 ## Test Structure (AAA Pattern)
 

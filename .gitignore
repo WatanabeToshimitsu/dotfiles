@@ -1,3 +1,28 @@
 # Claude Code project-local state
 /.claude/settings.local.json
 /.claude/worktrees/
+
+# OS, editor, and tool state
+.DS_Store
+/.serena/
+/reports/
+__pycache__/
+*.py[cod]
+
+# Machine-local credentials and environment
+/.npmrc
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.key
+*.pem
+*.p12
+*.pfx
+id_dsa
+id_ecdsa
+id_ed25519
+id_rsa
+
+# Machine-local Git identity, retired from tracking (#74)
+/.gitconfig

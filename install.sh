@@ -1,5 +1,5 @@
 #!/bin/bash
-DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
+DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WHO=$(whoami)
 BACKUP_TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 
@@ -10,10 +10,6 @@ echo ""
 echo " ---------------"
 echo "| Hello ${WHO}! |"
 echo " ---------------"
-
-# ========================================
-# Shared helpers
-# ========================================
 
 installApp() {
   local manager=$1
@@ -69,9 +65,7 @@ installAppsNeedsBrew() {
   done
 }
 
-# Back up a real (non-symlink) file before it gets replaced by a symlink.
-# Moves it to ~/.dotfiles-backup/<run-timestamp>/<same relative path>.
-backup_if_real_file() {
+backup_if_real_path() {
   local target=$1
   [ -e "$target" ] && [ ! -L "$target" ] || return 0
 
@@ -79,7 +73,7 @@ backup_if_real_file() {
   local dest="$HOME/.dotfiles-backup/$BACKUP_TIMESTAMP/$rel_path"
   mkdir -p "$(dirname "$dest")"
   mv "$target" "$dest"
-  echo "  backed up: $rel_path"
+  echo "  backed up: $rel_path -> ~/.dotfiles-backup/$BACKUP_TIMESTAMP/$rel_path"
 }
 
 setup_npmrc() {
@@ -107,6 +101,29 @@ setup_npmrc() {
   fi
 }
 
+# .gitconfig is no longer tracked (#74). An existing symlink has to become a real
+# file before the repository copy goes away, or the next clone leaves the machine
+# with no Git identity at all.
+setup_gitconfig() {
+  local dotfiles_dir="$1"
+  local target="$HOME/.gitconfig"
+  local retired_target="$dotfiles_dir/.gitconfig"
+
+  [ -L "$target" ] || return 0
+  if [ "$(readlink "$target")" != "$retired_target" ]; then
+    echo "  exists: .gitconfig (foreign symlink left unmanaged)"
+    return 0
+  fi
+
+  rm "$target"
+  if [ -f "$retired_target" ]; then
+    cp "$retired_target" "$target"
+    echo "  detached: .gitconfig (now a machine-local file)"
+  else
+    echo "  removed dangling link: .gitconfig"
+  fi
+}
+
 setup_symlinks() {
   local dotfiles_dir="${1:-$DOTFILES_DIR}"
 
@@ -116,29 +133,28 @@ setup_symlinks() {
 
   for file in "${MANIFEST_FILES[@]}"; do
     if [ -f "$dotfiles_dir/$file" ]; then
-      backup_if_real_file "$HOME/$file"
+      backup_if_real_path "$HOME/$file"
       ln -fs "$dotfiles_dir/$file" "$HOME/$file"
       echo "  linked: $file"
     fi
   done
 
   setup_npmrc "$dotfiles_dir"
+  setup_gitconfig "$dotfiles_dir"
 
-  # .config/ subdirectory files (create parent dirs, then symlink individual files)
   for file in "${MANIFEST_CONFIG_FILES[@]}"; do
     if [ -f "$dotfiles_dir/$file" ]; then
       mkdir -p "$HOME/$(dirname "$file")"
-      backup_if_real_file "$HOME/$file"
+      backup_if_real_path "$HOME/$file"
       ln -fs "$dotfiles_dir/$file" "$HOME/$file"
       echo "  linked: $file"
     fi
   done
 
-  # Claude Code global settings (claude/ → ~/.claude/)
   for file in "${MANIFEST_CLAUDE_FILES[@]}"; do
     if [ -f "$dotfiles_dir/claude/$file" ]; then
       mkdir -p "$HOME/.claude/$(dirname "$file")"
-      backup_if_real_file "$HOME/.claude/$file"
+      backup_if_real_path "$HOME/.claude/$file"
       ln -fs "$dotfiles_dir/claude/$file" "$HOME/.claude/$file"
       echo "  linked: .claude/$file"
     fi
@@ -153,17 +169,16 @@ setup_symlinks() {
     fi
   done
 
-  # Directory symlinks: use -n to avoid following existing symlinks into the target
-  # and rm -rf guard for the case where a real (non-symlink) directory exists
-  [ -d "$HOME/.shell-utils" ] && [ ! -L "$HOME/.shell-utils" ] && rm -rf "$HOME/.shell-utils"
+  # Directory symlinks: use -n so an existing symlink is replaced rather than
+  # followed into the directory it points at
+  backup_if_real_path "$HOME/.shell-utils"
   ln -fsn "$dotfiles_dir/.shell-utils" "$HOME/.shell-utils"
   echo "  linked: .shell-utils/"
 
-  [ -d "$HOME/oh-my-posh-theme" ] && [ ! -L "$HOME/oh-my-posh-theme" ] && rm -rf "$HOME/oh-my-posh-theme"
+  backup_if_real_path "$HOME/oh-my-posh-theme"
   ln -fsn "$dotfiles_dir/oh-my-posh-theme" "$HOME/oh-my-posh-theme"
   echo "  linked: oh-my-posh-theme/"
 
-  # Neovim config (LazyVim): whole-directory symlink; back up any real dir first
   if [ -d "$HOME/.config/nvim" ] && [ ! -L "$HOME/.config/nvim" ]; then
     mkdir -p "$HOME/.dotfiles-backup/$BACKUP_TIMESTAMP/.config"
     mv "$HOME/.config/nvim" "$HOME/.dotfiles-backup/$BACKUP_TIMESTAMP/.config/nvim"
@@ -172,6 +187,10 @@ setup_symlinks() {
   mkdir -p "$HOME/.config"
   ln -fsn "$dotfiles_dir/.config/nvim" "$HOME/.config/nvim"
   echo "  linked: .config/nvim/"
+
+  if [ -d "$HOME/.dotfiles-backup/$BACKUP_TIMESTAMP" ]; then
+    echo "  restore a backup with: mv ~/.dotfiles-backup/$BACKUP_TIMESTAMP/<path> ~/<path>"
+  fi
 }
 
 # Restore Neovim plugins pinned by lazy-lock.json (first run also clones lazy.nvim)
@@ -239,9 +258,6 @@ install_gh_cli() {
   fi
 }
 
-# ========================================
-# launchd agents (macOS)
-# ========================================
 # Weekly dotfiles-doctor drift check; notifies only when warnings are found.
 # The plist is generated here (not stored in the repo) so $HOME is baked in.
 
@@ -283,11 +299,6 @@ EOF
     echo "  failed: launchctl bootstrap $label"
   fi
 }
-
-# ========================================
-# CLI tool inventories (gh extensions, pipx, volta)
-# ========================================
-# Idempotent: skips anything already installed.
 
 setup_cli_tools() {
   echo "----------------------------------------------"
@@ -354,15 +365,10 @@ setup_cli_tools() {
   fi
 }
 
-# ========================================
-# Headroom persistent Claude proxy
-# ========================================
-# Recreates the user-scoped deployment when missing or when the persisted
-# output-shaper settings drift. Runs the proxy as a supervised native process
-# (launchd on macOS, systemd on Linux) so it starts at login and is restarted
-# when it dies. The Docker preset needs a running Docker daemon, tracks the
-# :latest image instead of the pinned version installed above, and cannot
-# restart itself from inside the container.
+# Runs the proxy as a supervised native process (launchd on macOS, systemd on
+# Linux) so it starts at login and is restarted when it dies. The Docker preset
+# needs a running Docker daemon, tracks the :latest image instead of the pinned
+# version installed above, and cannot restart itself from inside the container.
 # Target selection is left to auto detection, so the deployment covers every
 # installed tool and the target list is not treated as drift.
 
@@ -382,7 +388,8 @@ setup_headroom() {
        and .preset == $preset
        and .runtime_kind == $runtime
        and .base_env.HEADROOM_ROLLOUT_CHANNEL == "beta"
-       and .base_env.HEADROOM_OUTPUT_SHAPER == "1"' \
+       and .base_env.HEADROOM_OUTPUT_SHAPER == "1"
+       and .base_env.HEADROOM_OUTPUT_HOLDOUT == "0.1"' \
       "$manifest" > /dev/null 2>&1; then
     echo "  exists: Headroom persistent proxy ($preset)"
     if ! headroom install status --profile default 2>/dev/null | grep -q '^Status:.*running'; then
@@ -406,13 +413,9 @@ setup_headroom() {
     --no-telemetry \
     --env HEADROOM_ROLLOUT_CHANNEL=beta \
     --env HEADROOM_OUTPUT_SHAPER=1 \
+    --env HEADROOM_OUTPUT_HOLDOUT=0.1 \
     || echo "  failed: Headroom persistent Claude deployment"
 }
-
-# ========================================
-# herdr integrations and plugins
-# ========================================
-# Idempotent: skips anything already installed/linked.
 
 setup_herdr() {
   if ! command -v herdr > /dev/null 2>&1; then
@@ -459,9 +462,6 @@ setup_herdr() {
   fi
 }
 
-# ========================================
-# VS Code user config (macOS)
-# ========================================
 # keybindings.json is symlinked (never auto-modified by VS Code).
 # settings.json is copied only when absent: VS Code rewrites it with
 # machine-local state (SSH host maps etc.), so a symlink would leak
@@ -471,7 +471,7 @@ setup_vscode() {
   local user_dir="$HOME/Library/Application Support/Code/User"
   [ -d "$user_dir" ] || return 0
 
-  backup_if_real_file "$user_dir/keybindings.json"
+  backup_if_real_path "$user_dir/keybindings.json"
   ln -fs "$DOTFILES_DIR/vscode/keybindings.json" "$user_dir/keybindings.json"
   echo "  linked: vscode keybindings.json"
 
@@ -481,10 +481,6 @@ setup_vscode() {
   fi
 }
 
-# ========================================
-# Agent skills (npx skills / skills.sh)
-# ========================================
-# Reinstall global agent skills recorded in ~/.agents/.skill-lock.json.
 # Keep skill_sources in sync when adding skills with `npx skills add`.
 
 setup_agent_skills() {
@@ -522,16 +518,11 @@ setup_agent_skills() {
   done
 }
 
-# ========================================
-# macOS setup
-# ========================================
-
 setup_macos() {
   echo "=========================================="
   echo "Setting up macOS environment"
   echo "=========================================="
 
-  # Install Homebrew if not present
   if ! command -v brew > /dev/null 2>&1; then
     echo "----------------------------------------------"
     echo "Installing Homebrew..."
@@ -556,10 +547,6 @@ setup_macos() {
   setup_launchd
 }
 
-# ========================================
-# Linux setup
-# ========================================
-
 setup_linux() {
   echo "=========================================="
   echo "Setting up Linux environment"
@@ -569,7 +556,7 @@ setup_linux() {
   echo "Run apt/yum update..."
   echo "----------------------------------------------"
   apt-get update -y || yum update -y || dnf update -y
-  # Remove stale lock files if they exist (only needed when previous apt was interrupted)
+  # Only needed when a previous apt run was interrupted.
   [ -f /var/lib/dpkg/lock ] && sudo rm -f /var/lib/dpkg/lock
   [ -f /var/lib/dpkg/lock-frontend ] && sudo rm -f /var/lib/dpkg/lock-frontend
   [ -f /var/cache/apt/archives/lock ] && sudo rm -f /var/cache/apt/archives/lock
@@ -643,9 +630,9 @@ setup_linux() {
   fi
 }
 
-# ========================================
-# Main
-# ========================================
+if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
+  return 0
+fi
 
 if [ "${1:-}" = "--symlinks-only" ]; then
   setup_symlinks "$DOTFILES_DIR"
