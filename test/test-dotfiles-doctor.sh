@@ -26,6 +26,12 @@ assert_not_contains() {
   fi
 }
 
+set +e
+run_with_timeout 0.1 bash -c 'sleep 2'
+timeout_status=$?
+set -e
+[ "$timeout_status" -eq 124 ] || fail "run_with_timeout returned $timeout_status, expected 124"
+
 has_command() {
   return 0
 }
@@ -41,6 +47,21 @@ compactor_hook_configured() {
 run_headroom_status() {
   printf 'Status: running\nHealthy: yes\n'
 }
+
+run_brew_leaves() {
+  printf '%s\n' \
+    'daipeihust/tap/im-select' \
+    'jandedobbeleer/oh-my-posh/oh-my-posh' \
+    'example/tap/untracked-formula'
+}
+
+brew_output="$TEST_OUTPUT_DIR/brew"
+WARNINGS=0
+check_brew_drift > "$brew_output"
+[ "$WARNINGS" -eq 1 ] || fail "brew fixture produced $WARNINGS warning(s), expected 1"
+assert_contains "installed but untracked: untracked-formula" "$brew_output"
+assert_not_contains "installed but untracked: im-select" "$brew_output"
+assert_not_contains "installed but untracked: oh-my-posh" "$brew_output"
 
 run_headroom_savings() {
   printf 'No shaped requests recorded yet.\n'
@@ -79,6 +100,32 @@ assert_contains "installed 2.1.241; latest stable 2.1.241" "$healthy_output"
 assert_contains "hook active; last invoked 2026-08-26T00:00:00Z" "$healthy_output"
 assert_contains "output shaper flag reached the proxy" "$healthy_output"
 assert_contains "no output holdout" "$healthy_output"
+
+run_claude_mcp_list() {
+  return 124
+}
+
+mcp_timeout_output="$TEST_OUTPUT_DIR/mcp-timeout"
+WARNINGS=0
+check_agent_harness > "$mcp_timeout_output"
+[ "$WARNINGS" -eq 0 ] || fail "MCP timeout produced $WARNINGS warning(s), expected 0"
+assert_contains "MCP status check timed out after 8s" "$mcp_timeout_output"
+assert_contains "installed 2.1.241; latest stable 2.1.241" "$mcp_timeout_output"
+assert_contains "hook active; last invoked" "$mcp_timeout_output"
+
+run_claude_mcp_list() {
+  printf 'broken: missing-command - ✗ Failed: command not found\n'
+}
+
+mcp_invalid_output="$TEST_OUTPUT_DIR/mcp-invalid"
+WARNINGS=0
+check_mcp_servers > "$mcp_invalid_output"
+[ "$WARNINGS" -eq 1 ] || fail "invalid MCP config produced $WARNINGS warning(s), expected 1"
+assert_contains "MCP server 'broken' has a configuration error" "$mcp_invalid_output"
+
+run_claude_mcp_list() {
+  printf 'context7: command - ✓ Connected\nserena: command - ✓ Connected\n'
+}
 
 run_headroom_savings() {
   printf '%s\n' \
@@ -187,9 +234,9 @@ run_compactor_health() {
 unhealthy_output="$TEST_OUTPUT_DIR/unhealthy"
 WARNINGS=0
 check_agent_harness > "$unhealthy_output"
-[ "$WARNINGS" -eq 5 ] || fail "unhealthy harness produced $WARNINGS warning(s), expected 5"
+[ "$WARNINGS" -eq 4 ] || fail "unhealthy harness produced $WARNINGS warning(s), expected 4"
 assert_contains "run install.sh --headroom-only" "$unhealthy_output"
-assert_contains "MCP server 'serena' is not connected" "$unhealthy_output"
+assert_contains "MCP server 'serena' is not connected (possibly temporary)" "$unhealthy_output"
 assert_contains "Claude Code installed 2.1.231; latest stable 2.1.241" "$unhealthy_output"
 assert_contains "Compaction hook was not observed in 7 days" "$unhealthy_output"
 assert_contains "unresolved JSONDecodeError" "$unhealthy_output"
