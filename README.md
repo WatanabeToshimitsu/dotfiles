@@ -147,6 +147,41 @@ path. It is shared across worktrees without a custom hook. See
 [`claude/AUTO-MEMORY.md`](claude/AUTO-MEMORY.md) for the verified behavior and
 legacy-data policy.
 
+## Loop Contracts
+
+A scheduled or repeated agent run may discover work with user-level defaults,
+but it may change a repository only when that repository has an approved Loop
+contract. Without a contract, or while its status is `draft`, the run must stay
+read-only and hand the candidate work to a person.
+
+| User-level dotfiles provide | Each project must decide |
+| --- | --- |
+| A safe read-only fallback when no contract exists | Which work may be discovered and how to rank it |
+| The contract template and runner-selection guidance | Allowed files, commands, services, and explicit forbidden areas |
+| Common worktree, implementer, verifier, and handoff practices | Tests, CI checks, logs, and artifacts that prove success |
+| A requirement to record why a run stopped and where it can resume | Time, round, usage, and risk limits |
+| No automatic merge, production operation, or secret change | The Issue, PR, or file that stores durable state |
+
+Choose the execution surface from the work rather than treating the runners as
+interchangeable:
+
+| Need | Execution surface |
+| --- | --- |
+| Poll briefly while an existing Claude Code session stays open | Claude Code [`/loop`](https://code.claude.com/docs/en/scheduled-tasks) |
+| Read local files while the Mac and desktop app can remain running | A local desktop scheduled task in [Claude Code](https://code.claude.com/docs/en/desktop-scheduled-tasks) or the [OpenAI desktop app](https://learn.chatgpt.com/docs/automations) |
+| Keep running while the Mac is off | A Claude Code [Routine](https://code.claude.com/docs/en/routines) |
+| React to a PR, CI, or another repository event | [GitHub Actions](https://docs.github.com/en/actions/concepts/workflows-and-actions/workflows) |
+
+Cloud and CI runners must not depend on uncommitted local state. When a local
+desktop task is approved to write, give each run an isolated worktree instead
+of the shared checkout.
+
+Copy [`templates/loop-contract.md`](templates/loop-contract.md) into a project
+and fill it in before enabling writes. The
+[`dotfiles` example](docs/dotfiles-loop-contract.example.md) shows the minimum
+specificity expected for one bounded delivery run. Projects that do not adopt
+the template do not permit automated changes.
+
 ## Headroom Proxy
 
 `install.sh` installs Headroom 0.36.5 with `uv` and maintains a user-scoped
