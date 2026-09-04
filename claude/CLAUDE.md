@@ -21,6 +21,7 @@
 - リファクタリングと機能変更を同じ変更に混ぜない。
 - 無関係な作業ツリーの変更を保護し、ファイルを明示して stage する。
 - 権限に配送が含まれる場合は、検証後に論理単位で commit、push し、必要なら Draft PR まで進める。
+- JavaScript/TypeScript を含む範囲のリポジトリ検査やリファクタリングでは、`repository-audit` skill を使い、Knip の結果または実行できなかった理由を残す。
 
 詳細な進行手順とレビュー基準は、該当時に `delivery-workflow` と `code-review` skill を使う。
 
