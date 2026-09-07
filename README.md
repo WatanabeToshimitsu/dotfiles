@@ -50,6 +50,18 @@ To reapply only the managed symlinks without installing packages or tools:
 bash install.sh --symlinks-only
 ```
 
+### Agent Skills
+
+`setup_agent_skills` restores missing global skills from their public GitHub
+sources. `natural-japanese` comes from
+[`coji/natural-japanese`](https://github.com/coji/natural-japanese) and is not
+vendored in this repository. After `setup_agent_skills` registers it in the
+skills lock, update it with:
+
+```bash
+npx skills update natural-japanese -g -y
+```
+
 ### Codespaces
 
 GitHub Settings → Codespaces → enable "Automatically install dotfiles" and select this repo.
