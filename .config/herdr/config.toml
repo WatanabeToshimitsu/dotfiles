@@ -9,6 +9,7 @@ delivery = "system"
 
 [keys]
 prefix = "cmd+space"
+split_vertical = "prefix+|"
 # Worktrees: create = prefix+shift+g (default), open/remove are unbound by default
 open_worktree = "prefix+shift+o"
 remove_worktree = "prefix+shift+k"
