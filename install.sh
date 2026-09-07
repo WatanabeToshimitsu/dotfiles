@@ -496,6 +496,7 @@ setup_agent_skills() {
     "yoshiko-pg/difit:difit-review"
     "GoogleChrome/modern-web-guidance:modern-web-guidance"
     "vercel-labs/agent-browser:agent-browser"
+    "coji/natural-japanese:natural-japanese"
     "tokoroten/prompt-review:prompt-review"
     "vercel-labs/agent-skills:vercel-react-best-practices"
   )
