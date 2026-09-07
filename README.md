@@ -180,8 +180,8 @@ headroom doctor
 headroom output-savings
 ```
 
-Run the complete agent-harness diagnostic (Headroom reachability, MCP
-connections, Claude Code version drift, and tool-output compaction):
+Run the agent-harness diagnostic (Headroom reachability, MCP connections,
+and Claude Code version drift):
 
 ```bash
 ~/.shell-utils/dotfiles-doctor.sh --harness-only
