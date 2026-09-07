@@ -156,8 +156,10 @@ boundary, verification, and rollback.
 
 Claude Code's repository-scoped auto memory is the only active project-learning
 path. It is shared across worktrees without a custom hook. See
-[`claude/AUTO-MEMORY.md`](claude/AUTO-MEMORY.md) for the verified behavior and
-legacy-data policy.
+[`claude/AUTO-MEMORY.md`](claude/AUTO-MEMORY.md) for the verified behavior,
+legacy-data policy, and the `metadata.promoted` field that lets
+`dotfiles-doctor.sh` report memories still waiting to reach `CLAUDE.md`, a rule,
+or a skill.
 
 ## Loop Contracts
 
