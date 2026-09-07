@@ -121,6 +121,21 @@ brewfile_formulae() {
     | normalize_brew_formulae
 }
 
+# Claude Code derives this path from the project directory, mapping "/" and "."
+# onto "-".
+agent_memory_dir() {
+  printf '%s/.claude/projects/%s/memory\n' \
+    "$HOME" "$(printf '%s' "$DOTFILES_DIR" | tr './' '--')"
+}
+
+memory_frontmatter() {
+  awk 'NR == 1 && $0 != "---" { exit } NR > 1 && $0 == "---" { exit } NR > 1' "$1"
+}
+
+memory_field() {
+  memory_frontmatter "$1" | sed -nE "s/^[[:space:]]*$2:[[:space:]]*//p" | head -n 1
+}
+
 check_headroom_shaper() {
   local flags shaper holdout
   if ! flags=$(run_headroom_runtime_flags 2> /dev/null); then
@@ -297,6 +312,33 @@ check_brew_drift() {
   section_ok "$before"
 }
 
+check_memory_promotion() {
+  echo "== agent feedback not promoted into this repo =="
+  local before=$WARNINGS
+  local memory_dir file name promoted
+
+  memory_dir=$(agent_memory_dir)
+  if [ ! -d "$memory_dir" ]; then
+    info "no agent memory directory for this repository"
+    return 0
+  fi
+
+  for file in "$memory_dir"/*.md; do
+    [ -f "$file" ] || continue
+    name=$(basename "$file" .md)
+    [ "$name" = MEMORY ] && continue
+    [ "$(memory_field "$file" type)" = feedback ] || continue
+
+    promoted=$(memory_field "$file" promoted)
+    if [ -z "$promoted" ]; then
+      warn "feedback not promoted: $name (record metadata.promoted)"
+    elif [ "$promoted" != none ] && [ ! -e "$DOTFILES_DIR/$promoted" ]; then
+      warn "promotion target is missing: $name -> $promoted"
+    fi
+  done
+  section_ok "$before"
+}
+
 check_local_drift() {
   echo "== broken symlinks (~/, ~/.config, ~/.claude, VS Code) =="
   local before=$WARNINGS
@@ -311,6 +353,7 @@ check_local_drift() {
   section_ok "$before"
 
   check_brew_drift
+  check_memory_promotion
 
   echo "== agent skills not restored by install.sh =="
   before=$WARNINGS

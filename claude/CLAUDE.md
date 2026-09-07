@@ -65,6 +65,12 @@
 - 大量ログは要約またはファイルへ退避し、main conversation に戻さない。
 - 同じタスクの履歴が実作業を妨げる場合だけ `/compact`、無関係なタスクへ移る場合だけ `/clear` を短く提案する。
 
+# Auto Memory
+
+- `feedback` を記録したら、`metadata` へ `promoted` を書く。値は昇格先のリポジトリ相対パス、または意図的に昇格しない場合は `none`。
+- 昇格先は `CLAUDE.md`、`claude/CLAUDE.md`、`claude/rules/`、`claude/skills/` のいずれか。memory 自体は Claude Code しか読まないため、他のエージェントへ効くのは昇格後。
+- 未昇格の `feedback` は `dotfiles-doctor.sh` が候補として報告する。
+
 # コミュニケーション
 
 - ユーザー向け文章は簡潔にする。

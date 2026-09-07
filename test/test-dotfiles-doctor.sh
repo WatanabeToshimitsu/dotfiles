@@ -218,4 +218,68 @@ assert_contains "MCP server 'serena' is not connected (possibly temporary)" "$un
 assert_contains "Claude Code installed 2.1.231; latest stable 2.1.241" "$unhealthy_output"
 assert_not_contains "credential-do-not-log" "$unhealthy_output"
 
+MEMORY_FIXTURE="$TEST_OUTPUT_DIR/memory"
+mkdir -p "$MEMORY_FIXTURE"
+
+agent_memory_dir() {
+  printf '%s\n' "$MEMORY_FIXTURE"
+}
+
+write_memory() {
+  local name="$1" body="$2"
+  {
+    printf -- '---\n'
+    printf 'name: %s\n' "$name"
+    printf 'metadata:\n'
+    printf '%s' "$body"
+    printf -- '---\n\n'
+    printf 'A recorded correction.\n'
+  } > "$MEMORY_FIXTURE/$name.md"
+}
+
+write_memory linked-feedback '  type: feedback
+  promoted: CLAUDE.md
+'
+write_memory orphan-feedback '  type: feedback
+'
+write_memory declined-feedback '  type: feedback
+  promoted: none
+'
+write_memory stale-feedback '  type: feedback
+  promoted: claude/rules/common/deleted-rule.md
+'
+write_memory project-note '  type: project
+'
+
+memory_output="$TEST_OUTPUT_DIR/memory-promotion"
+WARNINGS=0
+check_memory_promotion > "$memory_output"
+[ "$WARNINGS" -eq 2 ] || fail "memory fixture produced $WARNINGS warning(s), expected 2"
+assert_contains "feedback not promoted: orphan-feedback" "$memory_output"
+assert_contains "promotion target is missing: stale-feedback" "$memory_output"
+assert_not_contains "linked-feedback" "$memory_output"
+assert_not_contains "declined-feedback" "$memory_output"
+assert_not_contains "project-note" "$memory_output"
+
+# A body that quotes the frontmatter keys must not be read as frontmatter.
+printf -- '---\nname: quoting-body\nmetadata:\n  type: reference\n---\n\n  type: feedback\n' \
+  > "$MEMORY_FIXTURE/quoting-body.md"
+quoting_output="$TEST_OUTPUT_DIR/memory-quoting"
+WARNINGS=0
+check_memory_promotion > "$quoting_output"
+[ "$WARNINGS" -eq 2 ] || fail "quoted keys produced $WARNINGS warning(s), expected 2"
+assert_not_contains "quoting-body" "$quoting_output"
+rm "$MEMORY_FIXTURE/quoting-body.md"
+
+# Claude Code owns the memory path, so a missing directory must not warn.
+agent_memory_dir() {
+  printf '%s\n' "$TEST_OUTPUT_DIR/absent-memory"
+}
+
+absent_output="$TEST_OUTPUT_DIR/memory-absent"
+WARNINGS=0
+check_memory_promotion > "$absent_output"
+[ "$WARNINGS" -eq 0 ] || fail "absent memory directory produced $WARNINGS warning(s), expected 0"
+assert_contains "no agent memory directory for this repository" "$absent_output"
+
 printf 'dotfiles-doctor tests: ok\n'
