@@ -9,7 +9,6 @@ DOTFILES_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
 NOTIFY=0
 HARNESS_ONLY=0
 WARNINGS=0
-HARNESS_WINDOW_DAYS=7
 EXTERNAL_CHECK_TIMEOUT_SECONDS=8
 
 warn() {
@@ -63,11 +62,6 @@ strip_ansi() {
 
 semver_from() {
   grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1 || :
-}
-
-stats_value() {
-  local key="$1" stats="$2"
-  printf '%s\n' "$stats" | sed -n "s/^${key}: //p" | head -n 1
 }
 
 headroom_deployment_configured() {
@@ -125,15 +119,6 @@ normalize_brew_formulae() {
 brewfile_formulae() {
   sed -nE 's/^brew "([^"]+)".*/\1/p' "$DOTFILES_DIR/Brewfile" \
     | normalize_brew_formulae
-}
-
-compactor_hook_configured() {
-  grep -Fq 'compact-tool-output.py' "$HOME/.claude/settings.json" 2> /dev/null
-}
-
-run_compactor_health() {
-  python3 "$DOTFILES_DIR/claude/hooks/compact-tool-output.py" \
-    health --days "$HARNESS_WINDOW_DAYS"
 }
 
 check_headroom_shaper() {
@@ -291,49 +276,10 @@ check_claude_version() {
   section_ok "$before"
 }
 
-check_tool_output_compaction() {
-  echo "== Claude tool-output compaction (last ${HARNESS_WINDOW_DAYS} days) =="
-  local before=$WARNINGS
-  local health active last_invoked last_error
-  local script="$DOTFILES_DIR/claude/hooks/compact-tool-output.py"
-
-  if [ ! -f "$script" ]; then
-    warn "Compaction hook script is missing; next: rerun install.sh"
-  elif ! compactor_hook_configured; then
-    warn "Compaction hook is not configured in Claude settings; next: rerun install.sh"
-  elif ! has_command python3; then
-    warn "python3 is unavailable, so compaction health cannot be checked; next: rerun install.sh"
-  elif health=$(run_compactor_health 2>&1); then
-    active=$(stats_value "hook active" "$health")
-    last_invoked=$(stats_value "hook last invoked" "$health")
-    last_error=$(stats_value "hook last error" "$health")
-
-    if [ "$active" = "yes" ]; then
-      info "hook active; last invoked ${last_invoked:-unknown}"
-    else
-      warn "Compaction hook was not observed in ${HARNESS_WINDOW_DAYS} days; next: use a Read/Grep/Glob/Web/MCP tool, then run python3 ~/.claude/hooks/compact-tool-output.py health"
-    fi
-
-    case "$last_error" in
-      none) ;;
-      '')
-        warn "Compaction error state could not be parsed; next: run python3 ~/.claude/hooks/compact-tool-output.py health"
-        ;;
-      *)
-        warn "Compaction hook has an unresolved $last_error; next: run the hook tests, then use a supported tool once"
-        ;;
-    esac
-  else
-    warn "Compaction health check failed; next: run python3 ~/.claude/hooks/compact-tool-output.py health"
-  fi
-  section_ok "$before"
-}
-
 check_agent_harness() {
   check_headroom
   check_mcp_servers
   check_claude_version
-  check_tool_output_compaction
 }
 
 check_brew_drift() {

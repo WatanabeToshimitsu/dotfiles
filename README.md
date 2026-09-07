@@ -131,9 +131,10 @@ Show savings from the retained archives when deciding whether the hook is useful
 python3 ~/.claude/hooks/compact-tool-output.py stats
 ```
 
-The weekly doctor checks only the last hook invocation and one unresolved error.
-It does not aggregate compaction counts or savings. Error records contain the
-exception type and time, never tool payloads or exception messages.
+The weekly doctor does not monitor this hook. Use `stats` on demand and the
+visible compaction notice to decide whether it is working and worth keeping.
+Retired `.last-invoked`, `.last-error`, and `.errors/` entries in the cache are
+ignored and can remain without affecting compaction, expansion, or statistics.
 
 ## Claude Bash Sandbox Canary
 
@@ -226,8 +227,8 @@ headroom doctor
 headroom output-savings
 ```
 
-Run the complete agent-harness diagnostic (Headroom reachability, MCP
-connections, Claude Code version drift, and tool-output compaction):
+Run the agent-harness diagnostic (Headroom reachability, MCP connections,
+and Claude Code version drift):
 
 ```bash
 ~/.shell-utils/dotfiles-doctor.sh --harness-only
