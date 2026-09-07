@@ -1,5 +1,6 @@
 # Shared environment for zsh/bash/sh (POSIX syntax only).
-# Sourced from .zshrc, .bashrc, .bash_profile, .profile, and .huskyrc —
+# Sourced from .zshrc, .bashrc, .bash_profile, .profile, and
+# .config/husky/init.sh —
 # keep it fast, idempotent, and free of shell-specific features.
 
 export VOLTA_HOME="$HOME/.volta"

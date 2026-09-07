@@ -139,6 +139,15 @@ setup_symlinks() {
     fi
   done
 
+  local retired_file retired_target
+  for retired_file in "${MANIFEST_OBSOLETE_FILES[@]}"; do
+    retired_target="$HOME/$retired_file"
+    if [ -L "$retired_target" ] && [ "$(readlink "$retired_target")" = "$dotfiles_dir/$retired_file" ]; then
+      rm "$retired_target"
+      echo "  removed obsolete link: $retired_file"
+    fi
+  done
+
   setup_npmrc "$dotfiles_dir"
   setup_gitconfig "$dotfiles_dir"
 

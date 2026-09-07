@@ -13,10 +13,9 @@ Personal dotfiles for macOS, Linux, and WSL2 environments.
 | `.vimrc`                             | Vim settings (UTF-8, 2-space tabs, smart search)                                 |
 | `.tmux.conf`                         | tmux settings — kept as fallback for remote/ssh hosts without herdr              |
 | `.zprofile` / `.zshenv` / `.profile` | Shell profile and environment files                                              |
-| `.huskyrc`                           | Husky git hooks configuration                                                    |
 | `.shell-utils/`                      | Utility scripts (`ghq-rm.sh`, `git-branch-prune.zsh`, ...)                       |
 | `claude/`                            | [Claude Code](https://claude.ai/code) global settings, hooks, rules, statusline  |
-| `.config/`                           | XDG-compliant configs (`git/ignore`, `gh/config.yml`, `ghostty`, `herdr`)        |
+| `.config/`                           | XDG configs (`git/ignore`, `gh/config.yml`, `ghostty`, `herdr`, `husky/init.sh`) |
 | `herdr-plugins/`                     | Self-made [herdr](https://herdr.dev) plugins (loaded via `herdr plugin link`)    |
 | `vscode/`                            | VS Code user config (keybindings symlinked, settings bootstrap-copied)           |
 | `oh-my-posh-theme/`                  | oh-my-posh prompt theme configuration                                            |
