@@ -49,6 +49,12 @@ for dir in "${MANIFEST_DIRS[@]}"; do
     echo "$SENTINEL_CONTENT" > "$HOME/$dir/sentinel.txt"
 done
 
+echo "=== Pre-creating the retired ~/.huskyrc symlink ==="
+# Husky reads .config/husky/init.sh since #83, so the repository no longer
+# carries .huskyrc and the link starts out dangling.
+HUSKYRC_RETIRED="$DOTFILES_DIR/.huskyrc"
+ln -sfn "$HUSKYRC_RETIRED" "$HOME/.huskyrc"
+
 echo "=== Pre-creating a ~/.gitconfig symlink into the repository ==="
 # The repository copy is untracked after #74, so it is absent in a fresh clone and
 # the link starts out dangling. Never create it here: the checkout is read-only
@@ -92,6 +98,22 @@ if ! grep -q "link-worktree-memory" "$DOTFILES_DIR/claude/settings.json"; then
     echo "  OK: retired worktree-memory hook is not configured"
 else
     echo "  FAIL: retired worktree-memory hook is still configured"
+    ERRORS=$((ERRORS + 1))
+fi
+
+echo "=== Verifying the retired .huskyrc symlink was removed ==="
+if [ ! -e "$HOME/.huskyrc" ] && [ ! -L "$HOME/.huskyrc" ]; then
+    echo "  OK: retired .huskyrc symlink removed"
+else
+    echo "  FAIL: retired .huskyrc symlink still present"
+    ERRORS=$((ERRORS + 1))
+fi
+
+echo "=== Verifying the Husky startup file still loads .shell-common ==="
+if sh -c '. "$HOME/.config/husky/init.sh"; [ -n "$VOLTA_HOME" ]'; then
+    echo "  OK: .config/husky/init.sh loads the shared environment"
+else
+    echo "  FAIL: .config/husky/init.sh did not load .shell-common"
     ERRORS=$((ERRORS + 1))
 fi
 

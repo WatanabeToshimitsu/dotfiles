@@ -6,6 +6,12 @@ MANIFEST_FILES=(
   .zshrc .bashrc .bash_profile .bash_logout
   .profile .zprofile .zshenv .shell-common
   .vimrc .tmux.conf
+)
+
+# Files retired from this repository. install.sh removes only symlinks that
+# still point at these former dotfiles paths.
+# shellcheck disable=SC2034  # consumed by install.sh
+MANIFEST_OBSOLETE_FILES=(
   .huskyrc
 )
 
@@ -16,6 +22,7 @@ MANIFEST_CONFIG_FILES=(
   .config/gh/config.yml
   .config/ghostty/config
   .config/herdr/config.toml
+  .config/husky/init.sh
   .config/yazi/yazi.toml
 )
 
