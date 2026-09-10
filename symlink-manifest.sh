@@ -48,6 +48,7 @@ MANIFEST_CLAUDE_FILES=(
   hooks/require-subagent-model.sh
   hooks/validate-bash.sh
   rules/common/coding-style.md
+  rules/common/github-actions.md
   rules/common/hooks.md
   rules/common/security.md
   rules/common/testing.md
