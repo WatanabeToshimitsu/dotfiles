@@ -1,0 +1,20 @@
+{
+  "code-review": {
+    "note": "Fable and Sonnet name Claude reviewers. Use the required provider/model when available. If unavailable, mark that review incomplete; do not label a Codex self-review as a Claude review. Follow the source workflow for roles and local Codex instructions for actual callable tools."
+  },
+  "delivery-workflow": {
+    "note": "Preserve the source workflow and publication confirmation. Use native Codex tool names; source tool permissions are not Codex grants. Do not publish or change approval settings merely because this skill is loaded."
+  },
+  "expand-tool-output": {
+    "note": "This skill can read existing Claude archive IDs only when the local Claude archive helper is installed. It does not enable a Codex compaction hook. If the archive/helper is unavailable, report the missing dependency instead of guessing output."
+  },
+  "prepare-compaction": {
+    "note": "In Codex, use a task-local handoff file for compaction. Do not write Claude auto-memory or Codex memories without an explicit user request. Follow the host compaction controls; source slash commands are not executable shell commands."
+  },
+  "ticket": {
+    "local_dependencies": {
+      "reference.md": ".claude/skills/ticket/reference.md"
+    },
+    "note": "Read the machine-local reference.md next to this installed skill before using connectors. Its absence makes the skill unavailable. Use the equivalent installed Jira/Notion connector only if available and authorized; do not invent server names or workspace IDs. Local Claude snapshot paths stay local and are not generated."
+  }
+}
