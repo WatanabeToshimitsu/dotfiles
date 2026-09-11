@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+dotfiles_update_root="$(cd -P "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+if [ "$(git -C "$dotfiles_update_root" branch --show-current)" != main ]; then
+  echo "dotfiles-update requires the main checkout; keep implementation in a worktree." >&2
+  exit 1
+fi
+
+git -C "$dotfiles_update_root" fetch --prune origin main
+git -C "$dotfiles_update_root" merge --ff-only origin/main
+python3 "$dotfiles_update_root/scripts/codex-sync/install.py" apply --root "$dotfiles_update_root"

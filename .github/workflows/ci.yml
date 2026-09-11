@@ -4,6 +4,12 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact branch head requested by the sync publisher
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -12,6 +18,13 @@ jobs:
   pin-actions:
     runs-on: ubuntu-latest
     steps:
+      - name: Bind dispatched checks to the requested commit
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            test "$EXPECTED_SHA" = "$GITHUB_SHA"
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -23,9 +36,18 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
+      - name: Bind dispatched checks to the requested commit
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            test "$EXPECTED_SHA" = "$GITHUB_SHA"
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: shellcheck
-        run: shellcheck -S warning install.sh test/test-install.sh test/test-dotfiles-doctor.sh test/test-dotfiles-secrets.sh test/test-external-dependencies.sh test/test-notification.sh test/test-claude-sandbox.sh test/test-claude-hooks.sh test/test-launchd.sh test/test-secret-scan.sh claude/hooks/*.sh .shell-utils/*.sh .shell-utils/claude-sandbox
+        run: shellcheck -S warning .shell-utils/dotfiles-update uninstall.sh install.sh test/test-install.sh test/test-dotfiles-doctor.sh test/test-dotfiles-secrets.sh test/test-external-dependencies.sh test/test-notification.sh test/test-claude-sandbox.sh test/test-claude-hooks.sh test/test-launchd.sh test/test-secret-scan.sh claude/hooks/*.sh .shell-utils/*.sh .shell-utils/claude-sandbox
       - name: Test 1Password secret rendering
         run: bash test/test-dotfiles-secrets.sh
       - name: Test dotfiles doctor
@@ -46,6 +68,8 @@ jobs:
         run: python3 -m unittest discover -s claude/hooks/tests -p 'test_*.py'
       - name: Test read-only Loop snapshot
         run: python3 -B -m unittest discover -s test -p 'test_loop_snapshot.py'
+      - name: Test Codex configuration sync
+        run: python3 -B -m unittest discover -s test -p 'test_codex_sync.py'
 
   secret-scan:
     runs-on: ubuntu-latest
@@ -54,8 +78,16 @@ jobs:
       GITLEAKS_VERSION: 8.30.1
       GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
     steps:
+      - name: Bind dispatched checks to the requested commit
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            test "$EXPECTED_SHA" = "$GITHUB_SHA"
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           fetch-depth: 0
       - name: Install Gitleaks
         run: |
@@ -78,7 +110,18 @@ jobs:
   validate-configs:
     runs-on: ubuntu-latest
     steps:
+      - name: Bind dispatched checks to the requested commit
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            test "$EXPECTED_SHA" = "$GITHUB_SHA"
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check generated Codex configuration
+        run: python3 scripts/codex-sync/generate.py --check
       - name: Validate TOML (herdr)
         run: |
           python3 - <<'PY'
@@ -92,7 +135,7 @@ jobs:
         run: |
           python3 - <<'PY'
           import json
-          for path in ["claude/settings.json", "claude/sandbox-canary.json", "claude/claude-powerline.json", "renovate.json"]:
+          for path in ["codex/sync-policy.json", "codex/generated/manifest.json", "claude/settings.json", "claude/sandbox-canary.json", "claude/claude-powerline.json", "renovate.json"]:
               with open(path) as f:
                   json.load(f)
               print("OK", path)
@@ -105,7 +148,16 @@ jobs:
   smoke-macos:
     runs-on: macos-latest
     steps:
+      - name: Bind dispatched checks to the requested commit
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            test "$EXPECTED_SHA" = "$GITHUB_SHA"
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Test launchd agent
         run: bash test/test-launchd.sh
       - name: Test dotfiles doctor
@@ -116,12 +168,23 @@ jobs:
         run: zsh test/test-headroom-proxy-check.zsh
       - name: Test read-only Loop snapshot
         run: python3 -B -m unittest discover -s test -p 'test_loop_snapshot.py'
+      - name: Test Codex configuration sync
+        run: python3 -B -m unittest discover -s test -p 'test_codex_sync.py'
 
   install-ubuntu:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
+      - name: Bind dispatched checks to the requested commit
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            test "$EXPECTED_SHA" = "$GITHUB_SHA"
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Build test image
         run: docker build -f test/Dockerfile.ubuntu -t dotfiles-test .
       - name: Run install test

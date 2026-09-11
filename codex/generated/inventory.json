@@ -1,0 +1,376 @@
+{
+  "agents": {
+    "fable-deep.md": {
+      "mode": "exclude",
+      "reason": "Claude-specific agent definition. Preserve provider and role requirements in shared instructions; do not turn Claude model names into Codex model IDs."
+    },
+    "sonnet-worker.md": {
+      "mode": "exclude",
+      "reason": "Claude-specific agent definition. Preserve provider and role requirements in shared instructions; do not turn Claude model names into Codex model IDs."
+    }
+  },
+  "hooks": {
+    "Notification/0/0": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "PostToolUse/0/0": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "PostToolUse/1/0": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "PreToolUse/0/0": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "PreToolUse/1/0": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "PreToolUse/2/0": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "PreToolUse/3/0": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "SessionStart/0/0": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    }
+  },
+  "settings": {
+    "/$schema": {
+      "mode": "exclude",
+      "reason": "Claude schema metadata; validate Codex configuration with its own schema."
+    },
+    "/askUserQuestionTimeout": {
+      "mode": "exclude",
+      "reason": "Claude question timeout is not a portable Codex configuration key."
+    },
+    "/autoMode/allow": {
+      "mode": "exclude",
+      "reason": "Claude risk classifier descriptions cannot grant native Codex permissions."
+    },
+    "/autoMode/environment": {
+      "mode": "exclude",
+      "reason": "Claude risk classifier descriptions cannot grant native Codex permissions."
+    },
+    "/autoUpdatesChannel": {
+      "mode": "exclude",
+      "reason": "Host application update policy remains local."
+    },
+    "/cleanupPeriodDays": {
+      "mode": "exclude",
+      "reason": "Claude history retention is not Codex retention; preserve native policy."
+    },
+    "/editorMode": {
+      "mode": "exclude",
+      "reason": "Host editor preference remains local."
+    },
+    "/effortLevel": {
+      "mode": "exclude",
+      "reason": "Provider-specific reasoning effort; preserve native model settings."
+    },
+    "/enabledPlugins/co-mlops-context@hdl-agent-plugins": {
+      "mode": "exclude",
+      "reason": "Plugin enablement and connector permissions are host-specific; no installation or connection changes."
+    },
+    "/enabledPlugins/codex@openai-codex": {
+      "mode": "exclude",
+      "reason": "Plugin enablement and connector permissions are host-specific; no installation or connection changes."
+    },
+    "/enabledPlugins/context7@claude-plugins-official": {
+      "mode": "exclude",
+      "reason": "Plugin enablement and connector permissions are host-specific; no installation or connection changes."
+    },
+    "/enabledPlugins/discernment-nudge@anthropic-agent-skills": {
+      "mode": "exclude",
+      "reason": "Plugin enablement and connector permissions are host-specific; no installation or connection changes."
+    },
+    "/enabledPlugins/typescript-lsp@claude-plugins-official": {
+      "mode": "exclude",
+      "reason": "Plugin enablement and connector permissions are host-specific; no installation or connection changes."
+    },
+    "/env/CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": {
+      "mode": "exclude",
+      "reason": "Claude runtime environment and output limits are not portable; do not copy environment values."
+    },
+    "/env/MAX_MCP_OUTPUT_TOKENS": {
+      "mode": "exclude",
+      "reason": "Claude runtime environment and output limits are not portable; do not copy environment values."
+    },
+    "/extraKnownMarketplaces/anthropic-agent-skills/source/repo": {
+      "mode": "exclude",
+      "reason": "Marketplace trust and connection setup remain native and local."
+    },
+    "/extraKnownMarketplaces/anthropic-agent-skills/source/source": {
+      "mode": "exclude",
+      "reason": "Marketplace trust and connection setup remain native and local."
+    },
+    "/extraKnownMarketplaces/claude-powerline/autoUpdate": {
+      "mode": "exclude",
+      "reason": "Marketplace trust and connection setup remain native and local."
+    },
+    "/extraKnownMarketplaces/claude-powerline/source/repo": {
+      "mode": "exclude",
+      "reason": "Marketplace trust and connection setup remain native and local."
+    },
+    "/extraKnownMarketplaces/claude-powerline/source/source": {
+      "mode": "exclude",
+      "reason": "Marketplace trust and connection setup remain native and local."
+    },
+    "/extraKnownMarketplaces/ecc/source/source": {
+      "mode": "exclude",
+      "reason": "Marketplace trust and connection setup remain native and local."
+    },
+    "/extraKnownMarketplaces/ecc/source/url": {
+      "mode": "exclude",
+      "reason": "Marketplace trust and connection setup remain native and local."
+    },
+    "/extraKnownMarketplaces/hdl-agent-plugins/source/repo": {
+      "mode": "exclude",
+      "reason": "Marketplace trust and connection setup remain native and local."
+    },
+    "/extraKnownMarketplaces/hdl-agent-plugins/source/source": {
+      "mode": "exclude",
+      "reason": "Marketplace trust and connection setup remain native and local."
+    },
+    "/extraKnownMarketplaces/openai-codex/autoUpdate": {
+      "mode": "exclude",
+      "reason": "Marketplace trust and connection setup remain native and local."
+    },
+    "/extraKnownMarketplaces/openai-codex/source/repo": {
+      "mode": "exclude",
+      "reason": "Marketplace trust and connection setup remain native and local."
+    },
+    "/extraKnownMarketplaces/openai-codex/source/source": {
+      "mode": "exclude",
+      "reason": "Marketplace trust and connection setup remain native and local."
+    },
+    "/hooks/Notification/0/hooks/0/command": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "/hooks/Notification/0/hooks/0/timeout": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "/hooks/Notification/0/hooks/0/type": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "/hooks/PostToolUse/0/hooks/0/command": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "/hooks/PostToolUse/0/hooks/0/type": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "/hooks/PostToolUse/0/matcher": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "/hooks/PostToolUse/1/hooks/0/command": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "/hooks/PostToolUse/1/hooks/0/timeout": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "/hooks/PostToolUse/1/hooks/0/type": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "/hooks/PostToolUse/1/matcher": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "/hooks/PreToolUse/0/hooks/0/command": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "/hooks/PreToolUse/0/hooks/0/timeout": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "/hooks/PreToolUse/0/hooks/0/type": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "/hooks/PreToolUse/0/matcher": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "/hooks/PreToolUse/1/hooks/0/command": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "/hooks/PreToolUse/1/hooks/0/type": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "/hooks/PreToolUse/1/matcher": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "/hooks/PreToolUse/2/hooks/0/command": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "/hooks/PreToolUse/2/hooks/0/type": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "/hooks/PreToolUse/2/matcher": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "/hooks/PreToolUse/3/hooks/0/command": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "/hooks/PreToolUse/3/hooks/0/type": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "/hooks/PreToolUse/3/matcher": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "/hooks/SessionStart/0/hooks/0/command": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "/hooks/SessionStart/0/hooks/0/timeout": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "/hooks/SessionStart/0/hooks/0/type": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "/hooks/SessionStart/0/matcher": {
+      "mode": "exclude",
+      "reason": "Claude event payloads, commands and matchers require separate compatibility and trust review; never install automatically."
+    },
+    "/inputNeededNotifEnabled": {
+      "mode": "exclude",
+      "reason": "Host notification behavior remains local."
+    },
+    "/language": {
+      "mode": "adapt",
+      "reason": "Translate the explicit response language to a common instruction."
+    },
+    "/model": {
+      "mode": "exclude",
+      "reason": "Provider-specific runtime model selection remains local; no model ID substitution."
+    },
+    "/permissions/allow": {
+      "mode": "exclude",
+      "reason": "Preserve native Codex approvals, sandbox and denial rules; syntax and semantics differ."
+    },
+    "/permissions/ask": {
+      "mode": "exclude",
+      "reason": "Preserve native Codex approvals, sandbox and denial rules; syntax and semantics differ."
+    },
+    "/permissions/defaultMode": {
+      "mode": "exclude",
+      "reason": "Preserve native Codex approvals, sandbox and denial rules; syntax and semantics differ."
+    },
+    "/permissions/deny": {
+      "mode": "exclude",
+      "reason": "Preserve native Codex approvals, sandbox and denial rules; syntax and semantics differ."
+    },
+    "/permissions/disableBypassPermissionsMode": {
+      "mode": "exclude",
+      "reason": "Preserve native Codex approvals, sandbox and denial rules; syntax and semantics differ."
+    },
+    "/preferredNotifChannel": {
+      "mode": "exclude",
+      "reason": "Host notification channel remains local."
+    },
+    "/skillOverrides/difit": {
+      "mode": "exclude",
+      "reason": "External skill invocation controls require native Codex configuration; keep existing disable flags."
+    },
+    "/skipAutoPermissionPrompt": {
+      "mode": "exclude",
+      "reason": "Never translate approval suppression to Codex."
+    },
+    "/skipWorkflowUsageWarning": {
+      "mode": "exclude",
+      "reason": "Claude product warning preference; no Codex equivalent is applied."
+    },
+    "/statusLine/command": {
+      "mode": "exclude",
+      "reason": "Claude terminal extension; not a Codex status line."
+    },
+    "/statusLine/type": {
+      "mode": "exclude",
+      "reason": "Claude terminal extension; not a Codex status line."
+    },
+    "/switchModelsOnFlag": {
+      "mode": "exclude",
+      "reason": "Claude runtime model switching is not portable."
+    },
+    "/syntaxHighlightingDisabled": {
+      "mode": "exclude",
+      "reason": "Claude terminal presentation; preserve Codex presentation."
+    },
+    "/teammateMode": {
+      "mode": "exclude",
+      "reason": "Claude team transport is not a Codex agent definition."
+    },
+    "/theme": {
+      "mode": "exclude",
+      "reason": "Host application theme remains local."
+    },
+    "/tui": {
+      "mode": "exclude",
+      "reason": "Claude terminal layout is not portable."
+    },
+    "/worktree/baseRef": {
+      "mode": "exclude",
+      "reason": "Claude worktree behavior is host-specific; Codex retains its native workflow."
+    }
+  },
+  "skills": {
+    "code-review": {
+      "local_dependencies": {},
+      "note": "Fable and Sonnet name Claude reviewers. Use the required provider/model when available. If unavailable, mark that review incomplete; do not label a Codex self-review as a Claude review. Follow the source workflow for roles and local Codex instructions for actual callable tools.",
+      "reason": "Explicit host adaptation; preserve the source body and its authority boundaries."
+    },
+    "delivery-workflow": {
+      "local_dependencies": {},
+      "note": "Preserve the source workflow and publication confirmation. Use native Codex tool names; source tool permissions are not Codex grants. Do not publish or change approval settings merely because this skill is loaded.",
+      "reason": "Explicit host adaptation; preserve the source body and its authority boundaries."
+    },
+    "expand-tool-output": {
+      "local_dependencies": {},
+      "note": "This skill can read existing Claude archive IDs only when the local Claude archive helper is installed. It does not enable a Codex compaction hook. If the archive/helper is unavailable, report the missing dependency instead of guessing output.",
+      "reason": "Explicit host adaptation; preserve the source body and its authority boundaries."
+    },
+    "prepare-compaction": {
+      "local_dependencies": {},
+      "note": "In Codex, use a task-local handoff file for compaction. Do not write Claude auto-memory or Codex memories without an explicit user request. Follow the host compaction controls; source slash commands are not executable shell commands.",
+      "reason": "Explicit host adaptation; preserve the source body and its authority boundaries."
+    },
+    "repository-audit": {
+      "reason": "Shared portable instructions; no native permissions are granted."
+    },
+    "ticket": {
+      "local_dependencies": {
+        "reference.md": ".claude/skills/ticket/reference.md"
+      },
+      "note": "Read the machine-local reference.md next to this installed skill before using connectors. Its absence makes the skill unavailable. Use the equivalent installed Jira/Notion connector only if available and authorized; do not invent server names or workspace IDs. Local Claude snapshot paths stay local and are not generated.",
+      "reason": "Explicit host adaptation; preserve the source body and its authority boundaries."
+    }
+  }
+}

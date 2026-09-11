@@ -1,0 +1,194 @@
+[
+  {
+    "file": "rules/common/coding-style.md",
+    "paths": [
+      "**/*.{c,cc,cpp,cs,go,java,js,jsx,kt,kts,php,py,pyi,rb,rs,swift,ts,tsx,vue,svelte}"
+    ]
+  },
+  {
+    "file": "rules/common/github-actions.md",
+    "paths": [
+      ".github/workflows/*.{yml,yaml}",
+      ".github/actions/**/*.{yml,yaml}"
+    ]
+  },
+  {
+    "file": "rules/common/hooks.md",
+    "paths": [
+      "**/.claude/**"
+    ]
+  },
+  {
+    "file": "rules/common/security.md",
+    "paths": [
+      "**/*.{c,cc,cpp,cs,go,java,js,jsx,kt,kts,php,py,pyi,rb,rs,swift,ts,tsx,vue,svelte}",
+      "**/*.{json,yaml,yml,toml}"
+    ]
+  },
+  {
+    "file": "rules/common/testing.md",
+    "paths": [
+      "**/{test,tests,__tests__,spec,specs}/**",
+      "**/*.{test,spec}.{js,jsx,ts,tsx}",
+      "**/test_*.py",
+      "**/*_test.{go,py,rb,rs}"
+    ]
+  },
+  {
+    "file": "rules/golang/coding-style.md",
+    "paths": [
+      "**/*.go",
+      "**/go.mod",
+      "**/go.sum"
+    ]
+  },
+  {
+    "file": "rules/golang/hooks.md",
+    "paths": [
+      "**/*.go",
+      "**/go.mod",
+      "**/go.sum"
+    ]
+  },
+  {
+    "file": "rules/golang/patterns.md",
+    "paths": [
+      "**/*.go",
+      "**/go.mod",
+      "**/go.sum"
+    ]
+  },
+  {
+    "file": "rules/golang/security.md",
+    "paths": [
+      "**/*.go",
+      "**/go.mod",
+      "**/go.sum"
+    ]
+  },
+  {
+    "file": "rules/golang/testing.md",
+    "paths": [
+      "**/*.go",
+      "**/go.mod",
+      "**/go.sum"
+    ]
+  },
+  {
+    "file": "rules/python/coding-style.md",
+    "paths": [
+      "**/*.py",
+      "**/*.pyi"
+    ]
+  },
+  {
+    "file": "rules/python/fastapi.md",
+    "paths": [
+      "**/app/**/*.py",
+      "**/fastapi/**/*.py",
+      "**/*_api.py"
+    ]
+  },
+  {
+    "file": "rules/python/hooks.md",
+    "paths": [
+      "**/*.py",
+      "**/*.pyi"
+    ]
+  },
+  {
+    "file": "rules/python/patterns.md",
+    "paths": [
+      "**/*.py",
+      "**/*.pyi"
+    ]
+  },
+  {
+    "file": "rules/python/security.md",
+    "paths": [
+      "**/*.py",
+      "**/*.pyi"
+    ]
+  },
+  {
+    "file": "rules/python/testing.md",
+    "paths": [
+      "**/*.py",
+      "**/*.pyi"
+    ]
+  },
+  {
+    "file": "rules/testing/vitest.md",
+    "paths": [
+      "**/*.test.ts",
+      "**/*.test.tsx"
+    ]
+  },
+  {
+    "file": "rules/typescript/coding-style.md",
+    "paths": [
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.js",
+      "**/*.jsx"
+    ]
+  },
+  {
+    "file": "rules/typescript/documentation.md",
+    "paths": [
+      "**/*.ts",
+      "**/*.tsx"
+    ]
+  },
+  {
+    "file": "rules/typescript/hooks.md",
+    "paths": [
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.js",
+      "**/*.jsx"
+    ]
+  },
+  {
+    "file": "rules/typescript/patterns.md",
+    "paths": [
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.js",
+      "**/*.jsx"
+    ]
+  },
+  {
+    "file": "rules/typescript/security.md",
+    "paths": [
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.js",
+      "**/*.jsx"
+    ]
+  },
+  {
+    "file": "rules/typescript/testing.md",
+    "paths": [
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.js",
+      "**/*.jsx"
+    ]
+  },
+  {
+    "file": "rules/typescript/type-safety.md",
+    "paths": [
+      "**/*.ts",
+      "**/*.tsx"
+    ]
+  },
+  {
+    "file": "rules/web/security.md",
+    "paths": [
+      "**/{app,pages,routes,controllers,views,handlers}/**",
+      "**/{schema,migrations}/**",
+      "**/*.{sql,tsx,vue,svelte}"
+    ]
+  }
+]
