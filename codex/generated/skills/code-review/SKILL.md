@@ -1,17 +1,20 @@
 ---
 name: code-review
-description: Review a code change, branch, commit, or pull request for correctness, regressions, security, and maintainability. Use when asked to review code or before delivering a medium- or high-risk change.
+description: Review a design, code change, branch, commit, or pull request for correctness, regressions, security, and maintainability. Use for design review, when asked to review code, or before delivering any change, including low-risk changes.
 ---
 
 # Code Review
 
 Review the coherent final diff after relevant verification has run.
 
-## Depth by risk
+## Reviewer by author
 
-- Low risk: targeted tests and self-review.
-- Medium risk: one focused Sonnet review.
-- High risk: Fable adversarial review; add a specialist only when the risk domain requires one.
+- Claude-authored designs require an independent Codex upper-tier reviewer.
+- Codex-authored implementations require an independent Claude upper-tier reviewer.
+- Use a fresh context that did not produce the artifact. The coordinator's family does not determine the reviewer.
+- Scale depth by risk; high-risk changes receive adversarial focus and a specialist only when the domain requires one. Self-checks never replace independent approval.
+
+The [delivery stage contract](../delivery-workflow/SKILL.md#stage-contract) defines models, fallback, tiny-task precedence, invocation, and handoff records. Read it before dispatch. Pass purpose, acceptance criteria, relevant guidance, the artifact, and actual verification results; exclude author verdicts, prior review outcomes, and unrelated user changes.
 
 Do not start a separate review after every edit. Do not repeat the same exploration in multiple agents.
 

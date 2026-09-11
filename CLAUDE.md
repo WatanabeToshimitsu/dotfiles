@@ -77,6 +77,22 @@ Leave a comment naming the agent, the branch, and the date. Remove the label wit
 `--remove-label` if the work is abandoned; a merged PR closes the issue, so the
 label can stay in that case.
 
+### Delegated stages
+
+Both Claude and Codex must read and follow the
+[delivery stage contract](claude/skills/delivery-workflow/SKILL.md#stage-contract)
+and [review instructions](claude/skills/code-review/SKILL.md). These define design,
+implementation, independent cross-family review, and model fallback for either
+client, including a Codex lead.
+
+The label holder may delegate a bounded stage under its existing claim, branch,
+and worktree. Explicitly invited delegates do not claim a rival label or branch;
+this is the sole exception to stopping on another owner. List the allowed paths
+and base/ref in the handoff, and follow the contract's exclusive writer rule.
+Uninvited sessions still stop. Stop a delegate on out-of-scope requests, a moved
+base/ref, or unlisted changes. Public handoff records use sanitized repo-relative
+paths; absolute worktree and evidence paths stay private.
+
 ### Worktrees
 
 The worktree isolation guard is not a permission gate. It refuses git writes
