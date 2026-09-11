@@ -47,6 +47,7 @@ MANIFEST_CLAUDE_FILES=(
   hooks/compact-tool-output.py
   hooks/require-subagent-model.sh
   hooks/validate-bash.sh
+  hooks/remote-mutation-guard.py
   rules/common/coding-style.md
   rules/common/github-actions.md
   rules/common/hooks.md
