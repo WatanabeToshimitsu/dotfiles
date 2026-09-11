@@ -118,6 +118,14 @@ images through the kitty graphics protocol (Ghostty and herdr both support it):
 | `gb-prune` | Clean up merged branches (supports squash merge via `gh` CLI) |
 | `ghq-rm`   | Remove a ghq-managed repository interactively                 |
 
+## PR Publication Approval
+
+Agents must review the complete publication content and obtain the user's
+confirmation before each PR. Codex CLI relies on confirmation in the conversation;
+its runtime review may be automatic. Normal pushes remain allowed; force pushes
+and remote deletions are blocked. See [PR approval](docs/pr-approval.md) for the
+CLI rules, connector settings, and enforcement limits.
+
 ## Claude Tool Output Compaction
 
 Large Read, Grep, Glob, Web, and MCP results are shortened before entering the

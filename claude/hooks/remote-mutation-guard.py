@@ -132,7 +132,11 @@ class ShellWords:
 
 FORCE_REASON = "強制 push・履歴の上書き・リモート削除は許可していません。通常の push を使用してください。"
 OPAQUE_REASON = "公開操作の引数を検査できません。変数・別名・複合処理を避け、対象を明記した単独の git/gh 呼び出しにしてください。"
-CONNECTOR_REASON = "Codex の PR 作成は、人の確認が設定された GitHub 連携を使用してください。CLI/API の別経路では作成しないでください。"
+PR_CONFIRMATION_REASON = (
+    "PR 作成の実行前に、作成先・タイトル・本文・公開対象の全コミット、検査結果と未検査範囲を提示し、"
+    "ユーザーの個別確認を得てください。自動審査の許可はユーザー確認の代わりになりません。"
+    "確認がない場合は作成を止め、確認を恒久許可に保存しないでください。"
+)
 MAX_BYTES = 4 * 1024 * 1024
 
 
@@ -186,7 +190,8 @@ def argument(words, *names):
     return None
 
 
-def option_parts(words, value_options):
+def option_parts(words, value_options, aliases=None):
+    aliases = aliases or {}
     flags = []
     positional = []
     values = {}
@@ -199,15 +204,15 @@ def option_parts(words, value_options):
         if word in value_options:
             if index + 1 >= len(words):
                 raise UnsupportedShell()
-            values[word] = words[index + 1]
+            values[aliases.get(word, word)] = words[index + 1]
             index += 2
             continue
         name, separator, value = word.partition("=")
         short = next((name for name in value_options if len(name) == 2 and word.startswith(name) and word != name), None)
         if separator and name in value_options:
-            values[name] = value
+            values[aliases.get(name, name)] = value
         elif short:
-            values[short] = word[2:]
+            values[aliases.get(short, short)] = word[2:]
         elif word.startswith("-"):
             flags.append(word)
         else:
@@ -291,21 +296,36 @@ def classify_words(words):
     while index < len(words) and words[index].startswith("-"):
         index += 2 if words[index] in {"-R", "--repo", "--hostname"} else 1
     args = words[index:]
+    if args[:2] == ["pr", "create"]:
+        flags, positional, values = option_parts(args[2:], {
+            "--title", "-t", "--body", "-b", "--body-file", "-F", "--template", "-T",
+            "--base", "-B", "--head", "-H", "--repo", "-R", "--recover", "--attach",
+            "--assignee", "-a", "--label", "-l", "--milestone", "-m",
+            "--project", "-p", "--reviewer", "-r",
+        }, {"-t": "--title", "-b": "--body", "-F": "--body-file", "-T": "--template",
+            "-B": "--base", "-H": "--head", "-R": "--repo"})
+        if "--help" in flags or "-h" in flags:
+            return "continue", {}
+        known_text = all(
+            flag == "-d" or flag.split("=", 1)[0] in {"--draft", "--no-maintainer-edit", "--dry-run"}
+            for flag in flags
+        ) and not {"--template", "--recover", "--attach"}.intersection(values)
+        return "pr", {
+            "title": values.get("--title", ""),
+            "body": values.get("--body", ""),
+            "body_file": values.get("--body-file", values.get("--template")),
+            "base": values.get("--base"),
+            "head": values.get("--head"),
+            "repo": values.get("--repo", argument(words[1:index], "--repo", "-R")),
+            "explicit_text": bool(values.get("--title")) and
+                ("--body" in values or bool(values.get("--body-file"))) and known_text and not positional,
+        }
     flags, _, _ = option_parts(args, {"--title", "-t", "--body", "-b", "--body-file", "-F",
                                 "--base", "-B", "--head", "-H", "--template", "-T",
                                 "--repo", "-R", "--method", "-X", "--field", "-f",
                                 "--raw-field", "--input", "--header"})
     if "--help" in flags or "-h" in flags:
         return "continue", {}
-    if args[:2] == ["pr", "create"]:
-        return "pr", {
-            "title": argument(args[2:], "--title", "-t") or "",
-            "body": argument(args[2:], "--body", "-b") or "",
-            "body_file": argument(args[2:], "--body-file", "-F", "--template", "-T"),
-            "base": argument(args[2:], "--base", "-B"),
-            "head": argument(args[2:], "--head", "-H"),
-            "repo": argument(words[1:], "--repo", "-R"),
-        }
     if args[:1] == ["api"]:
         joined = " ".join(args[1:])
         method = argument(args, "--method", "-X")
@@ -410,8 +430,9 @@ def commit_text(cwd, detail):
     return text, count
 
 
-def inspect_pr(cwd, detail):
+def inspect_pr(cwd, detail, *, require_explicit_text=False):
     texts = [str(detail.get("title") or ""), str(detail.get("body") or "")]
+    incomplete_text = not detail.get("explicit_text")
     warnings = []
     if detail.get("uninspected"):
         warnings.append(detail["uninspected"])
@@ -427,9 +448,10 @@ def inspect_pr(cwd, detail):
                 path = Path(cwd) / path
             if path.stat().st_size > MAX_BYTES or not path.is_file():
                 raise ValueError("body unavailable")
-            texts.append(path.read_text())
+            texts.append(path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             warnings.append("PR 本文ファイルは未検査")
+            incomplete_text = True
     findings = set().union(*(secret_findings(text) for text in texts))
     try:
         history, count = commit_text(cwd, detail)
@@ -442,6 +464,8 @@ def inspect_pr(cwd, detail):
         warnings.append("公開対象コミットは未検査")
     if findings:
         return True, "秘密情報の疑いを検出しました: " + ", ".join(sorted(findings)) + "。値は出力していません。公開を止めて内容を確認してください。"
+    if require_explicit_text and incomplete_text:
+        return True, "PR のタイトル・本文を事前に検査できません。--title と --body、または読み取り可能な --body-file を明示してください。自動生成・実行時の編集は使用しないでください。"
     summary += "検出なしは秘密情報がない保証ではありません。"
     if warnings:
         summary += " " + "。".join(warnings) + "。"
@@ -551,17 +575,18 @@ def main():
             if warnings:
                 respond(reason=" ".join(dict.fromkeys(warnings)))
         elif decision == "pr":
-            blocked, report = inspect_pr(cwd, detail)
+            codex_cli = client == "codex" and tool in {"Bash", "exec_command", "shell_command"}
+            blocked, report = inspect_pr(cwd, detail, require_explicit_text=codex_cli and not detail.get("uninspected"))
             if blocked:
                 respond("deny", report)
-            elif client == "codex" and tool in {"Bash", "exec_command", "shell_command"}:
-                respond("deny", CONNECTOR_REASON + " " + report)
+            elif codex_cli and detail.get("uninspected"):
+                respond("deny", "GitHub API の PR 本文・対象差分を検査できません。対象を明記した gh pr create を使用してください。 " + report)
             elif client == "claude":
                 respond("ask", report + " 作成先・タイトル・本文・差分を確認し、この PR の作成を承認してください。")
             else:
-                # Codex does not support hook ask decisions. Its connector's
-                # prompt + user reviewer settings own the human approval.
-                respond(reason=report + " PR 作成前にユーザーの確認が必要です。")
+                # Codex has no hook ask decision. User consent must precede the
+                # tool call; CLI prompt rules may route to an automatic reviewer.
+                respond(reason=report + " " + PR_CONFIRMATION_REASON)
     except (ValueError, TypeError, AttributeError, RecursionError):
         respond("deny", "公開操作の検査入力を解釈できませんでした。設定を確認してください。")
 

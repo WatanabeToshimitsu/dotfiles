@@ -154,13 +154,146 @@ class RemoteMutationGuardTest(unittest.TestCase):
         self.assertEqual(output["hookSpecificOutput"]["permissionDecision"], "ask")
         self.assertIn("未検査", output["hookSpecificOutput"]["permissionDecisionReason"])
 
-    def test_codex_cli_uses_the_connector_human_approval_path(self):
-        output = self.run_hook({
+    def test_codex_cli_preserves_review_without_a_blanket_ban(self):
+        for tool, key, command in [
+            ("Bash", "command", "gh pr create --title Test --body Clean"),
+            ("exec_command", "cmd", "rtk gh pr create --draft --title Test --body Clean"),
+            ("shell_command", "command", "rtk proxy gh pr create --title Test --body Clean"),
+        ]:
+            with self.subTest(tool=tool):
+                output = self.run_hook({
+                    "tool_name": tool, "cwd": "/tmp",
+                    "tool_input": {key: command},
+                }, "codex")["hookSpecificOutput"]
+                self.assertNotIn("permissionDecision", output)
+                self.assertIn("未検査", output["additionalContext"])
+                self.assertIn("ユーザーの個別確認", output["additionalContext"])
+                self.assertIn("自動審査", output["additionalContext"])
+
+    def test_codex_cli_secret_scan_still_blocks_before_review(self):
+        secret = "gh" + "p_" + "aB7cD9" * 6
+        for command in [
+            "gh pr create --title Test --body " + secret,
+            "rtk proxy gh pr create --draft --title " + secret + " --body Clean",
+        ]:
+            with self.subTest(command_type=command.split()[0]):
+                output = self.run_hook({
+                    "tool_name": "Bash", "cwd": "/tmp",
+                    "tool_input": {"command": command},
+                }, "codex")
+                self.assertEqual(output["hookSpecificOutput"]["permissionDecision"], "deny")
+                self.assertNotIn(secret, json.dumps(output))
+
+    def test_codex_uninspected_api_pr_creation_remains_blocked(self):
+        for command in [
+            "gh api repos/o/r/pulls -X POST -f title=Test",
+            "rtk proxy gh api -X POST /repos/o/r/pulls -f title=Test",
+            "gh api graphql -f 'query=mutation { createPullRequest(input: {}) { id } }'",
+        ]:
+            with self.subTest(command=command):
+                output = self.run_hook({
+                    "tool_name": "Bash", "cwd": "/tmp",
+                    "tool_input": {"command": command},
+                }, "codex")["hookSpecificOutput"]
+                self.assertEqual(output.get("permissionDecision"), "deny")
+                self.assertIn("gh pr create", output["permissionDecisionReason"])
+        self.assertEqual(self.run_hook({
             "tool_name": "Bash", "cwd": "/tmp",
-            "tool_input": {"command": "gh pr create --title Test --body Clean"},
-        }, "codex")
-        self.assertEqual(output["hookSpecificOutput"]["permissionDecision"], "deny")
-        self.assertIn("GitHub", output["hookSpecificOutput"]["permissionDecisionReason"])
+            "tool_input": {"command": "gh api repos/o/r/pulls"},
+        }, "codex"), {})
+
+    def test_codex_cli_requires_explicit_inspectable_text(self):
+        with tempfile.TemporaryDirectory() as directory:
+            oversized = Path(directory) / "large.md"
+            oversized.write_bytes(b"x" * (self.guard.MAX_BYTES + 1))
+            for command in [
+                "gh pr create --title Test",
+                "gh pr create --body Clean",
+                "gh pr create --title '' --body Clean",
+                "gh pr create --title Test --body-file ''",
+                "gh pr create --fill",
+                "gh pr create --title Test --body Clean --fill-first",
+                "gh pr create --title Test --body Clean --fill-verbose",
+                "gh pr create --title Test --body Clean -f",
+                "gh pr create --title Test --body Clean --editor",
+                "gh pr create --title Test --body Clean --web",
+                "gh pr create --title Test --body Clean -de",
+                "gh pr create --title Test --body Clean -dbXYZ",
+                "gh pr create --title Test --body Clean -w",
+                "gh pr create --title Test --body Clean --recover old-state",
+                "gh pr create --title Test --body Clean --template template.md",
+                "gh pr create --title Test --body Clean --attach=private.png",
+                "gh pr create --title Test --body-file missing.md",
+                "gh pr create --title Test --body-file large.md",
+                "gh pr create --title Test --body-file - <<'EOF'\nClean\nEOF\n",
+            ]:
+                with self.subTest(command=command):
+                    output = self.run_hook({
+                        "tool_name": "Bash", "cwd": directory,
+                        "tool_input": {"command": command},
+                    }, "codex")["hookSpecificOutput"]
+                    self.assertEqual(output.get("permissionDecision"), "deny")
+                    self.assertIn("--body", output["permissionDecisionReason"])
+
+    def test_codex_cli_accepts_readable_files_and_explicit_empty_bodies(self):
+        with tempfile.TemporaryDirectory() as directory:
+            (Path(directory) / "body.md").write_text("変更内容を確認しました。\n", encoding="utf-8")
+            for command in [
+                "gh pr create --title Test --body-file body.md",
+                "gh pr create --title Test --body ''",
+                "gh pr create -tTest -bClean --label bug --label docs",
+                "gh pr create --title Test --body '--web'",
+            ]:
+                with self.subTest(command=command):
+                    output = self.run_hook({
+                        "tool_name": "Bash", "cwd": directory,
+                        "tool_input": {"command": command},
+                    }, "codex")["hookSpecificOutput"]
+                    self.assertNotIn("permissionDecision", output)
+
+    def test_codex_cli_scans_the_last_repeated_text_option(self):
+        secret = "gh" + "p_" + "aB7cD9" * 6
+        with tempfile.TemporaryDirectory() as directory:
+            (Path(directory) / "clean.md").write_text("Clean\n")
+            (Path(directory) / "secret.md").write_text(secret)
+            for command in [
+                "gh pr create --title Test --body Clean --body " + secret,
+                "gh pr create --title Test --body Clean -b" + secret,
+                "gh pr create --title Test --body Clean -t" + secret,
+                "gh pr create --title Test --body-file clean.md -Fsecret.md",
+            ]:
+                with self.subTest(option=command.rsplit(' ', 1)[0]):
+                    output = self.run_hook({
+                        "tool_name": "Bash", "cwd": directory,
+                        "tool_input": {"command": command},
+                    }, "codex")["hookSpecificOutput"]
+                    self.assertEqual(output.get("permissionDecision"), "deny")
+                    self.assertIn("秘密情報", output["permissionDecisionReason"])
+                    self.assertNotIn(secret, json.dumps(output))
+
+    def test_codex_cli_scans_a_complete_clean_commit_range(self):
+        with tempfile.TemporaryDirectory() as directory:
+            def git(*args):
+                return subprocess.run(
+                    ["git", "-c", "core.hooksPath=/dev/null", "-c", "commit.gpgsign=false",
+                     "-c", "user.name=Test", "-c", "user.email=test@example.invalid",
+                     "-C", directory, *args], check=True, capture_output=True, text=True,
+                ).stdout.strip()
+            git("init", "-b", "main")
+            git("commit", "--allow-empty", "-m", "base")
+            git("switch", "-c", "topic")
+            (Path(directory) / "app.txt").write_text("clean\n")
+            git("add", "app.txt")
+            git("commit", "-m", "change")
+            git("remote", "add", "origin", "https://example.invalid/o/r.git")
+            git("update-ref", "refs/remotes/origin/main", git("rev-parse", "main"))
+            output = self.run_hook({
+                "tool_name": "Bash", "cwd": directory,
+                "tool_input": {"command": "gh pr create --repo o/r --base main --head topic --title Test --body Clean"},
+            }, "codex")["hookSpecificOutput"]
+            self.assertNotIn("permissionDecision", output)
+            self.assertIn("1 コミット", output["additionalContext"])
+            self.assertNotIn("未検査。", output["additionalContext"])
 
     def test_secret_in_mcp_pr_body_blocks_without_echoing_it(self):
         secret = "gh" + "p_" + "aB7cD9" * 6
@@ -209,12 +342,13 @@ class RemoteMutationGuardTest(unittest.TestCase):
             git("remote", "add", "origin", "https://example.invalid/o/r.git")
             git("update-ref", "refs/remotes/origin/main", git("rev-parse", "main"))
             git("symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main")
-            output = self.run_hook({
-                "tool_name": "Bash", "cwd": directory,
-                "tool_input": {"command": "gh pr create --base main --head topic --title Test"},
-            }, "claude")
-            self.assertEqual(output["hookSpecificOutput"]["permissionDecision"], "deny")
             for client in ["claude", "codex"]:
+                output = self.run_hook({
+                    "tool_name": "Bash", "cwd": directory,
+                    "tool_input": {"command": "gh pr create --base main --head topic --title Test"},
+                }, client)
+                self.assertEqual(output["hookSpecificOutput"]["permissionDecision"], "deny")
+                self.assertIn("秘密情報の疑い", output["hookSpecificOutput"]["permissionDecisionReason"])
                 output = self.run_hook({
                     "tool_name": "Bash", "cwd": directory,
                     "tool_input": {"command": "git push -u origin topic"},
@@ -231,6 +365,8 @@ class RemoteMutationGuardTest(unittest.TestCase):
             }, "codex")
             self.assertNotIn("permissionDecision", output["hookSpecificOutput"])
             self.assertIn("未検査", output["hookSpecificOutput"]["additionalContext"])
+            self.assertIn("ユーザーの個別確認", output["hookSpecificOutput"]["additionalContext"])
+            self.assertIn("自動審査", output["hookSpecificOutput"]["additionalContext"])
 
     def test_secrets_introduced_only_by_a_merge_are_scanned(self):
         with tempfile.TemporaryDirectory() as directory:
