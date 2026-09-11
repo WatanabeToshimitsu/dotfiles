@@ -15,6 +15,8 @@
 
 # 実装と配送
 
+Implementation, refactoring, repository audits, and test execution below belong to Codex. Claude may coordinate and perform separately authorized Git delivery after the implementer returns writer authority under `delivery-workflow`.
+
 - コード、コメント、技術文書は英語で書く。
 - リポジトリ固有の指示、既存パターン、テストを先に確認する。
 - 変更可能なコードは TDD の RED、GREEN、REFACTOR で進める。
@@ -58,9 +60,10 @@
 
 # モデルとコンテキスト
 
-- 小さく密結合な作業は現在のコンテキストで行う。
-- 探索、実装、機械的作業、通常レビューは `sonnet-worker` に委譲する。
-- 設計、難しい原因究明、高リスク判断は `fable-deep` に委譲する。
+- Claude owns design and acceptance criteria; Codex owns implementation, tests, and fixes, preferably with Astra.
+- Claude-authored designs receive independent Codex upper-tier review; Codex-authored implementations receive independent Claude upper-tier review.
+- `fable-deep` handles Claude design and independent review of Codex artifacts. `sonnet-worker` gathers evidence without editing or issuing review verdicts.
+- Follow [delivery-workflow](skills/delivery-workflow/SKILL.md#stage-contract) for stage ownership, model availability, invocation, handoff, and tiny-task precedence. Small size never transfers implementation to Claude or waives independent review.
 - Agent 呼び出しでは常に非 `inherit` の model を明示し、同じ探索を重複させない。
 - サブエージェントからは結論、関連箇所、リスク、検証結果だけを受け取る。
 - 大量ログは要約またはファイルへ退避し、main conversation に戻さない。
