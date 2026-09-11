@@ -13,7 +13,8 @@ Scale the process to the change's uncertainty and risk.
 4. Codex runs focused checks, classifies failures, fixes the cause, and reruns affected checks.
 5. Use the `code-review` skill with the independent reviewer assigned by artifact author.
 6. Self-review the final diff for scope and accidental changes.
-7. After C handback and D, the lead performs authorized Git delivery: stage explicit paths, create logical commits, push, and create a Draft PR only when needed. C implementers do not commit or push as part of C.
+7. After C handback and D, the lead performs authorized Git delivery: stage explicit paths, create logical commits, and use a normal push to the repository's existing remote. Do not force-push, use forced refspecs, mirror remote refs, or delete remote refs. C implementers do not commit or push as part of C.
+8. Before creating any PR, including a Draft PR, prepare its exact target, title, body, and complete outgoing commit range. Inspect them for secrets, personal data, and confidential information. Report findings and anything left uninspected. Obtain the user's confirmation immediately before creation. A clean pattern scan is not proof of safety. Do not save permanent PR-creation approval or use another API to evade the confirmation. Create a Draft PR only when one is needed.
 
 Preserve unrelated user changes. Follow the repository's commit and PR conventions. Never add Claude attribution. Do not claim checks passed unless they actually ran; state any verification that could not run.
 

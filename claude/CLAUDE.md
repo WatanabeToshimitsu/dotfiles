@@ -22,7 +22,8 @@ Implementation, refactoring, repository audits, and test execution below belong 
 - 変更可能なコードは TDD の RED、GREEN、REFACTOR で進める。
 - リファクタリングと機能変更を同じ変更に混ぜない。
 - 無関係な作業ツリーの変更を保護し、ファイルを明示して stage する。
-- 権限に配送が含まれる場合は、検証後に論理単位で commit、push し、必要なら Draft PR まで進める。
+- 権限に配送が含まれる場合は、検証後に論理単位で commit、通常の push まで進める。強制 push、強制 refspec、リモートの削除は行わない。
+- PR は Draft も含め、作成先・タイトル・本文・公開対象の全コミットを準備してから、作成直前にユーザーの確認を取る。作成前に秘密情報・個人情報・機密情報を検査し、結果と未検査範囲を提示する。フックのパターン検査だけで安全と断定しない。PR 作成時の確認を恒久許可に保存しない。
 - JavaScript/TypeScript を含む範囲のリポジトリ検査やリファクタリングでは、`repository-audit` skill を使い、Knip の結果または実行できなかった理由を残す。
 
 詳細な進行手順とレビュー基準は、該当時に `delivery-workflow` と `code-review` skill を使う。
