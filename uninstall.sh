@@ -13,6 +13,12 @@ DRY_RUN=0
 # shellcheck source=symlink-manifest.sh
 source "$DOTFILES_DIR/symlink-manifest.sh"
 
+if [ -f "$HOME/.codex/dotfiles-sync/state.json" ]; then
+  codex_args=(uninstall)
+  [ "$DRY_RUN" -eq 1 ] && codex_args+=(--dry-run)
+  python3 "$DOTFILES_DIR/$MANIFEST_CODEX_SYNC_INSTALLER" "${codex_args[@]}" || exit $?
+fi
+
 # Remove a symlink only if it points into this dotfiles repo.
 remove_if_dotfiles_symlink() {
   local target=$1

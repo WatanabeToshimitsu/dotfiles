@@ -118,6 +118,18 @@ images through the kitty graphics protocol (Ghostty and herdr both support it):
 | `gb-prune` | Clean up merged branches (supports squash merge via `gh` CLI) |
 | `ghq-rm`   | Remove a ghq-managed repository interactively                 |
 
+## Codex Configuration Sync
+
+Common Claude instructions, scoped rules and repository skills can be generated
+for Codex through the reviewed policy in [`codex/`](codex/README.md). Native Codex
+permissions, authentication, model choices and hook trust remain local.
+
+After the implementation is merged, use `bash install.sh --codex-only --dry-run`
+to inspect initial application, then `bash install.sh --codex-only` to apply.
+`dotfiles-update` fetches main, fast-forwards and applies the committed snapshot.
+The [sync guide](codex/README.md) covers generation, collisions, restore, disabled
+skills, machine-local references and the remaining live acceptance checks.
+
 ## Claude Tool Output Compaction
 
 Large Read, Grep, Glob, Web, and MCP results are shortened before entering the
