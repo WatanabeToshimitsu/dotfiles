@@ -96,3 +96,8 @@ MANIFEST_CLAUDE_OBSOLETE_FILES=(
   rules/common/patterns.md
   rules/common/performance.md
 )
+
+# Codex has dynamic skill ownership and an AGENTS.md managed block. The installer
+# records exact links in ~/.codex/dotfiles-sync/state.json, not a glob to delete.
+# shellcheck disable=SC2034  # consumed by install.sh / uninstall.sh
+MANIFEST_CODEX_SYNC_INSTALLER="scripts/codex-sync/install.py"

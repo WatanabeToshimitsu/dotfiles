@@ -409,6 +409,21 @@ finish() {
   return 1
 }
 
+check_codex_sync() {
+  echo "== Codex configuration sync =="
+  if [ ! -f "$HOME/.codex/dotfiles-sync/state.json" ]; then
+    info "not installed; setup: bash install.sh --codex-only --dry-run"
+    return 0
+  fi
+  local output
+  if output=$(python3 "$DOTFILES_DIR/scripts/codex-sync/install.py" check --root "$DOTFILES_DIR" 2>&1); then
+    info "merged snapshot and managed links are current; native settings remain unmanaged"
+    [ -z "$output" ] || info "$output"
+  else
+    warn "Codex sync needs attention: $output"
+  fi
+}
+
 main() {
   parse_options "$@" || return $?
   printf 'dotfiles doctor: %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
@@ -416,6 +431,7 @@ main() {
     check_local_drift
   fi
   check_agent_harness
+  check_codex_sync
   finish
 }
 

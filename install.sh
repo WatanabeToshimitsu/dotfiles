@@ -127,6 +127,10 @@ setup_gitconfig() {
 setup_symlinks() {
   local dotfiles_dir="${1:-$DOTFILES_DIR}"
 
+  if [ -f "$HOME/.codex/dotfiles-sync/state.json" ]; then
+    python3 "$dotfiles_dir/$MANIFEST_CODEX_SYNC_INSTALLER" apply --root "$dotfiles_dir" || return 1
+  fi
+
   echo "----------------------------------------------"
   echo "Setting up symlinks..."
   echo "----------------------------------------------"
@@ -543,7 +547,7 @@ setup_macos() {
   echo "----------------------------------------------"
   brew bundle --file="$DOTFILES_DIR/Brewfile"
 
-  setup_symlinks "$DOTFILES_DIR"
+  setup_symlinks "$DOTFILES_DIR" || return 1
   bootstrap_neovim
   setup_vscode
   setup_agent_skills
@@ -616,7 +620,7 @@ setup_linux() {
     installApps yum
   fi
 
-  setup_symlinks "$DOTFILES_DIR"
+  setup_symlinks "$DOTFILES_DIR" || return 1
   setup_agent_skills
   setup_herdr
   setup_cli_tools
@@ -640,8 +644,14 @@ if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
   return 0
 fi
 
+if [ "${1:-}" = "--codex-only" ]; then
+  shift
+  python3 "$DOTFILES_DIR/$MANIFEST_CODEX_SYNC_INSTALLER" apply --root "$DOTFILES_DIR" "$@"
+  exit $?
+fi
+
 if [ "${1:-}" = "--symlinks-only" ]; then
-  setup_symlinks "$DOTFILES_DIR"
+  setup_symlinks "$DOTFILES_DIR" || exit $?
   echo ""
   echo "=========================================="
   echo "Symlink setup complete!"
@@ -660,8 +670,8 @@ fi
 
 OS="$(uname -s)"
 case "$OS" in
-  Darwin) setup_macos ;;
-  Linux)  setup_linux ;;
+  Darwin) setup_macos || exit 1 ;;
+  Linux)  setup_linux || exit 1 ;;
   *)      echo "Unsupported OS: $OS"; exit 1 ;;
 esac
 
