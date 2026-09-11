@@ -111,8 +111,8 @@ Before editing a file, read every matching rule below, in the listed order. Patt
 # Codex adaptations
 
 The common instructions above originate in `claude/CLAUDE.md`. Keep their
-intent and publication boundaries. The original bytes, rule scopes and source
-hashes are included in this snapshot for review.
+intent and publication boundaries. Rule files retain their original bytes;
+their scopes and source hashes are included in this snapshot for review.
 
 - Claude model names and agent names identify Claude roles. They are not Codex
   model identifiers. Follow the current source workflow's provider ownership;
@@ -130,8 +130,8 @@ hashes are included in this snapshot for review.
   Persist task handoffs in the task workspace. Write Codex memories only when
   the user explicitly asks. Follow the host's compaction controls.
 - Keep native Codex permissions, authentication, model preferences, plugins,
-  connectors and disabled skills. The settings inventory explains excluded
-  fields; exclusions must not be interpreted as permission grants.
+  connectors and disabled skills. Only the response language is imported from
+  Claude settings; other settings and native runtimes are excluded as categories.
 - The installed shared block precedes existing local Codex instructions.
   Repository instructions and the user's explicit instructions keep their
   normal precedence. Read all matching scoped rules; a rule index is a prompt

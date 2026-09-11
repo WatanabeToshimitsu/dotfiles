@@ -38,17 +38,7 @@ class RepositoryCase(unittest.TestCase):
         self.put('claude/rules/python.md', '---\npaths:\n  - "**/*.py"\n---\n\nPython only.\n')
         self.put('claude/skills/demo/SKILL.md', '---\nname: demo\ndescription: A test skill.\n---\n\nTest instructions.\n')
         self.put('claude/settings.json', '{"language": "Japanese", "permissions": {"allow": []}}\n')
-        policy = {
-            'version': 1,
-            'settings': {
-                '/language': {'mode': 'adapt', 'reason': 'Response language becomes an instruction.'},
-                '/permissions/allow': {'mode': 'exclude', 'reason': 'Keep native Codex permissions.'},
-            },
-            'agents': {},
-            'hooks': {},
-            'skills': {},
-        }
-        self.put('codex/sync-policy.json', json.dumps(policy))
+        self.put('codex/skill-adaptations.json', '{}\n')
         self.put('codex/adaptations.md', '# Codex adaptations\nKeep native permissions.\n')
         git(self.root, 'add', 'claude', 'codex')
         git(self.root, 'commit', '-qm', 'Source')
@@ -76,7 +66,8 @@ class SyncTest(RepositoryCase):
         expected = generate.build(self.root)
         self.assertFalse((self.root / 'codex/generated').exists())
         self.assertEqual(expected, generate.build(self.root))
-        self.assertEqual(expected['source/CLAUDE.md'], (self.root / 'claude/CLAUDE.md').read_bytes())
+        self.assertTrue(expected['AGENTS.md'].startswith((self.root / 'claude/CLAUDE.md').read_bytes()))
+        self.assertFalse({'source/CLAUDE.md', 'inventory.json', 'rule-index.json'} & expected.keys())
         self.assertNotIn(b'PRIVATE_SENTINEL', b''.join(expected.values()))
         generate.write(self.root, expected)
         self.assertEqual(generate.changes(self.root, expected), [])
@@ -100,10 +91,23 @@ class SyncTest(RepositoryCase):
             generate.write(self.root, out)
         self.assertEqual((self.root / 'codex/generated/AGENTS.md').read_text(), 'HAND_EDIT')
 
-    def test_unknown_settings_hook_and_agent_fail_inventory(self):
-        self.put('claude/settings.json', '{"language":"Japanese","permissions":{"allow":[]},"newKey":true}')
-        with self.assertRaisesRegex(ValueError, 'unclassified'):
-            generate.build(self.root)
+    def test_native_settings_can_change_without_registration_or_export(self):
+        baseline = self.generate()
+        for settings in (
+            {'language': 'Japanese', 'model': 'PRIVATE_MODEL_SENTINEL',
+             'newKey': {'env': 'PRIVATE_SETTING_SENTINEL'},
+             'enabledPlugins': {'new-plugin': True}, 'permissions': {'allow': ['Bash(*)']}},
+            {'language': 'Japanese'},
+        ):
+            self.put('claude/settings.json', json.dumps(settings))
+            output = self.generate()
+            self.assertEqual({p: v for p, v in output.items() if p != 'manifest.json'},
+                             {p: v for p, v in baseline.items() if p != 'manifest.json'})
+            self.assertNotIn(b'PRIVATE_', b''.join(output.values()))
+        self.put('claude/settings.json', '{"language":"English"}')
+        self.assertIn(b'Response language: English.', self.generate()['AGENTS.md'])
+        git(self.root, 'rm', '-f', 'claude/settings.json')
+        self.assertNotIn(b'Response language:', self.generate()['AGENTS.md'])
 
     def test_input_symlinks_and_private_tracked_reference_are_rejected(self):
         path = self.root / 'claude/CLAUDE.md'
@@ -118,18 +122,26 @@ class SyncTest(RepositoryCase):
         with self.assertRaisesRegex(ValueError, 'private'):
             generate.build(self.root)
 
-    def test_scope_examples_include_root_and_nested_files_without_overmatching(self):
-        samples = [
-            ('**/*.py', ['a.py', 'src/a.py'], ['a.ts', 'a.py.txt']),
-            ('**/*.{ts,tsx}', ['a.ts', 'src/a.tsx'], ['a.js', 'a.ts/b.txt']),
-            ('.github/actions/**/*.{yml,yaml}', ['.github/actions/a.yml', '.github/actions/x/a.yaml'], ['src/a.yml']),
-            ('**/{test,tests}/**', ['tests/a.py', 'src/test/a.ts'], ['latest/a.py']),
-        ]
-        for pattern, positive, negative in samples:
-            for path in positive:
-                self.assertTrue(generate.matches(pattern, path), (pattern, path))
-            for path in negative:
-                self.assertFalse(generate.matches(pattern, path), (pattern, path))
+    def test_rule_patterns_are_preserved_without_custom_glob_restrictions(self):
+        patterns = ['**/*.py', '**/*.{ts,tsx}', '.github/actions/**/*.{yml,yaml}',
+                    '**/{test,tests}/**', '**/[ab]*.py', '!vendor/**']
+        rule = '---\npaths:\n' + ''.join('  - "' + p + '"\n' for p in patterns) + '---\nOriginal rule.\n'
+        self.put('claude/rules/python.md', rule)
+        output = self.generate()
+        self.assertEqual(output['rules/python.md'], rule.encode())
+        index_line = '- rules/python.md: ' + ', '.join('`' + p + '`' for p in patterns)
+        self.assertIn(index_line.encode(), output['AGENTS.md'])
+
+    def test_skill_changes_do_not_require_annotation_updates(self):
+        self.put('claude/skills/demo/SKILL.md', '---\nname: demo\ndescription: Demo.\nallowed-tools: Read\nargument-hint: path\n---\nOriginal instructions.\n')
+        out = self.generate()
+        self.assertEqual(out['skills/demo/SKILL.md'], (self.root / 'claude/skills/demo/SKILL.md').read_bytes())
+        self.put('codex/skill-adaptations.json', json.dumps({'demo': {'note': 'Host note.'}}))
+        self.assertIn(b'Host note.', self.generate()['skills/demo/SKILL.md'])
+        git(self.root, 'rm', '-f', 'claude/skills/demo/SKILL.md')
+        out = self.generate()
+        self.assertFalse(any(p.startswith('skills/demo/') for p in out))
+        self.assertNotIn(b'Host note.', b''.join(out.values()))
 
     def test_install_preserves_local_suffix_and_protected_files_then_restores(self):
         self.merged()
@@ -187,10 +199,10 @@ class SyncTest(RepositoryCase):
     def test_local_ticket_reference_is_linked_only_locally_and_missing_means_unavailable(self):
         git(self.root, 'mv', 'claude/skills/demo', 'claude/skills/ticket')
         self.put('claude/skills/ticket/SKILL.md', '---\nname: ticket\ndescription: Needs private reference.\n---\nRead reference.md first.\n')
-        policy = json.loads((self.root / 'codex/sync-policy.json').read_text())
-        policy['skills']['ticket'] = {'reason': 'Private runtime data.', 'note': 'Missing reference means unavailable.',
-                                      'local_dependencies': {'reference.md': '.claude/skills/ticket/reference.md'}}
-        self.put('codex/sync-policy.json', json.dumps(policy))
+        self.put('codex/skill-adaptations.json', json.dumps({'ticket': {
+            'note': 'Missing reference means unavailable.',
+            'local_dependencies': {'reference.md': '.claude/skills/ticket/reference.md'},
+        }}))
         self.merged()
         missing = install.plan(self.root, self.home)
         self.assertIn('ticket', missing['skipped'])
@@ -282,22 +294,19 @@ class SyncTest(RepositoryCase):
 
 
 class RegressionTest(RepositoryCase):
-    def test_new_hook_and_agent_require_explicit_inventory_decisions(self):
+    def test_native_hooks_and_agents_are_ignored_without_registration(self):
         settings = json.loads((self.root / 'claude/settings.json').read_text())
-        settings['hooks'] = {'SessionStart': [{'hooks': [{'type': 'command', 'command': 'fixture'}]}]}
+        settings['hooks'] = {'SessionStart': [{'hooks': [{'type': 'command', 'command': 'PRIVATE_HOOK_SENTINEL'}]}]}
         self.put('claude/settings.json', json.dumps(settings))
-        policy = json.loads((self.root / 'codex/sync-policy.json').read_text())
-        for key in generate.leaves(settings):
-            policy['settings'].setdefault(key, {'mode': 'exclude', 'reason': 'Test native-only hook fields.'})
-        self.put('codex/sync-policy.json', json.dumps(policy))
-        with self.assertRaisesRegex(ValueError, 'unclassified or retired hooks'):
-            generate.build(self.root)
-        policy['hooks']['SessionStart/0/0'] = {'mode': 'exclude', 'reason': 'Hook stays native.'}
-        self.put('codex/sync-policy.json', json.dumps(policy))
-        self.put('claude/agents/new-agent.md', 'New Claude agent\n')
-        git(self.root, 'add', 'claude/agents/new-agent.md')
-        with self.assertRaisesRegex(ValueError, 'unclassified or retired agents'):
-            generate.build(self.root)
+        self.put('claude/agents/new-agent.md', 'PRIVATE_AGENT_SENTINEL\n')
+        self.put('claude/hooks/new-hook.py', 'raise RuntimeError("Do not execute this hook")\n')
+        git(self.root, 'add', 'claude/agents', 'claude/hooks')
+        output = self.generate()
+        self.assertNotIn(b'PRIVATE_', b''.join(output.values()))
+        inputs = json.loads(output['manifest.json'])['inputs']
+        self.assertFalse(any(p.startswith(('claude/agents/', 'claude/hooks/')) for p in inputs))
+        git(self.root, 'rm', '-rf', 'claude/agents', 'claude/hooks')
+        self.assertEqual(output, self.generate())
 
     def test_global_override_blocks_apply_and_restore_refuses_later_local_edits(self):
         self.merged()

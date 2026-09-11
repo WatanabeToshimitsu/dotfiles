@@ -24,9 +24,9 @@ test image: it intentionally creates and removes fixture dotfiles.
 
 | Boundary | Evidence |
 | --- | --- |
-| Public generation | 38 tracked inputs; 25 rules with all 67 scope patterns; six skills; 74 settings leaves, eight hook handlers and two agent definitions classified. Shared AGENTS text is 9,778 bytes before local instructions. |
-| Source/output changes | Determinism, add/rename/delete, stale generation, missing output, malformed manifest, executable resources, symlink rejection, private reference exclusion and unknown settings/hooks/agents tested. |
-| Scoped rules | Positive and negative root/nested path examples tested; the rule index retains source ordering and patterns. This is a prompt convention, not native conditional injection. |
+| Public generation | 36 tracked inputs; 34 outputs; 25 rules with all 67 scope patterns; six skills. Only response language is imported from settings; other settings and native runtimes are excluded as categories. Shared AGENTS text is 9,817 bytes before local instructions. |
+| Source/output changes | Determinism, add/rename/delete, stale generation, missing output, malformed manifest, executable resources, symlink rejection and private reference exclusion tested. New/removed native settings, hooks and agents require no registration and are not exported. Skill notes are optional and do not block skill removal. |
+| Scoped rules | The AGENTS rule list preserves source ordering and patterns, including patterns outside the former custom matcher's subset. There is no separate JSON index or custom matcher. Matching remains a prompt convention, not native conditional injection. |
 | Local state | Temporary profiles cover native config/auth/hooks preservation, instruction suffix and override, disabled skills, same-name collisions, absent ticket references, ownership, snapshots, backups, restore/uninstall and failed-write rollback. |
 | Concurrent edits | Edits during planning and during the transaction remain intact. Source preferences remain dirty after the update wrapper fetches/fast-forwards the committed snapshot. A pre-existing Git post-merge hook still runs and its bytes stay unchanged. |
 | Publisher | Local bare Git remotes exercise same-branch generated-only commits, normal push and advertised-head races. Mock GitHub APIs exercise final-SHA dispatch, changed-CI rejection, post-push failure reporting and recovery without an extra commit. No GitHub PR was created for these tests. |
@@ -35,7 +35,8 @@ test image: it intentionally creates and removes fixture dotfiles.
 | Install/uninstall | Existing manifest-driven install test passed in a temporary macOS HOME and the repository's Ubuntu 22.04 Docker test image. |
 | Publication scan | Gitleaks 8.30.1 downloaded from its official release with SHA-256 verification. Directory scan and the repository's synthetic-secret/placeholder fixtures passed. Two initial findings were verified file hashes adjacent to `fastapi` paths; explicit `sha256:` values removed the false positives without adding scanner exclusions. |
 
-The final sync suite passed all 32 tests on both macOS and Linux/Python 3.11. The disposable image used
+After simplification, the sync suite passed all 33 tests on both macOS and Linux/Python 3.11,
+and the nine native Codex checks passed again. The disposable image used
 for that check was `python:3.11-slim-bookworm` at digest
 `sha256:528257d48c1da0dcecc2e725d1ae34498d60c965f1241e39cd6a85a8859bdf84`.
 The image receives a read-only worktree mount and no host HOME or credentials.
@@ -44,9 +45,9 @@ The image receives a read-only worktree mount and no host HOME or credentials.
 
 The first approved merge installs the publisher on main. A later representative
 source-only PR must demonstrate automatic generation into that same PR and
-successful checks on the final generated commit. GitHub Actions execution,
-fork event handling and API failure behavior have fixture/static coverage only;
-the actual GitHub event chain has not yet run.
+successful checks on the final generated commit. PR #126's ordinary CI and
+read-only preview passed for `a72f452`; the write-capable publisher event chain,
+fork event handling and API failure behavior still have fixture/static coverage only.
 
 On 2026-09-11, the repository ruleset required `lint`, `validate-configs` and
 `install-ubuntu` from GitHub Actions. The default workflow token was read-only.

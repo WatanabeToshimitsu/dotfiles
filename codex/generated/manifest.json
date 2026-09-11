@@ -1,9 +1,7 @@
 {
   "executables": [],
   "files": {
-    "AGENTS.md": "sha256:e52c03de8d90708cad158dc31abbc5ec2681ddf3ce4f92da2ffa4a43e777a63c",
-    "inventory.json": "sha256:e839d17bae81c5fd4a6761286e1095e04e6ca20b35ec61e46378c03cc77a0c5d",
-    "rule-index.json": "sha256:5ebb08fc250c25c6564933f928822b800d73c83c358633e7a0a0688458c68522",
+    "AGENTS.md": "sha256:74455d05eff65c84866b7d8cbea4fae3d1a157df07953c760ec945f96065d88a",
     "rules/common/coding-style.md": "sha256:9f3badeb37672cc4331427722dc0ff84bd4520fa8e551713ccf44ab196878f55",
     "rules/common/github-actions.md": "sha256:dd83e898d6979615d69c358ea9664bb671ca70ff0e3b781ef48ee7ebf8d921a2",
     "rules/common/hooks.md": "sha256:4ba0deefe041a662d05786a59198c96ca9d0eb919610d26223702bfa28274a91",
@@ -35,13 +33,10 @@
     "skills/prepare-compaction/SKILL.md": "sha256:423c6b69fb85ebc25c8c0d3cb23bd78e7c7594f6a4b86c469e5105254af7a912",
     "skills/repository-audit/SKILL.md": "sha256:200164ed0c118c771c6ec4ed357059d03d7b96f87a807a88d05ded01cae79f9d",
     "skills/ticket/SKILL.md": "sha256:3eb74a9e8f0d55f82dc2ff5eb883111accbdec88f1a037bef7e73b24e0de72f4",
-    "skills/ticket/reference.example.md": "sha256:ff8b827ee6fff1441a072567b50be70d4d2c50b07f3737690732062b544c0ea3",
-    "source/CLAUDE.md": "sha256:319c305b240b4d9051d8fd436697925d03523768bf740a0ab047ecd7223fdab4"
+    "skills/ticket/reference.example.md": "sha256:ff8b827ee6fff1441a072567b50be70d4d2c50b07f3737690732062b544c0ea3"
   },
   "inputs": {
     "claude/CLAUDE.md": "sha256:319c305b240b4d9051d8fd436697925d03523768bf740a0ab047ecd7223fdab4",
-    "claude/agents/fable-deep.md": "sha256:6263f4ad7a6d81a10007380d8816f746fb26c616ac8aa94effe9e5b1996f689b",
-    "claude/agents/sonnet-worker.md": "sha256:faad06939c4479f00e6d55ca64a44db5e0dffe4351e28093f0e2536e6809487c",
     "claude/rules/common/coding-style.md": "sha256:9f3badeb37672cc4331427722dc0ff84bd4520fa8e551713ccf44ab196878f55",
     "claude/rules/common/github-actions.md": "sha256:dd83e898d6979615d69c358ea9664bb671ca70ff0e3b781ef48ee7ebf8d921a2",
     "claude/rules/common/hooks.md": "sha256:4ba0deefe041a662d05786a59198c96ca9d0eb919610d26223702bfa28274a91",
@@ -75,8 +70,8 @@
     "claude/skills/repository-audit/SKILL.md": "sha256:200164ed0c118c771c6ec4ed357059d03d7b96f87a807a88d05ded01cae79f9d",
     "claude/skills/ticket/SKILL.md": "sha256:089ae76aef308ea0e76adde15727852ba4cb3d1d2e6f0c92329ffaf6fd422a07",
     "claude/skills/ticket/reference.example.md": "sha256:ff8b827ee6fff1441a072567b50be70d4d2c50b07f3737690732062b544c0ea3",
-    "codex/adaptations.md": "sha256:ea391109ffac5c559e9c11459d09df1071d6f45670b92947559ed24acfd60e94",
-    "codex/sync-policy.json": "sha256:63c52e0116554bcdb7205389e70de0fcf498b480d646ed3c97f194c86defb9ad"
+    "codex/adaptations.md": "sha256:16621a4f9b7ecc1a5e71fd6a4e23625237065210c5d466cd5bd1836cf3834ceb",
+    "codex/skill-adaptations.json": "sha256:2aefb844efc1762de03a2dcda193125cf28c1a557de25643b01f36518f349c71"
   },
   "local_dependencies": {
     "ticket": {

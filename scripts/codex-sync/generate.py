@@ -14,7 +14,7 @@ sys.dont_write_bytecode = True
 
 ROOT = Path(__file__).resolve().parents[2]
 OUTPUT = 'codex/generated'
-POLICY = 'codex/sync-policy.json'
+SKILL_ADAPTATIONS = 'codex/skill-adaptations.json'
 ADAPTATIONS = 'codex/adaptations.md'
 LIMIT = 512 * 1024
 
@@ -79,98 +79,26 @@ def read(root, name, entries, ref=None):
     return data
 
 
-def leaves(value, prefix=''):
-    if isinstance(value, dict) and value:
-        for key, child in value.items():
-            token = key.replace('~', '~0').replace('/', '~1')
-            yield from leaves(child, prefix + '/' + token)
-    elif isinstance(value, list) and any(isinstance(v, (dict, list)) for v in value):
-        for index, child in enumerate(value):
-            yield from leaves(child, prefix + '/' + str(index))
-    else:
-        yield prefix
-
-
-def classify(actual, policy, category):
-    actual = set(actual)
-    unknown, retired = actual - set(policy), set(policy) - actual
-    if unknown or retired:
-        raise ValueError(f'unclassified or retired {category}: ' + ', '.join(sorted(unknown | retired)))
-    for key, rule in policy.items():
-        if set(rule) != {'mode', 'reason'} or rule['mode'] not in ('share', 'adapt', 'exclude') or not rule['reason']:
-            raise ValueError(f'invalid {category} policy: {key}')
-
-
 def scopes(data, name):
     text = data.decode()
     match = re.match(r'\A---\npaths:\n((?:  - "[^"\n]+"\n)+)---(?:\n|$)', text)
     if not match:
         raise ValueError(f'unsupported rule frontmatter: {name}')
-    patterns = re.findall(r'^  - "(.+)"$', match[1], re.M)
-    for pattern in patterns:
-        scope_regex(pattern)
-    return patterns
-
-
-def scope_regex(pattern):
-    if '[' in pattern or '!' in pattern or '\\' in pattern or pattern.startswith('/') or '..' in pattern.split('/'):
-        raise ValueError(f'unsupported scope: {pattern}')
-    def translate(value):
-        parts, index = [], 0
-        while index < len(value):
-            if value.startswith('**/', index):
-                parts.append('(?:.*/)?'); index += 3
-            elif value.startswith('**', index):
-                parts.append('.*'); index += 2
-            elif value[index] == '*':
-                parts.append('[^/]*'); index += 1
-            elif value[index] == '?':
-                parts.append('[^/]'); index += 1
-            elif value[index] == '{':
-                end = value.find('}', index)
-                if end < 0 or '{' in value[index + 1:end]:
-                    raise ValueError(f'unsupported scope: {pattern}')
-                parts.append('(?:' + '|'.join(translate(p) for p in value[index + 1:end].split(',')) + ')')
-                index = end + 1
-            else:
-                parts.append(re.escape(value[index])); index += 1
-        return ''.join(parts)
-    return re.compile('^' + translate(pattern) + '$')
-
-
-def matches(pattern, path):
-    return bool(scope_regex(pattern).fullmatch(path))
+    return re.findall(r'^  - "(.+)"$', match[1], re.M)
 
 
 def build(root, ref=None):
     entries = tracked(root, ref)
     inputs = {name: read(root, name, entries, ref) for name in entries if
-              name in (POLICY, ADAPTATIONS, 'claude/CLAUDE.md', 'claude/settings.json') or
-              name.startswith(('claude/rules/', 'claude/skills/', 'claude/agents/'))}
-    for required in (POLICY, ADAPTATIONS, 'claude/CLAUDE.md', 'claude/settings.json'):
+              name in (SKILL_ADAPTATIONS, ADAPTATIONS, 'claude/CLAUDE.md', 'claude/settings.json') or
+              name.startswith(('claude/rules/', 'claude/skills/'))}
+    for required in (SKILL_ADAPTATIONS, ADAPTATIONS, 'claude/CLAUDE.md'):
         if required not in inputs:
             raise ValueError(f'missing tracked input: {required}')
-    policy = json.loads(inputs[POLICY])
-    if set(policy) != {'version', 'settings', 'hooks', 'agents', 'skills'} or policy['version'] != 1:
-        raise ValueError('unsupported sync policy schema')
-    settings = json.loads(inputs['claude/settings.json'])
-    classify(leaves(settings), policy['settings'], 'settings')
-    # Values are never copied wholesale: native permissions, auth and trust stay local.
-    for key, disposition in policy['settings'].items():
-        if disposition['mode'] != 'exclude' and key != '/language':
-            raise ValueError(f'unsupported settings adaptation: {key}')
-    hook_ids = []
-    for event, groups in settings.get('hooks', {}).items():
-        for group_index, group in enumerate(groups):
-            for hook_index, _ in enumerate(group.get('hooks', [])):
-                hook_ids.append(f'{event}/{group_index}/{hook_index}')
-    classify(hook_ids, policy['hooks'], 'hooks')
-    agents = [p.removeprefix('claude/agents/') for p in inputs if p.startswith('claude/agents/')]
-    classify(agents, policy['agents'], 'agents')
-    if any(p['mode'] != 'exclude' for p in [*policy['hooks'].values(), *policy['agents'].values()]):
-        raise ValueError('native hook and agent installation is unsupported')
-
-    output = {'source/CLAUDE.md': inputs['claude/CLAUDE.md']}
+    adaptations = json.loads(inputs[SKILL_ADAPTATIONS])
+    # Only language is portable; all other settings and native runtimes stay local.
+    settings = json.loads(inputs.get('claude/settings.json', b'{}'))
+    output = {}
     index, skill_names = [], {}
     for name, data in sorted(inputs.items()):
         if name.startswith('claude/rules/'):
@@ -197,25 +125,17 @@ def build(root, ref=None):
                 keys = set(re.findall(r'^([a-z-]+):', frontmatter, re.M))
                 if keys - {'name', 'description', 'argument-hint', 'allowed-tools'}:
                     raise ValueError(f'unclassified skill frontmatter: {name}')
-                if ('allowed-tools' in keys or 'argument-hint' in keys) and skill not in policy['skills']:
-                    raise ValueError(f'skill metadata needs an explicit host adaptation: {name}')
                 skill_names[skill] = relative
-    for skill, disposition in policy['skills'].items():
-        if skill not in skill_names:
-            raise ValueError(f'retired skill adaptation: {skill}')
-        if set(disposition) != {'reason', 'note', 'local_dependencies'}:
-            raise ValueError(f'unsupported skill adaptation: {skill}')
-        for relative, source in disposition['local_dependencies'].items():
+    dependencies = {}
+    for skill, path in skill_names.items():
+        disposition = adaptations.get(skill, {})
+        for relative, source in disposition.get('local_dependencies', {}).items():
             safe_name(relative); safe_name(source)
             if (skill, relative, source) != ('ticket', 'reference.md', '.claude/skills/ticket/reference.md'):
                 raise ValueError(f'unsupported local dependency: {skill}')
-        path = skill_names[skill]
-        output[path] = output[path].rstrip() + ('\n\n## Codex portability\n\n' + disposition['note'] + '\n').encode()
-    output['rule-index.json'] = json_bytes(index)
-    output['inventory.json'] = json_bytes({
-        'settings': policy['settings'], 'hooks': policy['hooks'], 'agents': policy['agents'],
-        'skills': {s: policy['skills'].get(s, {'reason': 'Shared portable instructions; no native permissions are granted.'}) for s in sorted(skill_names)},
-    })
+            dependencies.setdefault(skill, {})[relative] = source
+        if disposition.get('note'):
+            output[path] = output[path].rstrip() + ('\n\n## Codex portability\n\n' + disposition['note'] + '\n').encode()
     text = inputs['claude/CLAUDE.md'].decode().rstrip() + '\n\n# Shared scoped rules\n\n'
     text += ('Before editing a file, read every matching rule below, in the listed order. '
              'Patterns use repository-relative paths, ** spans directories, and braces list alternatives. '
@@ -225,7 +145,7 @@ def build(root, ref=None):
         text += '- ' + rule['file'] + ': ' + ', '.join('`' + p + '`' for p in rule['paths']) + '\n'
     text += '\n' + inputs[ADAPTATIONS].decode().rstrip() + '\n'
     language = settings.get('language')
-    if language and policy['settings']['/language']['mode'] == 'adapt':
+    if language:
         if not isinstance(language, str) or not re.fullmatch(r'[A-Za-z -]{1,40}', language):
             raise ValueError('unsupported response language')
         text += '\nResponse language: ' + language + '.\n'
@@ -239,7 +159,7 @@ def build(root, ref=None):
         'executables': sorted(p.removeprefix('claude/') for p in inputs
                               if p.startswith('claude/skills/') and entries[p] == '100755'),
         'skills': sorted(skill_names),
-        'local_dependencies': {s: p['local_dependencies'] for s, p in policy['skills'].items() if p['local_dependencies']},
+        'local_dependencies': dependencies,
     })
     return output
 

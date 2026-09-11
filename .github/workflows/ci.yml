@@ -135,7 +135,7 @@ jobs:
         run: |
           python3 - <<'PY'
           import json
-          for path in ["codex/sync-policy.json", "codex/generated/manifest.json", "claude/settings.json", "claude/sandbox-canary.json", "claude/claude-powerline.json", "renovate.json"]:
+          for path in ["codex/skill-adaptations.json", "codex/generated/manifest.json", "claude/settings.json", "claude/sandbox-canary.json", "claude/claude-powerline.json", "renovate.json"]:
               with open(path) as f:
                   json.load(f)
               print("OK", path)

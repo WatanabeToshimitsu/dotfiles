@@ -1,8 +1,8 @@
 # Claude to Codex configuration sync
 
 `claude/` remains the source for common instructions, scoped rules and repository
-skills. `sync-policy.json` inventories every settings leaf, hook handler and
-Claude agent. `adaptations.md` records the differences between the two hosts.
+skills. `adaptations.md` records the differences between the two hosts;
+`skill-adaptations.json` contains optional skill notes and local references.
 Edit those inputs and regenerate; do not hand-edit `generated/`.
 
 Python 3.11 or newer and Git are required. Native discovery tests additionally
@@ -23,11 +23,13 @@ python3 scripts/codex-sync/probe.py
 
 The generator reads only tracked, regular UTF-8 files. Binary resources, input
 symlinks and rule frontmatter outside the paths-list format need an explicit
-compatibility change. Unknown settings, unsupported skill metadata, tracked
-private references and known credential patterns fail validation. The JSON
+compatibility change. Unsupported skill metadata, tracked private references
+and known credential patterns fail validation. The JSON
 manifest records source/output hashes and executable flags. Generated resource
 scripts keep their Git executable flag; local snapshots restrict access to the
-current user. Untracked files are never copied.
+current user. Untracked files are never copied. Only `language` is read from
+Claude settings. Other settings, hooks and agent definitions are excluded as
+categories; adding or removing them does not require a registration update.
 
 A changed, deleted or unowned generated file blocks regeneration. Reconcile the
 edit with the source before trying again. `--check` and `--dry-run` do not modify
@@ -36,11 +38,13 @@ signed attestation against someone deliberately rewriting both content and
 hashes. Pattern scanning supplements the repository's publication review and
 does not guarantee that text is safe.
 
-The shared instructions retain the original common text. A deterministic index
-preserves all rule patterns and their order. Codex is instructed to read each
+The shared instructions retain the original common text. The rule list in
+`AGENTS.md` preserves all patterns and their order without a separate JSON index
+or a custom glob matcher. Codex is instructed to read each
 matching rule; this is a prompt convention, not Claude's native conditional
-loading. Rule files remain byte-identical. Skill adaptations are appended to
-the original body. Changes, additions, deletions and renames propagate through
+loading. Rule files remain byte-identical. Optional skill notes are appended to
+the original body; new skills need no annotation entry, and entries for removed
+skills are ignored. Changes, additions, deletions and renames propagate through
 the generated manifest. Unsupported metadata fails instead of being ignored.
 
 ## Apply merged changes on the Mac
@@ -156,10 +160,10 @@ are not covered by the disposable tests.
 Only the response language becomes a generated instruction. Authentication,
 approval rules, sandbox settings, models, reasoning effort, runtime environment,
 marketplaces, connectors, plugins and host UI preferences remain native. Claude
-hooks and agent definitions are inventoried but not installed into Codex.
+hooks and agent definitions are not read or installed into Codex.
 Hook trust hashes are never generated or registered. Existing native hook trust
-and skill disable settings remain untouched. The inventory fails when new keys
-or handlers need a fresh compatibility decision.
+and skill disable settings remain untouched. No per-setting, per-hook or
+per-agent exclusion inventory is maintained.
 
 References: [instruction discovery](https://learn.chatgpt.com/docs/agent-configuration/agents-md),
 [skill discovery](https://learn.chatgpt.com/docs/build-skills),
