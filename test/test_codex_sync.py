@@ -1,3 +1,4 @@
+import io
 import json
 import os
 from pathlib import Path
@@ -525,20 +526,50 @@ class PublisherTest(RepositoryCase):
         self.assertEqual(result, pushed)
         self.assertEqual(self.dispatches, [{'ref': 'feature', 'inputs': {'expected_sha': pushed}}])
 
-    def test_changed_ci_is_refused_before_publication(self):
+    def assert_protected_implementation_outcome(self, path, *, deleted=False):
         self.publisher_fixture()
         git(self.root, 'switch', '-q', 'feature')
-        self.put('.github/workflows/ci.yml', '# Unreviewed PR workflow\n')
-        git(self.root, 'add', '.github/workflows/ci.yml')
-        git(self.root, 'commit', '-qm', 'Change CI')
+        if deleted:
+            git(self.root, 'rm', '-q', path)
+        else:
+            self.put(path, '# Unreviewed PR implementation\n')
+            git(self.root, 'add', path)
+        git(self.root, 'commit', '-qm', 'Change protected implementation')
         head = git(self.root, 'rev-parse', 'HEAD')
         git(self.root, 'push', '-q', str(self.bare), 'HEAD:refs/heads/feature')
         git(self.root, 'switch', '-q', 'main')
-        with patch.object(publish.subprocess, 'run', side_effect=self.transport), patch.object(publish, 'api', side_effect=self.fake_api):
-            with self.assertRaisesRegex(ValueError, 'CI changed'):
-                publish.publish(self.root, 'owner/repo', 1, head, 'test-token-placeholder')
+        with patch.object(publish.subprocess, 'run', side_effect=self.transport), \
+             patch.object(publish, 'api', side_effect=self.fake_api), \
+             patch.object(generate, 'ROOT', self.root), \
+             patch.object(generate, 'build') as build, \
+             patch.dict(os.environ, {'GITHUB_ACTIONS': 'true', 'GH_TOKEN': 'test-token-placeholder'}), \
+             patch.object(sys, 'argv', ['publish.py', '--repo', 'owner/repo', '--pr', '1', '--expected-head', head]), \
+             patch.object(sys, 'stdout', new_callable=io.StringIO) as output, \
+             patch.object(sys, 'stderr', new_callable=io.StringIO) as error:
+            result = publish.main()
+        self.assertEqual(result, 1 if deleted else 0)
+        if deleted:
+            self.assertIn('codex sync publisher:', error.getvalue())
+            self.assertNotIn('skipped', output.getvalue())
+        else:
+            self.assertIn('::notice::Automatic Codex sync skipped', output.getvalue())
+            self.assertEqual(error.getvalue(), '')
+        build.assert_not_called()
         self.assertEqual(git(self.bare, 'rev-parse', 'feature'), head)
         self.assertEqual(self.dispatches, [])
+        self.assertEqual(git(self.root, 'status', '--porcelain'), '')
+
+    def test_changed_ci_is_skipped_before_publication(self):
+        self.assert_protected_implementation_outcome('.github/workflows/ci.yml')
+
+    def test_changed_generator_is_skipped_before_publication(self):
+        self.assert_protected_implementation_outcome('scripts/codex-sync/generate.py')
+
+    def test_changed_guard_is_skipped_before_publication(self):
+        self.assert_protected_implementation_outcome('claude/hooks/remote-mutation-guard.py')
+
+    def test_unreadable_protected_input_still_fails_before_publication(self):
+        self.assert_protected_implementation_outcome('claude/hooks/remote-mutation-guard.py', deleted=True)
 
     def test_pr_boundary_refuses_forks_dependabot_and_stale_heads(self):
         pr = {'state': 'open', 'base': {'ref': 'main'}, 'user': {'login': 'author'},
