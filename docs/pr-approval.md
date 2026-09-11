@@ -29,6 +29,9 @@ prefix_rule(pattern=["rtk", "proxy", "gh", "pr", "create"], decision="prompt", j
 
 Keep the existing force-push protections and unrelated rules. These entries
 request runtime review; they do not grant unconditional permission.
+Restart Codex after editing rule files: it loads them at startup. A running
+session can retain an old prohibition even when `execpolicy check` confirms the
+updated file. Finish active work before restarting the app.
 
 Codex does not support a hook `permissionDecision: "ask"`. The hook therefore
 blocks detected risks and returns inspection context for other PR attempts,
@@ -86,4 +89,5 @@ the hook must still reject it. Keep the hook enabled alongside the rules.
 References: [Codex hooks](https://learn.chatgpt.com/docs/hooks#pretooluse),
 [Auto-review](https://learn.chatgpt.com/docs/sandboxing/auto-review), and
 [configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference),
+[rules](https://learn.chatgpt.com/docs/agent-configuration/rules),
 and [GitHub CLI PR creation](https://cli.github.com/manual/gh_pr_create).
