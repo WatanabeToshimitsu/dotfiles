@@ -113,7 +113,9 @@ def publish(root, repo, number, expected, token):
     # Only the base implementation runs with the token. The dispatched CI is read-only.
     for path in ('.github/workflows/ci.yml', 'scripts/codex-sync/generate.py', 'claude/hooks/remote-mutation-guard.py'):
         if generate.git(root, 'show', trusted + ':' + path) != generate.git(root, 'show', expected + ':' + path):
-            raise ValueError('sync engine or CI changed: regenerate locally and use ordinary PR checks')
+            print('::notice::Automatic Codex sync skipped: CI, generator, or publication guard differs from the reviewed base; '
+                  'regenerate locally and use ordinary PR checks.')
+            return None
     output = generate.build(root, ref=expected)
     generate.scan_public(output)
     entries = generate.tracked(root, expected)

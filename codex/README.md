@@ -128,6 +128,15 @@ read-only. It makes a single-parent commit affecting `codex/generated/` only,
 checks the server-advertised head in a temporary pre-push hook, and uses a normal
 push. Concurrent updates fail without force-pushing. CI, generator or publication
 guard changes require local regeneration and ordinary PR checks.
+When those protected files differ from the reviewed base, the publisher emits a
+notice that automatic sync was skipped and exits successfully without generating,
+pushing, or dispatching CI. This does not replace `validate-configs` or other
+ordinary PR checks. Unreadable or deleted protected files and other inspection,
+generation, push, or dispatch errors still fail.
+
+The workflow checks out the event's base SHA. Merge publisher fixes into main
+before updating an affected PR from main so its next synchronization run uses
+the updated base. A fix only on the PR branch cannot change its trusted publisher.
 
 After pushing, the publisher dispatches read-only CI on the same branch with the
 expected SHA. Every CI job rejects a dispatch on a different head. The repository
