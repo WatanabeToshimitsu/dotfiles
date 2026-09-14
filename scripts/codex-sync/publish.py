@@ -10,15 +10,10 @@ import re
 import subprocess
 import sys
 import tempfile
-import time
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 import generate
-
-
-POST_PUSH_ATTEMPTS = 6
-POST_PUSH_RETRY_SECONDS = 2
 
 
 def api(repo, suffix, token, data=None):
@@ -45,27 +40,16 @@ def validate_pr(pr, repo, expected):
     return branch
 
 
-def wait_for_published_head(repo: str, number: int, branch: str, previous: str,
-                            commit: str, token: str) -> None:
-    for attempt in range(POST_PUSH_ATTEMPTS):
-        pr = api(repo, f'/pulls/{number}', token)
-        observed = pr['head']['sha']
-        expected = commit if observed == commit else previous
-        if validate_pr(pr, repo, expected) != branch:
-            raise ValueError('PR branch changed after push')
-        if observed == commit:
-            return
-        if attempt + 1 < POST_PUSH_ATTEMPTS:
-            time.sleep(POST_PUSH_RETRY_SECONDS)
-    raise TimeoutError('PR head still reports the previous commit after push')
-
-
 def dispatch_ci(repo, branch, commit, token):
     try:
         api(repo, '/actions/workflows/ci.yml/dispatches', token,
             {'ref': branch, 'inputs': {'expected_sha': commit}})
     except OSError as error:
-        raise ValueError('commit is already pushed, but CI dispatch failed; rerun CI on ' + commit) from error
+        detail = type(error).__name__
+        if isinstance(error, HTTPError):
+            detail = f'HTTP {error.code}'
+            error.close()
+        raise ValueError(f'commit is already pushed, but CI dispatch failed ({detail}); rerun CI on ' + commit) from None
 
 
 def make_commit(root, parent, output):
@@ -157,20 +141,7 @@ def publish(root, repo, number, expected, token):
     if remote not in ('https://github.com/' + repo, 'https://github.com/' + repo + '.git'):
         raise ValueError('publisher origin must be the current repository HTTPS remote')
     push(root, commit, branch, expected, env)
-    phase = 'PR head confirmation'
-    try:
-        wait_for_published_head(repo, number, branch, expected, commit, token)
-        phase = 'CI dispatch'
-        dispatch_ci(repo, branch, commit, token)
-    except (OSError, ValueError) as error:
-        cause = error.__cause__ or error
-        if isinstance(cause, HTTPError):
-            detail = f'HTTP {cause.code}'
-            cause.close()
-        else:
-            detail = type(cause).__name__
-        raise ValueError(f'generated commit was pushed, but {phase} failed ({detail}); '
-                         'inspect the PR head and approve or rerun CI on ' + commit) from None
+    dispatch_ci(repo, branch, commit, token)
     print('Generated commit pushed: ' + commit + '. CI dispatched; inspect final-head checks before merge.')
     return commit
 
