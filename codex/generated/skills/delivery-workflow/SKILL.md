@@ -1,6 +1,6 @@
 ---
 name: delivery-workflow
-description: Implement, test, commit, push, or prepare a pull request for a repository change. Use when the user asks to build, fix, refactor, or deliver code.
+description: Implement, test, commit, push, or prepare a pull request for a repository change. Use when the user asks to build, fix, refactor, deliver code, or plan scheduled or repeated repository work.
 ---
 
 # Delivery Workflow
@@ -19,6 +19,13 @@ Scale the process to the change's uncertainty and risk.
 Preserve unrelated user changes. Follow the repository's commit and PR conventions. Never add Claude attribution. Do not claim checks passed unless they actually ran; state any verification that could not run.
 
 Ask before committing to product behavior, architecture, data model, compatibility, security, data-loss, or other expensive-to-reverse choices that cannot be resolved from existing evidence.
+
+## Scheduled repository work
+
+When planning or carrying out scheduled or repeated repository work, read
+[the scheduled-work reference](references/scheduled-work.md). Prepare the
+technical plan from repository evidence; ask the user for unresolved intent,
+scope, limits, and preferences. Planning does not authorize activation or writes.
 
 ## Stage contract
 

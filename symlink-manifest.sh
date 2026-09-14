@@ -57,6 +57,7 @@ MANIFEST_CLAUDE_FILES=(
   agents/sonnet-worker.md
   skills/code-review/SKILL.md
   skills/delivery-workflow/SKILL.md
+  skills/delivery-workflow/references/scheduled-work.md
   skills/expand-tool-output/SKILL.md
   skills/prepare-compaction/SKILL.md
   skills/repository-audit/SKILL.md

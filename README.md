@@ -2,29 +2,60 @@
 
 [![CI](https://github.com/WatanabeToshimitsu/dotfiles/actions/workflows/ci.yml/badge.svg)](https://github.com/WatanabeToshimitsu/dotfiles/actions/workflows/ci.yml)
 
-Personal dotfiles for macOS, Linux, and WSL2 environments.
+個人の開発環境と、Claude Code・Codexの作業ルールを管理するリポジトリです。
+シェルやエディタの設定、ツールの導入、エージェントの運用・診断をまとめています。macOSを主な対象とし、Linux・WSL2にも対応しています。
 
-## What's Included
+## 目次
 
-| File / Directory                     | Description                                                                      |
-| ------------------------------------ | -------------------------------------------------------------------------------- |
-| `.zshrc`                             | Zsh configuration (primary shell) with Zinit plugin manager                      |
-| `.bashrc` / `.bash_profile`          | Bash configuration (NVM, Volta, Docker)                                          |
-| `.vimrc`                             | Vim settings (UTF-8, 2-space tabs, smart search)                                 |
-| `.tmux.conf`                         | tmux settings — kept as fallback for remote/ssh hosts without herdr              |
-| `.zprofile` / `.zshenv` / `.profile` | Shell profile and environment files                                              |
-| `.shell-utils/`                      | Utility scripts (`ghq-rm.sh`, `git-branch-prune.zsh`, ...)                       |
-| `claude/`                            | [Claude Code](https://claude.ai/code) global settings, hooks, rules, statusline  |
-| `.config/`                           | XDG configs (`git/ignore`, `gh/config.yml`, `ghostty`, `herdr`, `husky/init.sh`) |
-| `herdr-plugins/`                     | Self-made [herdr](https://herdr.dev) plugins (loaded via `herdr plugin link`)    |
-| `vscode/`                            | VS Code user config (keybindings symlinked, settings bootstrap-copied)           |
-| `oh-my-posh-theme/`                  | oh-my-posh prompt theme configuration                                            |
-| `Brewfile`                           | Homebrew dependencies (CLI tools, casks, VS Code extensions)                     |
-| `install.sh`                         | Environment setup script for macOS and Linux                                     |
+- [開発環境・コマンド](#key-tools)
+- [セットアップ](#setup)
+- [設定の再適用](#reapply-settings)
+- [AIエージェントの設定](#agent-configuration)
+  - [CodexとClaudeのハーネスの同期](#codex-configuration-sync)
+  - [外部スキルの更新](#agent-skills)
+  - [PR作成時の確認](#pr-publication-approval)
+  - [通知](#notifications)
+- [エージェント環境の診断](#agent-diagnostics)
+- [秘密情報の利用](#secrets)
+- [リポジトリ構成](#configuration-storage-strategy)
+- [このリポジトリのGitHub設定](#public-repository-safety)
 
-## Setup
+<a id="key-tools"></a>
 
-### macOS / Linux / WSL2
+## 開発環境・コマンド
+
+| 用途 | ツール |
+| --- | --- |
+| ターミナルカスタマイズ | Zsh + [Zinit](https://github.com/zdharma-continuum/zinit) |
+| プロンプト | [oh-my-posh](https://ohmyposh.dev/) |
+| ファイル検索・プレビュー | [fzf](https://github.com/junegunn/fzf) + [ripgrep](https://github.com/BurntSushi/ripgrep) + [bat](https://github.com/sharkdp/bat) |
+| リポジトリ・ディレクトリ移動 | [ghq](https://github.com/x-motemen/ghq) + fzf、[zoxide](https://github.com/ajeetdsouza/zoxide) |
+| ファイル一覧 | [lsd](https://github.com/lsd-rs/lsd) |
+| ターミナル・作業ペイン | [Ghostty](https://ghostty.org) + [herdr](https://herdr.dev) |
+| エディタ | [Neovim](https://neovim.io) + [LazyVim](https://www.lazyvim.org)、VS Code |
+| ファイル管理 | [yazi](https://yazi-rs.github.io) |
+| Node.jsのバージョン管理 | [Volta](https://volta.sh/) |
+| Pythonのバージョン管理 | [pyenv](https://github.com/pyenv/pyenv) |
+
+以下のコマンドで、リポジトリの移動や整理ができます。
+
+<a id="notable-aliases"></a>
+
+| コマンド | やりたいこと |
+| --- | --- |
+| `gcd` | ghqで管理するリポジトリを選んで移動 |
+| `gcode` | リポジトリを選んでVS Codeで開く |
+| `gvim` | リポジトリを選んでNeovimで開き、シェルの作業ディレクトリも移す |
+| `y` | yaziでファイルを探し、終了時に選んだディレクトリへ移動 |
+| `gb-prune` | マージ済みブランチを整理。squash mergeにも対応 |
+| `ghq-rm` | ghqで管理するリポジトリを対話的に削除 |
+
+<a id="setup"></a>
+<a id="macos--linux--wsl2"></a>
+
+## セットアップ
+
+以下のコマンドで、ツールの導入と設定の反映を行います。
 
 ```bash
 git clone https://github.com/WatanabeToshimitsu/dotfiles.git ~/dotfiles
@@ -32,324 +63,128 @@ cd ~/dotfiles
 bash install.sh
 ```
 
-`install.sh` will:
+端末固有の設定は`~/.zshrc.local`に置いてください。このリポジトリでは追跡しません。
 
-1. **macOS**: Install Homebrew (if needed), run `brew bundle`, and create symlinks
-2. **Linux**: Install packages via apt/yum/dnf (and Homebrew for non-root users), then create symlinks
-3. Symlink only specific dotfiles (not `.git`, `.claude`, etc.) to `~/`
-4. Symlink VS Code keybindings and bootstrap-copy settings (macOS)
-5. Reinstall global agent skills via `npx skills` (see `setup_agent_skills`)
-6. Install herdr integrations/plugins and link `herdr-plugins/worktree-setup`
+<a id="reapply-settings"></a>
 
-Machine-specific shell config goes in `~/.zshrc.local` (sourced last, never tracked here).
+## 設定の再適用
 
-To reapply only the managed symlinks without installing packages or tools:
+以下のコマンドで、パッケージを導入せずに設定のリンクを張り直せます。
 
 ```bash
 bash install.sh --symlinks-only
 ```
 
-### Agent Skills
-
-`setup_agent_skills` restores missing global skills from their public GitHub
-sources. `natural-japanese` comes from
-[`coji/natural-japanese`](https://github.com/coji/natural-japanese) and is not
-vendored in this repository. After `setup_agent_skills` registers it in the
-skills lock, update it with:
-
-```bash
-npx skills update natural-japanese -g -y
-```
-
-### Codespaces
-
-GitHub Settings → Codespaces → enable "Automatically install dotfiles" and select this repo.
-`install.sh` then runs automatically on codespace creation.
-Machine-specific config still goes in `~/.zshrc.local`.
-
-### Secrets
-
-Machine-local secrets also live in `~/.zshrc.local`, generated from
-[`templates/zshrc.local.tpl`](templates/zshrc.local.tpl) by running
-`dotfiles-secrets.sh` (on `PATH` after `install.sh`). Rendering requires a
-signed-in [1Password CLI](https://developer.1password.com/docs/cli/) (`op`);
-the resulting file is never tracked by this repo. The script refuses to replace
-an existing file unless passed `--force`, writes with mode `0600`, and preserves
-the old file if 1Password cannot render the template. Keep only `op://`
-references—not plaintext secrets—in the tracked template.
-
-Pushover notifications are disabled unless both `PUSHOVER_API_TOKEN` and
-`PUSHOVER_USER_KEY` are present in the environment. Enabling them sends the
-Claude notification text to the Pushover API. Store these values only in the
-machine-local `~/.zshrc.local`; notification failures and timeouts do not block
-Claude.
-
-## Key Tools
-
-- **Shell**: Zsh with [Zinit](https://github.com/zdharma-continuum/zinit) (lazy-loaded plugins)
-- **Prompt**: [oh-my-posh](https://ohmyposh.dev/) (custom theme with OS icon, memory usage, execution time, git status)
-- **Fuzzy finder**: [fzf](https://github.com/junegunn/fzf) + [ripgrep](https://github.com/BurntSushi/ripgrep) + [bat](https://github.com/sharkdp/bat)
-- **Node.js**: [Volta](https://volta.sh/) (not nvm in zsh)
-- **Python**: [pyenv](https://github.com/pyenv/pyenv) (lazy-initialized via unfunction pattern)
-- **Repository management**: [ghq](https://github.com/x-motemen/ghq) + fzf integration
-- **Modern CLI**: [lsd](https://github.com/lsd-rs/lsd) (ls), [bat](https://github.com/sharkdp/bat) (cat), [ripgrep](https://github.com/BurntSushi/ripgrep) (grep), [zoxide](https://github.com/ajeetdsouza/zoxide) (`z`/`zi` jump)
-- **Terminal workspace**: [herdr](https://herdr.dev) on [Ghostty](https://ghostty.org) (agent multiplexer; prefix `cmd+space`)
-- **Editor**: [Neovim](https://neovim.io) with [LazyVim](https://www.lazyvim.org) (`$EDITOR`; vscodevim keymaps ported, plugins pinned via `lazy-lock.json`)
-- **File manager**: [yazi](https://yazi-rs.github.io) (image/video/PDF preview via kitty graphics)
-
-## Terminal File Workflow
-
-View and edit files entirely inside herdr panes — both yazi and Neovim render
-images through the kitty graphics protocol (Ghostty and herdr both support it):
-
-- **Browse**: `y` (yazi, shell cwd follows on exit) or `prefix+y` (temporary herdr pane); `Enter` opens `$EDITOR`
-- **Edit**: `nvim` = LazyVim; `gvim` picks a ghq repo via fzf and opens it at the repo root
-- **Images in the editor**: snacks.image renders PNG inline (JPG/WebP/GIF need imagemagick); `<leader>fy` opens yazi.nvim inside Neovim
-- **Fallbacks**: `.vimrc` stays for servers (`vi` = plain vim), VS Code remains installed (`gcode`)
-
-## Notable Aliases
-
-| Alias      | Command                                                       |
-| ---------- | ------------------------------------------------------------- |
-| `gcd`      | `cd` into a ghq-managed repository via fzf                    |
-| `gcode`    | Open a ghq-managed repository in VS Code via fzf              |
-| `gvim`     | Open a ghq-managed repository in Neovim via fzf (cwd follows) |
-| `y`        | yazi file manager (shell cwd follows on exit)                 |
-| `gb-prune` | Clean up merged branches (supports squash merge via `gh` CLI) |
-| `ghq-rm`   | Remove a ghq-managed repository interactively                 |
-
-## PR Publication Approval
-
-Agents must review the complete publication content and obtain the user's
-confirmation before each PR. Codex CLI relies on confirmation in the conversation;
-its runtime review may be automatic. Normal pushes remain allowed; force pushes
-and remote deletions are blocked. See [PR approval](docs/pr-approval.md) for the
-CLI rules, connector settings, and enforcement limits.
-
-## Codex Configuration Sync
-
-Common Claude instructions, scoped rules and repository skills can be generated
-for Codex through the reviewed policy in [`codex/`](codex/README.md). Native Codex
-permissions, authentication, model choices and hook trust remain local.
-
-After the implementation is merged, use `bash install.sh --codex-only --dry-run`
-to inspect initial application, then `bash install.sh --codex-only` to apply.
-`dotfiles-update` fetches main, fast-forwards and applies the committed snapshot.
-The [sync guide](codex/README.md) covers generation, collisions, restore, disabled
-skills, machine-local references and the remaining live acceptance checks.
-
-## Claude Tool Output Compaction
-
-Large Read, Grep, Glob, Web, and MCP results are shortened before entering the
-conversation. The full result is retained locally for seven days with user-only
-permissions and can be queried through the `expand-tool-output` skill.
-
-Show savings from the retained archives when deciding whether the hook is useful:
-
-```bash
-python3 ~/.claude/hooks/compact-tool-output.py stats
-```
-
-The weekly doctor does not monitor this hook. Use `stats` on demand and the
-visible compaction notice to decide whether it is working and worth keeping.
-Retired `.last-invoked`, `.last-error`, and `.errors/` entries in the cache are
-ignored and can remain without affecting compaction, expansion, or statistics.
-
-## Claude Bash Sandbox Canary
-
-The Claude Code Bash sandbox is available as a macOS-only opt-in trial:
-
-```bash
-claude-sandbox --check
-claude-sandbox
-```
-
-Normal `claude` uses Auto mode for trusted, routine work; the classifier is not an
-OS sandbox, and bypass permissions is disabled. Use the canary for sensitive
-repositories or data, unfamiliar external code, or stronger filesystem and
-network isolation. The trial blocks common credentials, does not pre-allow
-package caches or registries, and keeps only the known `gh` and Docker
-compatibility exceptions. See [`claude/SANDBOX.md`](claude/SANDBOX.md) for the
-boundary, verification, and rollback.
-
-## Claude Auto Memory
-
-Claude Code's repository-scoped auto memory is the only active project-learning
-path. It is shared across worktrees without a custom hook. See
-[`claude/AUTO-MEMORY.md`](claude/AUTO-MEMORY.md) for the verified behavior,
-legacy-data policy, and the `metadata.promoted` field that lets
-`dotfiles-doctor.sh` report memories still waiting to reach `CLAUDE.md`, a rule,
-or a skill.
-
-## Loop Contracts
-
-A scheduled or repeated agent run may discover work with user-level defaults,
-but it may change a repository only when that repository has an approved Loop
-contract. Without a contract, or while its status is `draft`, the run must stay
-read-only and hand the candidate work to a person.
-
-| User-level dotfiles provide | Each project must decide |
-| --- | --- |
-| A safe read-only fallback when no contract exists | Which work may be discovered and how to rank it |
-| The contract template and runner-selection guidance | Allowed files, commands, services, and explicit forbidden areas |
-| Common worktree, implementer, verifier, and handoff practices | Tests, CI checks, logs, and artifacts that prove success |
-| A requirement to record why a run stopped and where it can resume | Time, round, usage, and risk limits |
-| No automatic merge, production operation, or secret change | The Issue, PR, or file that stores durable state |
-
-Choose the execution surface from the work rather than treating the runners as
-interchangeable:
-
-| Need | Execution surface |
-| --- | --- |
-| Poll briefly while an existing Claude Code session stays open | Claude Code [`/loop`](https://code.claude.com/docs/en/scheduled-tasks) |
-| Read local files while the Mac and desktop app can remain running | A local desktop scheduled task in [Claude Code](https://code.claude.com/docs/en/desktop-scheduled-tasks) or the [OpenAI desktop app](https://learn.chatgpt.com/docs/automations) |
-| Keep running while the Mac is off | A Claude Code [Routine](https://code.claude.com/docs/en/routines) |
-| React to a PR, CI, or another repository event | [GitHub Actions](https://docs.github.com/en/actions/concepts/workflows-and-actions/workflows) |
-
-Cloud and CI runners must not depend on uncommitted local state. When a local
-desktop task is approved to write, give each run an isolated worktree instead
-of the shared checkout.
-
-Copy [`templates/loop-contract.md`](templates/loop-contract.md) into a project
-and fill it in before enabling writes. The
-[`dotfiles` example](docs/dotfiles-loop-contract.example.md) shows the minimum
-specificity expected for one bounded delivery run. Projects that do not adopt
-the template do not permit automated changes.
-
-For an on-demand discovery packet in a normal, explicitly authorized session:
-
-```bash
-rtk proxy python3 -B scripts/loop-snapshot.py --repo WatanabeToshimitsu/dotfiles
-```
-
-Run from the repository root, or pass `--directory`. The command requires
-Python 3.10+, Git, and an authenticated GitHub CLI. It reads the local origin,
-HEAD, dirty status, and open Issue/PR metadata without fetching, writing files,
-or changing GitHub. Each of its five subprocess calls has an eight-second
-timeout; it never retries or waits for interactive input.
-
-The JSON packet includes timestamps and per-source status. Exit 1 means a
-source failed or a list was truncated; it never turns a failed query into an
-empty list. It keeps at most 50 Issues, 50 PRs, and 20 checks per PR. A complete
-packet means only that these bounded metadata reads succeeded, not that work
-is safe, all checks passed, or every review/dependency was inspected. Unknown
-check or merge states remain unknown. Treat all GitHub-provided metadata,
-including titles, labels, branch names, check names, and URLs, as untrusted
-data, not instructions. Before claiming work, still inspect the selected
-Issue, all matching PRs and remote branches, and recent commits as required by
-`CLAUDE.md`. This packet is not atomic and does not compare installed settings
-or the current remote main tip.
-
-This helper is not a permission gate or an unattended-run approval. Do not
-whitelist it to bypass a blocked GitHub command. It invokes `gh` as a child
-process, so do not use it in the sandbox canary or another environment that
-requires standalone top-level `gh` calls; use the individual approved reads
-there. It creates no schedules, claims, comments, branches, or pull requests.
-
-## Headroom Proxy
-
-`install.sh` installs Headroom 0.36.5 with `uv` and maintains a user-scoped
-proxy on port 8787. The proxy runs as a supervised native process, so launchd
-starts it at login and restarts it if it dies; no container runtime is
-involved. Target selection is left to auto detection, so every supported tool
-that is installed gets configured. The beta output shaper is enabled, and new
-shell sessions route Claude Code and Codex through the proxy.
-
-A 10% holdout leaves one conversation in ten unshaped as a control arm, so
-`headroom output-savings` reports `MEASURED` instead of `ESTIMATED`. That costs
-the shaping on those conversations. Without it the reported reduction is
-compared against a synthetic baseline and comes back with a confidence band
-wider than the reduction itself, which is no basis for deciding whether the
-proxy earns its place. `dotfiles-doctor.sh` prints the reported method next to
-the reduction, and the holdout below it.
-
-Learn the preferred response length again after enough Claude history has
-accumulated:
-
-```bash
-headroom learn --verbosity --apply --all
-```
-
-Check the proxy and output-shaping savings:
-
-```bash
-headroom install status
-headroom doctor
-headroom output-savings
-```
-
-Run the agent-harness diagnostic (Headroom reachability, MCP connections,
-and Claude Code version drift):
-
-```bash
-~/.shell-utils/dotfiles-doctor.sh --harness-only
-```
-
-Rerunning `install.sh` migrates an existing Docker deployment to the
-supervised native process instead of leaving a stale container behind. The
-Docker preset is not used: it needs a running Docker daemon, tracks the
-`:latest` image rather than the pinned version, and cannot restart itself from
-inside the container.
+Headroomだけを再設定する場合は、以下のコマンドを使ってください。
 
 ```bash
 ./install.sh --headroom-only
 ```
 
-## Configuration Storage Strategy
+<a id="agent-configuration"></a>
 
-Configuration files are organized by target location:
+## AIエージェントの設定
 
-| Storage Location                         | Target                | Strategy                         |
-| ---------------------------------------- | --------------------- | -------------------------------- |
-| Root dotfiles (`.zshrc`, `.vimrc`, etc.) | `~/`                  | Direct symlink                   |
-| `.config/`                               | `~/.config/`          | XDG Base Directory mirror        |
-| `claude/`                                | `~/.claude/`          | Per-CLI directory (non-XDG tool) |
-| `vscode/`                                | `~/Library/Application Support/Code/User/` | Symlink (keybindings) / bootstrap copy (settings) |
-| `herdr-plugins/`                         | herdr plugin registry | `herdr plugin link` (repo edits apply live) |
-| `oh-my-posh-theme/`                      | `~/oh-my-posh-theme/` | Direct directory symlink         |
-| `.shell-utils/`                          | `~/.shell-utils/`     | Direct directory symlink         |
+共通の作業方針は[`claude/CLAUDE.md`](claude/CLAUDE.md)で管理しています。`rules/`には分野別のルール、`skills/`には作業手順、`agents/`には補助エージェントの定義、`hooks/`には操作時の検査や通知の処理があります。
 
-**Not tracked by design**: machine-local state (`~/.zshrc.local`, `~/.npmrc`, VS Code's live `settings.json` mutations), internal hostnames, and herdr-mirror `hosts.toml` — this repo is public. `install.sh` bootstraps a missing `.npmrc` from `.npmrc.example` but never replaces an existing machine-local file.
+| 機能 | 内容・使い方 |
+| --- | --- |
+| 実装とレビュー | [`delivery-workflow`](claude/skills/delivery-workflow/SKILL.md)と[`code-review`](claude/skills/code-review/SKILL.md)に沿って、設計・実装を独立したエージェントがレビュー |
+| 出力の圧縮 | [長いツール出力を短縮し、必要な箇所を再取得](docs/agent-operations.md#claude-tool-output-compaction) |
+| 応答量の調整 | [Headroomで応答の長さを調整し、削減効果を測定](docs/agent-operations.md#headroom-proxy) |
+| 作業の隔離 | [macOS向けBash sandboxを必要に応じて利用](docs/agent-operations.md#claude-bash-sandbox-canary) |
+| 学びの共有 | [ClaudeのAuto Memoryと、共通ルールへの反映状況を管理](docs/agent-operations.md#claude-auto-memory) |
+| 定期実行 | [Loopで任せる作業を計画](docs/agent-operations.md#loop-contracts)。dotfilesでは試行・検証段階 |
 
-**Principle**: Follow XDG Base Directory Specification (`.config/`) by default. For CLI tools that do not respect XDG paths, create a dedicated top-level directory named after the tool (e.g., `claude/` for `~/.claude/`).
+<a id="codex-configuration-sync"></a>
 
-## Public Repository Safety
+### CodexとClaudeのハーネスの同期
 
-The root `.gitignore` excludes machine-local tool state, `.env` variants, npm
-credentials, and common private-key formats. Placeholder files such as
-`.env.example` and `.npmrc.example` remain trackable.
+Codexの共通指示・ルール・スキルは、`claude/`を原本として生成しています。`codex/generated/`は手動編集しないでください。
 
-Every pull request and push to `main` scans the complete Git history with the
-checksum-verified Gitleaks version pinned in CI. `test/test-secret-scan.sh`
-checks both sides of the boundary: a synthetic credential must be detected,
-while placeholder-only configuration must pass. There are currently no
-`.gitleaksignore` or custom allowlist exceptions; add any future exception as
-narrowly as possible and document why it is safe.
+以下のコマンドで、適用内容の確認とCodexへの反映ができます。
 
-GitHub push protection is the first remote guard and Gitleaks CI is the
-repository-owned, reproducible check. A machine-local pre-commit scanner may be
-used as extra protection, but this repository does not install or depend on a
-global hook.
+```bash
+bash install.sh --codex-only --dry-run
+bash install.sh --codex-only
+```
 
-## External Dependency Policy
+詳細は[Codex同期ガイド](codex/README.md)を参照してください。
 
-Code that CI or unattended setup executes is pinned where the repository can
-verify it:
+<a id="agent-skills"></a>
 
-- GitHub Actions use full commit SHAs, with release tags left as comments for
-  Renovate and reviewers. The `pin-actions` job rejects floating references.
-- CI invokes `json5` at an exact npm version. Gitleaks and the Linux fallback
-  download of `ghq` use exact releases and SHA-256 checksums. Headroom is also
-  installed at an exact Python package version.
+### 外部スキルの更新
 
-Some first-run bootstrap operations intentionally follow upstream. The
-Homebrew installer runs only when Homebrew is absent; agent Skills, fzf, GitHub
-CLI extensions, and language tool inventories are fetched only during an
-explicit `install.sh` run and are skipped when already installed. Update these
-through a reviewed `install.sh` or `Brewfile` run rather than adding a separate
-commit-SHA registry for every Plugin or Skill.
+外部スキルは`install.sh`で導入します。導入済みの`natural-japanese`を更新する場合は、以下のコマンドを使ってください。
 
-The Claude status line remains on `@latest` by the maintainer's explicit choice
-in #67, so it updates without repository changes. If it regresses, replace the
-tag with the version reported by `npm view @owloops/claude-powerline version`,
-verify it with a representative status-line payload, and commit that change.
+```bash
+npx skills update natural-japanese -g -y
+```
+
+<a id="pr-publication-approval"></a>
+
+### PR作成時の確認
+
+エージェントは、作成先・タイトル・本文・公開する全コミットを準備し、秘密情報などの検査結果を示してから、PR作成の直前に承認を求めます。依頼範囲内の通常のcommit・pushは、その都度の確認なしで進みます。詳細は[PR公開前の確認](docs/pr-approval.md)を参照してください。
+
+<a id="notifications"></a>
+
+### 通知
+
+Pushover通知を使う場合は、`PUSHOVER_API_TOKEN`と`PUSHOVER_USER_KEY`を`~/.zshrc.local`に設定してください。有効にすると、Claudeの通知本文がPushover APIへ送信されます。
+
+<a id="agent-diagnostics"></a>
+
+## エージェント環境の診断
+
+以下のコマンドで、Headroom・MCP・Claude Codeのバージョン・Codex設定の同期状態を確認できます。
+
+```bash
+~/.shell-utils/dotfiles-doctor.sh --harness-only
+```
+
+週次診断の確認方法と、機能別の調べ方は[エージェント運用ガイド](docs/agent-operations.md#agent-diagnostics)を参照してください。
+
+<a id="secrets"></a>
+
+## 秘密情報の利用
+
+APIキー・トークン・秘密鍵や、秘密情報を含む端末の設定ファイルをコミットしないでください。テンプレートにも平文の秘密情報を置かないでください。
+
+秘密情報をシェルから使う場合は、[`templates/zshrc.local.tpl`](templates/zshrc.local.tpl)に1Passwordの`op://`参照を記入し、[1Password CLI](https://developer.1password.com/docs/cli/)へログインしてから以下を実行してください。`~/.zshrc.local`が生成されます。既存ファイルを置き換える場合は`--force`を付けてください。
+
+```bash
+dotfiles-secrets.sh
+```
+
+<a id="whats-included"></a>
+<a id="configuration-storage-strategy"></a>
+
+## リポジトリ構成
+
+設定の原本をこのリポジトリに置き、`install.sh`で各ツールの読み込み先へ反映する構成です。
+
+| 場所 | 役割・反映先 |
+| --- | --- |
+| [`.zshrc`](.zshrc)・[`.bashrc`](.bashrc)など | シェルの設定。ホームディレクトリへリンク |
+| [`.vimrc`](.vimrc)・[`.tmux.conf`](.tmux.conf) | Vimとtmuxの設定。ホームディレクトリへリンク |
+| [`.config/`](.config/) | Ghostty・herdr・Neovim・yaziなどの設定。`~/.config/`へ反映 |
+| [`.shell-utils/`](.shell-utils/) | 診断・更新・リポジトリ整理の補助コマンド。`~/.shell-utils/`へリンク |
+| [`oh-my-posh-theme/`](oh-my-posh-theme/) | プロンプトの見た目。ホームディレクトリへリンク |
+| [`claude/`](claude/) | Claude Codeの共通指示・ルール・スキル・フック。`~/.claude/`へ反映 |
+| [`codex/`](codex/) | Claudeの共通設定をCodexへ同期する方針と生成結果 |
+| [`vscode/`](vscode/) | macOSのVS Code設定。キー設定はリンク、設定本体は初回コピー |
+| [`herdr-plugins/`](herdr-plugins/) | 自作のherdrプラグイン |
+| [`Brewfile`](Brewfile) | Homebrewで導入するツール・アプリの一覧 |
+| [`install.sh`](install.sh)・[`uninstall.sh`](uninstall.sh)・[`symlink-manifest.sh`](symlink-manifest.sh) | 導入・解除の処理と、管理するリンクの一覧 |
+| [`scripts/`](scripts/) | Codex設定の生成・適用や、作業状況の収集処理 |
+| [`docs/`](docs/)・[`templates/`](templates/) | 運用ガイドと、端末・プロジェクトごとの設定ひな形 |
+| [`test/`](test/)・[`.github/workflows/`](.github/workflows/) | テストと、このリポジトリのCI |
+
+ルートの[`CLAUDE.md`](CLAUDE.md)と[`AGENTS.md`](AGENTS.md)は、このリポジトリを変更するエージェント向けの指示です。各プロジェクトに適用する共通指示は[`claude/CLAUDE.md`](claude/CLAUDE.md)で管理しています。
+
+<a id="public-repository-safety"></a>
+
+## このリポジトリのGitHub設定
+
+このリポジトリのCIでは、PRとmainへのpushを対象に、設定ファイルの検証、インストーラー・フックのテスト、Codex生成物の整合性確認、GitleaksによるGit履歴全体の秘密情報検査を実行します。検査内容は[`.github/workflows/`](.github/workflows/)で管理しています。
