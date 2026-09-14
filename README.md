@@ -140,29 +140,21 @@ skills, machine-local references and the remaining live acceptance checks.
 
 ## Claude Tool Output Compaction
 
-The hook shortens large text bodies in Read text files, Grep content mode,
-successful WebFetch results, and MCP text blocks. It preserves metadata, paths,
-images, other blocks, and every array element. Unknown formats, Glob paths,
-WebSearch results, explicit error results, and text containing diagnostic keywords
-pass through unchanged. The preview size is a soft target; the hook skips a result
-when preserved data leaves no room for a text preview.
+The hook shortens large Read text, Grep content, successful WebFetch results, and
+MCP text blocks. Metadata, images, every array element, unknown formats, explicit
+errors, and text containing diagnostic keywords stay intact. The preview size is
+a soft target; results pass through if preserved data leaves no room for text.
 
-Before emitting a replacement, the hook retains the full original locally for
-seven days with user-only permissions. Retrieve it through `expand-tool-output`.
-Claude Code must accept the replacement's output shape for compaction to take
-effect.
-
-Inspect stored JSON character reductions from retained archives:
+Originals are kept locally for seven days with user-only permissions. Retrieve
+them with `expand-tool-output`. Inspect retained JSON character reductions with:
 
 ```bash
 python3 ~/.claude/hooks/compact-tool-output.py stats
 ```
 
 These counts do not measure client acceptance, model tokens, cost, or quality.
-The weekly doctor does not monitor this hook. Use `stats` on demand and the
-visible compaction notice to decide whether it is working and worth keeping.
-Retired `.last-invoked`, `.last-error`, and `.errors/` entries in the cache are
-ignored and can remain without affecting compaction, expansion, or statistics.
+Use the visible compaction notice to check operation; the weekly doctor does not
+monitor this hook.
 
 ## Claude Bash Sandbox Canary
 
