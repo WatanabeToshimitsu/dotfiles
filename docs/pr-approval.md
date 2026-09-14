@@ -53,6 +53,21 @@ edit text after inspection, such as `--fill`, `--editor`, `--web`, `--template`,
 `--recover`, and `--attach`. Unrecognized flags and combined short flags are
 also blocked. Prepare the final text before requesting user confirmation.
 
+The native Codex Bash payload observed on 2026-09-14 contained
+`tool_input.command` and the session `cwd`, but no tool-level `workdir`.
+Setting a shell tool's working directory alone therefore did not select the
+repository inspected by the guard. For `git push`, put a literal absolute
+repository path in the command so the guard can inspect the actual target:
+
+```bash
+rtk proxy git -C /absolute/repo push origin topic
+```
+
+Use absolute `--body-file` paths for Codex CLI PR creation. PR commit-range
+inspection still uses the session cwd and may be incomplete. Review the complete
+outgoing range separately and disclose uninspected scope before seeking
+confirmation.
+
 Automatic commit inspection is best-effort: a missing base, repository mismatch,
 fork head, or oversized history produces an uninspected-range warning, not a
 denial. The agent must review the complete outgoing range separately, for example
