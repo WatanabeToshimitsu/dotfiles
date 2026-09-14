@@ -1,6 +1,6 @@
 {
   "code-review": {
-    "note": "Fable and Sonnet name Claude reviewers. Use the required provider/model when available. If unavailable, mark that review incomplete; do not label a Codex self-review as a Claude review. Follow the source workflow for roles and local Codex instructions for actual callable tools."
+    "note": "Claude model names require an actual Claude route. Select independent reviewers by artifact author and follow the source workflow's automatic fallback through locally available, authorized tools. A fresh Codex frontier review can be a recorded same-family fallback; never label it a Claude review. Advice, unknown model identity, and self-checks are not frontier approval."
   },
   "delivery-workflow": {
     "note": "Preserve the source workflow and publication confirmation. Use native Codex tool names; source tool permissions are not Codex grants. Do not publish or change approval settings merely because this skill is loaded."

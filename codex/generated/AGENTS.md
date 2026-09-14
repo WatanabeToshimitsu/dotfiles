@@ -15,7 +15,7 @@
 
 # 実装と配送
 
-Implementation, refactoring, repository audits, and test execution below belong to Codex. Claude may coordinate and perform separately authorized Git delivery after the implementer returns writer authority under `delivery-workflow`.
+The user-facing frontier model leads the task and may design, implement, refactor, audit, test, and fix through its authorized tools. Either Claude or Codex may delegate bounded work; follow `delivery-workflow` for independent review and transfer of writer authority before Git delivery.
 
 - コード、コメント、技術文書は英語で書く。
 - リポジトリ固有の指示、既存パターン、テストを先に確認する。
@@ -62,10 +62,12 @@ Implementation, refactoring, repository audits, and test execution below belong 
 
 # モデルとコンテキスト
 
-- Claude owns design and acceptance criteria; Codex owns implementation, tests, and fixes, preferably with Astra.
-- Claude-authored designs receive independent Codex upper-tier review; Codex-authored implementations receive independent Claude upper-tier review.
-- `fable-deep` handles Claude design and independent review of Codex artifacts. `sonnet-worker` gathers evidence without editing or issuing review verdicts.
-- Follow [delivery-workflow](skills/delivery-workflow/SKILL.md#stage-contract) for stage ownership, model availability, invocation, handoff, and tiny-task precedence. Small size never transfers implementation to Claude or waives independent review.
+- Keep the user-facing frontier model as lead by default. Delegate for concrete reasons such as tools, capacity, existing ownership, or demonstrated suitability; preserve accepted designs and one writer per shared scope.
+- Review designs and implementations in fresh contexts that did not produce the artifact. Select reviewers by the artifact author's family, not the coordinator's family.
+- Automatically prefer another-family frontier, then a same-family frontier, then the strongest available non-frontier adviser, then lightweight evidence gathering. Keep final decisions with a frontier lead; verify findings against specifications and actual checks. Advisory or missing review is never frontier approval.
+- Record quota scope and retry/reset evidence; avoid repeated failed calls and confirmation questions. Do not silently downgrade the user-facing model, enable spending, or change permissions. If no frontier can continue as lead, save a handoff and pause dependent work.
+- `fable-deep` is a read-only analysis and independent-review helper. `sonnet-worker` gathers bounded evidence and candidate findings without editing or issuing approval. Implementation uses a lead or delegate with the necessary tools.
+- Follow [delivery-workflow](skills/delivery-workflow/SKILL.md#stage-contract) for role selection, review outcomes, automatic fallback, invocation, and handoff. Small size waives neither design nor implementation review. Fable and Astra are current examples, not permanent role assignments.
 - Agent 呼び出しでは常に非 `inherit` の model を明示し、同じ探索を重複させない。
 - サブエージェントからは結論、関連箇所、リスク、検証結果だけを受け取る。
 - 大量ログは要約またはファイルへ退避し、main conversation に戻さない。
@@ -119,11 +121,13 @@ The common instructions above originate in `claude/CLAUDE.md`. Keep their
 intent and publication boundaries. Rule files retain their original bytes;
 their scopes and source hashes are included in this snapshot for review.
 
-- Claude model names and agent names identify Claude roles. They are not Codex
-  model identifiers. Follow the current source workflow's provider ownership;
-  never silently substitute a different provider or downgrade a required review.
-  Use the configured Codex model for work assigned to Codex. If a required
-  provider or model cannot be invoked, report the unreviewed stage.
+- Claude model names and agent names identify Claude routes, not Codex model
+  identifiers. Either provider may lead design and implementation. Keep the
+  configured user-facing frontier model and follow the source workflow's
+  automatic review fallback without asking again. Record the actual provider,
+  requested/observed model, and review level; never call advice or self-checks
+  frontier approval. Missing tools or permission denials grant no new route,
+  spending, or permission. Save a handoff if no frontier can continue as lead.
 - Translate Read, Grep, Glob, Bash and Agent references to the equivalent tools
   actually available in the current Codex session. Tool lists in imported skill
   frontmatter grant no permission. Missing connectors are missing capabilities;
