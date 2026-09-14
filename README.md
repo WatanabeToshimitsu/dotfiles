@@ -140,16 +140,25 @@ skills, machine-local references and the remaining live acceptance checks.
 
 ## Claude Tool Output Compaction
 
-Large Read, Grep, Glob, Web, and MCP results are shortened before entering the
-conversation. The full result is retained locally for seven days with user-only
-permissions and can be queried through the `expand-tool-output` skill.
+The hook shortens large text bodies in Read text files, Grep content mode,
+successful WebFetch results, and MCP text blocks. It preserves metadata, paths,
+images, other blocks, and every array element. Unknown formats, Glob paths,
+WebSearch results, explicit error results, and text containing diagnostic keywords
+pass through unchanged. The preview size is a soft target; the hook skips a result
+when preserved data leaves no room for a text preview.
 
-Show savings from the retained archives when deciding whether the hook is useful:
+Before emitting a replacement, the hook retains the full original locally for
+seven days with user-only permissions. Retrieve it through `expand-tool-output`.
+Claude Code must accept the replacement's output shape for compaction to take
+effect.
+
+Inspect stored JSON character reductions from retained archives:
 
 ```bash
 python3 ~/.claude/hooks/compact-tool-output.py stats
 ```
 
+These counts do not measure client acceptance, model tokens, cost, or quality.
 The weekly doctor does not monitor this hook. Use `stats` on demand and the
 visible compaction notice to decide whether it is working and worth keeping.
 Retired `.last-invoked`, `.last-error`, and `.errors/` entries in the cache are
