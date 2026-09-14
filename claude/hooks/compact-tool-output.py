@@ -4,7 +4,8 @@
 from __future__ import annotations
 
 import argparse
-from collections.abc import Callable, Iterator
+from collections.abc import Iterator
+from copy import deepcopy
 from datetime import UTC, datetime
 import hashlib
 import json
@@ -16,7 +17,7 @@ import time
 from typing import Any
 
 
-SUPPORTED_TOOL = re.compile(r"^(Read|Grep|Glob|WebFetch|WebSearch|mcp__.+)$")
+SUPPORTED_TOOL = re.compile(r"^(Read|Grep|WebFetch|mcp__.+)$")
 ARCHIVE_ID = re.compile(r"^[a-f0-9]{20}$")
 ERROR_LINE = re.compile(
     r"\b(error|critical|fatal|failed|failure|exception|traceback|denied|warning)\b",
@@ -56,35 +57,26 @@ def iter_strings(value: Any) -> Iterator[str]:
             yield from iter_strings(item)
 
 
-def map_strings(value: Any, transform: Callable[[int, str], str]) -> Any:
-    index = 0
-
-    def visit(item: Any) -> Any:
-        nonlocal index
-        if isinstance(item, str):
-            current = index
-            index += 1
-            return transform(current, item)
-        if isinstance(item, list):
-            return [visit(child) for child in item]
-        if isinstance(item, dict):
-            return {key: visit(child) for key, child in item.items()}
-        return item
-
-    return visit(value)
-
-
-def prune_lists(value: Any, max_items: int) -> Any:
-    if isinstance(value, list):
-        items = value
-        if len(items) > max_items:
-            head_count = max_items * 2 // 3
-            tail_count = max_items - head_count
-            items = items[:head_count] + items[-tail_count:]
-        return [prune_lists(item, max_items) for item in items]
-    if isinstance(value, dict):
-        return {key: prune_lists(item, max_items) for key, item in value.items()}
-    return value
+def text_fields(tool_name: str, response: Any) -> list[tuple[dict[str, Any], str]]:
+    if isinstance(response, dict):
+        if response.get("isError") is True:
+            return []
+        if tool_name == "Read" and response.get("type") == "text":
+            file = response.get("file")
+            return [(file, "content")] if isinstance(file, dict) else []
+        if tool_name == "Grep" and response.get("mode") == "content":
+            return [(response, "content")]
+        code = response.get("code")
+        if tool_name == "WebFetch" and isinstance(code, int) and 200 <= code < 300:
+            return [(response, "result")]
+        response = response.get("content")
+    if tool_name.startswith("mcp__") and isinstance(response, list):
+        return [
+            (block, "text")
+            for block in response
+            if isinstance(block, dict) and block.get("type") == "text"
+        ]
+    return []
 
 
 def allocate_string_budget(strings: list[str], budget: int) -> list[int]:
@@ -119,65 +111,41 @@ def truncate_text(value: str, limit: int) -> str:
     return value[:head] + marker + value[-tail:]
 
 
-def error_excerpt(strings: list[str], limit: int = 1_500) -> str:
-    matches: list[str] = []
-    seen: set[str] = set()
-    size = 0
-
-    for value in strings:
-        for line in value.splitlines():
-            stripped = line.strip()
-            if not stripped or not ERROR_LINE.search(stripped) or stripped in seen:
-                continue
-            addition = len(stripped) + 1
-            if size + addition > limit:
-                return "\n".join(matches)
-            matches.append(stripped)
-            seen.add(stripped)
-            size += addition
-    return "\n".join(matches)
-
-
-def compaction_notice(archive_id: str, original_chars: int, errors: str) -> str:
-    notice = (
+def compaction_notice(archive_id: str, original_chars: int) -> str:
+    return (
         "\n\n[Claude tool output compacted from "
         f"{original_chars:,} chars; full result is in archive {archive_id}. "
         f"Use /expand-tool-output {archive_id} with a focus term first.]"
     )
-    if errors:
-        notice += f"\nImportant diagnostic lines:\n{errors}"
-    return notice
 
 
-def compact_response(response: Any, archive_id: str, preview_chars: int) -> Any | None:
-    original_strings = list(iter_strings(response))
-    if not original_strings:
+def compact_response(
+    tool_name: str, response: Any, archive_id: str, preview_chars: int
+) -> Any | None:
+    candidate = deepcopy(response)
+    fields = [
+        (container, key)
+        for container, key in text_fields(tool_name, candidate)
+        if isinstance(container.get(key), str)
+        and len(container[key]) > preview_chars
+        and not ERROR_LINE.search(container[key])
+    ]
+    if not fields:
         return None
 
-    errors = error_excerpt(original_strings)
-    notice = compaction_notice(archive_id, len(encode(response)), errors)
-    longest_index = max(range(len(original_strings)), key=lambda item: len(original_strings[item]))
-
-    candidate: Any | None = None
-    for list_limit in (200, 50, 10):
-        pruned = prune_lists(response, list_limit)
-        strings = list(iter_strings(pruned))
-        if not strings:
-            continue
-        structure_chars = len(encode(map_strings(pruned, lambda _index, _value: "")))
-        text_budget = max(preview_chars - structure_chars - len(notice), 0)
-        allocations = allocate_string_budget(strings, text_budget)
-
-        def transform(index: int, value: str) -> str:
-            compacted = truncate_text(value, allocations[index])
-            if index == min(longest_index, len(strings) - 1):
-                compacted += notice
-            return compacted
-
-        candidate = map_strings(pruned, transform)
-        if len(encode(candidate)) <= preview_chars:
-            return candidate
-
+    strings = [container[key] for container, key in fields]
+    for container, key in fields:
+        container[key] = ""
+    notice = compaction_notice(archive_id, len(encode(response)))
+    text_budget = preview_chars - len(encode(candidate)) - len(notice)
+    if text_budget <= 0:
+        return None
+    allocations = allocate_string_budget(strings, text_budget)
+    longest_index = max(range(len(strings)), key=lambda index: len(strings[index]))
+    for index, (container, key) in enumerate(fields):
+        container[key] = truncate_text(strings[index], allocations[index])
+        if index == longest_index:
+            container[key] += notice
     return candidate
 
 
@@ -252,7 +220,7 @@ def run_hook() -> int:
             max_chars - 1,
         )
         archive_id = make_archive_id(payload)
-        compacted = compact_response(response, archive_id, preview_chars)
+        compacted = compact_response(tool_name, response, archive_id, preview_chars)
         if compacted is None:
             return 0
         compacted_chars = len(encode(compacted))
@@ -369,7 +337,7 @@ def show_stats() -> int:
     print(f"archives: {len(archives)}")
     print(f"original chars: {original:,}")
     print(f"compacted chars: {compacted:,}")
-    print(f"saved: {saved:,} chars ({percent:.1f}%, about {saved // 4:,} tokens)")
+    print(f"saved: {saved:,} chars ({percent:.1f}%)")
     return 0
 
 
