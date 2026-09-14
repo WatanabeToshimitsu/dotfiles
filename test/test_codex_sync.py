@@ -9,6 +9,7 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+from urllib.error import HTTPError
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -509,11 +510,99 @@ class PublisherTest(RepositoryCase):
         paths = git(self.root, 'diff-tree', '--name-only', '--no-commit-id', '-r', result).splitlines()
         self.assertTrue(all(p.startswith('codex/generated/') for p in paths))
 
+    def test_stale_pr_head_after_push_eventually_dispatches_the_pushed_commit(self) -> None:
+        self.publisher_fixture()
+        post_push_reads = 0
+
+        def delayed_api(repo: str, suffix: str, token: str, data: dict | None = None) -> dict | None:
+            nonlocal post_push_reads
+            result = self.fake_api(repo, suffix, token, data)
+            if suffix == '/pulls/1' and result['head']['sha'] != self.expected:
+                post_push_reads += 1
+                if post_push_reads <= 2:
+                    result['head']['sha'] = self.expected
+            return result
+
+        with patch.object(publish.subprocess, 'run', side_effect=self.transport), \
+             patch.object(publish, 'api', side_effect=delayed_api), patch('time.sleep') as sleep:
+            result = publish.publish(self.root, 'owner/repo', 1, self.expected, 'test-token-placeholder')
+
+        self.assertEqual(post_push_reads, 3)
+        self.assertEqual(sleep.call_count, 2)
+        self.assertEqual(git(self.bare, 'rev-parse', 'feature'), result)
+        self.assertEqual(git(self.root, 'rev-parse', result + '^'), self.expected)
+        self.assertEqual(self.dispatches, [{'ref': 'feature', 'inputs': {'expected_sha': result}}])
+
+    def test_stale_pr_head_timeout_preserves_the_pushed_commit_without_dispatch(self) -> None:
+        self.publisher_fixture()
+
+        def stale_api(repo: str, suffix: str, token: str, data: dict | None = None) -> dict | None:
+            result = self.fake_api(repo, suffix, token, data)
+            if suffix == '/pulls/1':
+                result['head']['sha'] = self.expected
+            return result
+
+        with patch.object(publish.subprocess, 'run', side_effect=self.transport), \
+             patch.object(publish, 'api', side_effect=stale_api), patch('time.sleep') as sleep:
+            with self.assertRaisesRegex(ValueError, 'PR head confirmation failed \\(TimeoutError\\)') as failure:
+                publish.publish(self.root, 'owner/repo', 1, self.expected, 'test-token-placeholder')
+
+        pushed = git(self.bare, 'rev-parse', 'feature')
+        self.assertEqual(git(self.root, 'rev-parse', pushed + '^'), self.expected)
+        self.assertIn(pushed, str(failure.exception))
+        self.assertEqual(self.dispatches, [])
+        self.assertGreater(sleep.call_count, 0)
+        self.assertLessEqual(sum(call.args[0] for call in sleep.call_args_list), 10)
+
+    def test_post_push_wait_rejects_changed_pr_boundaries_without_sleeping(self) -> None:
+        pr = {'state': 'open', 'base': {'ref': 'main'}, 'user': {'login': 'author'},
+              'head': {'repo': {'full_name': 'owner/repo'}, 'sha': 'a' * 40, 'ref': 'feature'}}
+        changes = [
+            ('state', 'closed'),
+            ('base', {'ref': 'release'}),
+            ('user', {'login': 'dependabot[bot]'}),
+            ('head', {**pr['head'], 'repo': {'full_name': 'fork/repo'}}),
+            ('head', {**pr['head'], 'sha': 'c' * 40}),
+            ('head', {**pr['head'], 'ref': 'different-branch'}),
+        ]
+        for field, value in changes:
+            with self.subTest(field=field, value=value), \
+                 patch.object(publish, 'api', return_value={**pr, field: value}) as api, \
+                 patch('time.sleep') as sleep:
+                with self.assertRaises(ValueError):
+                    publish.wait_for_published_head('owner/repo', 1, 'feature', 'a' * 40,
+                                                    'b' * 40, 'test-token-placeholder')
+                api.assert_called_once()
+                sleep.assert_not_called()
+
+    def test_post_push_lookup_error_reports_the_phase_without_response_details(self) -> None:
+        self.publisher_fixture()
+        response_error = HTTPError('https://example.invalid/private', 502, 'PRIVATE_API_RESPONSE', {}, None)
+        self.addCleanup(response_error.close)
+
+        def failed_lookup(repo: str, suffix: str, token: str, data: dict | None = None) -> dict | None:
+            result = self.fake_api(repo, suffix, token, data)
+            if suffix == '/pulls/1' and result['head']['sha'] != self.expected:
+                raise response_error
+            return result
+
+        with patch.object(publish.subprocess, 'run', side_effect=self.transport), \
+             patch.object(publish, 'api', side_effect=failed_lookup):
+            with self.assertRaisesRegex(ValueError, 'PR head confirmation failed \\(HTTP 502\\)') as failure:
+                publish.publish(self.root, 'owner/repo', 1, self.expected, 'test-token-placeholder')
+        self.assertIn(git(self.bare, 'rev-parse', 'feature'), str(failure.exception))
+        self.assertNotIn('PRIVATE_API_RESPONSE', str(failure.exception))
+        self.assertNotIn('example.invalid', str(failure.exception))
+        self.assertEqual(self.dispatches, [])
+        self.assertTrue(response_error.closed)
+
     def test_dispatch_failure_reports_pushed_sha_and_retry_does_not_commit_again(self):
         self.publisher_fixture()
+        response_error = HTTPError('https://example.invalid/private', 503, 'PRIVATE_API_RESPONSE', {}, None)
+        self.addCleanup(response_error.close)
         def fail_dispatch(repo, suffix, token, data=None):
             if suffix.endswith('/dispatches'):
-                raise OSError('Simulated dispatch outage')
+                raise response_error
             return self.fake_api(repo, suffix, token, data)
         with patch.object(publish.subprocess, 'run', side_effect=self.transport), patch.object(publish, 'api', side_effect=fail_dispatch):
             with self.assertRaisesRegex(ValueError, 'was pushed') as failure:
@@ -521,6 +610,10 @@ class PublisherTest(RepositoryCase):
         pushed = git(self.bare, 'rev-parse', 'feature')
         self.assertIn(pushed, str(failure.exception))
         self.assertNotEqual(pushed, self.expected)
+        self.assertIn('CI dispatch failed (HTTP 503)', str(failure.exception))
+        self.assertNotIn('PRIVATE_API_RESPONSE', str(failure.exception))
+        self.assertNotIn('example.invalid', str(failure.exception))
+        self.assertTrue(response_error.closed)
         with patch.object(publish.subprocess, 'run', side_effect=self.transport), patch.object(publish, 'api', side_effect=self.fake_api):
             result = publish.publish(self.root, 'owner/repo', 1, pushed, 'test-token-placeholder')
         self.assertEqual(result, pushed)
