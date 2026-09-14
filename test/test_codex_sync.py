@@ -9,6 +9,7 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+from urllib.error import HTTPError
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -509,18 +510,40 @@ class PublisherTest(RepositoryCase):
         paths = git(self.root, 'diff-tree', '--name-only', '--no-commit-id', '-r', result).splitlines()
         self.assertTrue(all(p.startswith('codex/generated/') for p in paths))
 
+    def test_publisher_dispatches_pushed_commit_when_pr_api_lags(self) -> None:
+        self.publisher_fixture()
+
+        def stale_api(repo: str, suffix: str, token: str, data: dict | None = None) -> dict | None:
+            result = self.fake_api(repo, suffix, token, data)
+            if suffix == '/pulls/1':
+                result['head']['sha'] = self.expected
+            return result
+
+        with patch.object(publish.subprocess, 'run', side_effect=self.transport), \
+             patch.object(publish, 'api', side_effect=stale_api):
+            result = publish.publish(self.root, 'owner/repo', 1, self.expected, 'test-token-placeholder')
+
+        self.assertEqual(git(self.bare, 'rev-parse', 'feature'), result)
+        self.assertEqual(self.dispatches, [{'ref': 'feature', 'inputs': {'expected_sha': result}}])
+
     def test_dispatch_failure_reports_pushed_sha_and_retry_does_not_commit_again(self):
         self.publisher_fixture()
+        response_error = HTTPError('https://example.invalid/private', 503, 'PRIVATE_API_RESPONSE', {}, None)
+        self.addCleanup(response_error.close)
         def fail_dispatch(repo, suffix, token, data=None):
             if suffix.endswith('/dispatches'):
-                raise OSError('Simulated dispatch outage')
+                raise response_error
             return self.fake_api(repo, suffix, token, data)
         with patch.object(publish.subprocess, 'run', side_effect=self.transport), patch.object(publish, 'api', side_effect=fail_dispatch):
-            with self.assertRaisesRegex(ValueError, 'was pushed') as failure:
+            with self.assertRaisesRegex(ValueError, 'CI dispatch failed') as failure:
                 publish.publish(self.root, 'owner/repo', 1, self.expected, 'test-token-placeholder')
         pushed = git(self.bare, 'rev-parse', 'feature')
         self.assertIn(pushed, str(failure.exception))
         self.assertNotEqual(pushed, self.expected)
+        self.assertIn('CI dispatch failed (HTTP 503)', str(failure.exception))
+        self.assertNotIn('PRIVATE_API_RESPONSE', str(failure.exception))
+        self.assertNotIn('example.invalid', str(failure.exception))
+        self.assertTrue(response_error.closed)
         with patch.object(publish.subprocess, 'run', side_effect=self.transport), patch.object(publish, 'api', side_effect=self.fake_api):
             result = publish.publish(self.root, 'owner/repo', 1, pushed, 'test-token-placeholder')
         self.assertEqual(result, pushed)

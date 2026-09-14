@@ -10,6 +10,7 @@ import re
 import subprocess
 import sys
 import tempfile
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 import generate
@@ -44,7 +45,11 @@ def dispatch_ci(repo, branch, commit, token):
         api(repo, '/actions/workflows/ci.yml/dispatches', token,
             {'ref': branch, 'inputs': {'expected_sha': commit}})
     except OSError as error:
-        raise ValueError('commit is already pushed, but CI dispatch failed; rerun CI on ' + commit) from error
+        detail = type(error).__name__
+        if isinstance(error, HTTPError):
+            detail = f'HTTP {error.code}'
+            error.close()
+        raise ValueError(f'commit is already pushed, but CI dispatch failed ({detail}); rerun CI on ' + commit) from None
 
 
 def make_commit(root, parent, output):
@@ -136,11 +141,7 @@ def publish(root, repo, number, expected, token):
     if remote not in ('https://github.com/' + repo, 'https://github.com/' + repo + '.git'):
         raise ValueError('publisher origin must be the current repository HTTPS remote')
     push(root, commit, branch, expected, env)
-    try:
-        validate_pr(api(repo, f'/pulls/{number}', token), repo, commit)
-        dispatch_ci(repo, branch, commit, token)
-    except (OSError, ValueError):
-        raise ValueError('generated commit was pushed, but CI dispatch was not confirmed; inspect the PR head and approve or rerun CI on ' + commit) from None
+    dispatch_ci(repo, branch, commit, token)
     print('Generated commit pushed: ' + commit + '. CI dispatched; inspect final-head checks before merge.')
     return commit
 
