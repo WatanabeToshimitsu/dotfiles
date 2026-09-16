@@ -4,9 +4,37 @@
 # keep it fast, idempotent, and free of shell-specific features.
 
 export VOLTA_HOME="$HOME/.volta"
-case ":$PATH:" in
-  *":$VOLTA_HOME/bin:"*) ;;
-  *) export PATH="$VOLTA_HOME/bin:$PATH" ;;
-esac
+# Prepend on every source rather than skipping when already present: .zprofile's
+# `brew shellenv` runs path_helper (Homebrew 6.x), which rebuilds PATH with
+# /opt/homebrew/bin first on every login shell, so a "skip if already present" guard
+# leaves Homebrew's node ahead of Volta's shims. path_dedup below drops the older
+# copy, making the repeated prepend a move-to-front.
+[ -d "$VOLTA_HOME/bin" ] && export PATH="$VOLTA_HOME/bin:$PATH"
 
 [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
+
+# zsh has `typeset -U path`; bash and sh have no equivalent, and .profile sources this
+# file twice (once via .bashrc). Avoids `IFS=: ; for d in $PATH` because zsh does not
+# word-split unquoted parameters. Keep $_pd_head quoted inside the pattern so an entry
+# holding [, * or ? matches literally. Empty components (implicit ".") are dropped,
+# which is also what zsh's `path=($path)` does.
+path_dedup() {
+  _pd_rest=$PATH
+  _pd_new=
+  while [ -n "$_pd_rest" ]; do
+    _pd_head=${_pd_rest%%:*}
+    case $_pd_rest in
+      *:*) _pd_rest=${_pd_rest#*:} ;;
+      *) _pd_rest= ;;
+    esac
+    [ -n "$_pd_head" ] || continue
+    case ":$_pd_new:" in
+      *":$_pd_head:"*) continue ;;
+    esac
+    _pd_new=${_pd_new:+$_pd_new:}$_pd_head
+  done
+  PATH=$_pd_new
+  unset -v _pd_rest _pd_new _pd_head
+}
+
+path_dedup
