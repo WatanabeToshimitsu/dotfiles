@@ -4,23 +4,17 @@
 # keep it fast, idempotent, and free of shell-specific features.
 
 export VOLTA_HOME="$HOME/.volta"
-# pnpm support is still behind this flag in Volta 2.0.2; without it `volta pin pnpm`
-# fails and `volta install pnpm` silently installs pnpm as a plain npm package.
+# Volta 2.0.2 still gates pnpm behind this; without it `volta pin pnpm` fails.
 export VOLTA_FEATURE_PNPM=1
-# Prepend on every source rather than skipping when already present: .zprofile's
-# `brew shellenv` runs path_helper (Homebrew 6.x), which rebuilds PATH with
-# /opt/homebrew/bin first on every login shell, so a "skip if already present" guard
-# leaves Homebrew's node ahead of Volta's shims. path_dedup below drops the older
-# copy, making the repeated prepend a move-to-front.
+# .zprofile's `brew shellenv` runs path_helper, which re-orders PATH with
+# /opt/homebrew/bin first, so this has to run on every source, not just once.
 [ -d "$VOLTA_HOME/bin" ] && export PATH="$VOLTA_HOME/bin:$PATH"
 
 [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
 
-# zsh has `typeset -U path`; bash and sh have no equivalent, and .profile sources this
-# file twice (once via .bashrc). Avoids `IFS=: ; for d in $PATH` because zsh does not
-# word-split unquoted parameters. Keep $_pd_head quoted inside the pattern so an entry
-# holding [, * or ? matches literally. Empty components (implicit ".") are dropped,
-# which is also what zsh's `path=($path)` does.
+# Keeps the leftmost entry, so the prepend above becomes a move-to-front.
+# No `IFS=: ; for d in $PATH`: zsh does not word-split unquoted parameters.
+# $_pd_head stays quoted in the pattern so [, * and ? match literally.
 path_dedup() {
   _pd_rest=$PATH
   _pd_new=

@@ -285,6 +285,6 @@ export OPENAI_BASE_URL="http://127.0.0.1:8787/v1"
 source ~/.shell-utils/headroom-proxy-check.zsh
 headroom_proxy_check
 
-# The PATH prepends above use scalar assignment, which bypasses the `-U path`
-# attribute set in .zshenv; re-assigning the array collapses the duplicates.
+# `-U path` only applies on array assignment; the scalar `export PATH=` prepends
+# above bypass it.
 path=($path)
