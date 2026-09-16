@@ -4,9 +4,34 @@
 # keep it fast, idempotent, and free of shell-specific features.
 
 export VOLTA_HOME="$HOME/.volta"
-case ":$PATH:" in
-  *":$VOLTA_HOME/bin:"*) ;;
-  *) export PATH="$VOLTA_HOME/bin:$PATH" ;;
-esac
+# Volta 2.0.2 still gates pnpm behind this; without it `volta pin pnpm` fails.
+export VOLTA_FEATURE_PNPM=1
+# .zprofile's `brew shellenv` runs path_helper, which re-orders PATH with
+# /opt/homebrew/bin first, so this has to run on every source, not just once.
+[ -d "$VOLTA_HOME/bin" ] && export PATH="$VOLTA_HOME/bin:$PATH"
 
 [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
+
+# Keeps the leftmost entry, so the prepend above becomes a move-to-front.
+# No `IFS=: ; for d in $PATH`: zsh does not word-split unquoted parameters.
+# $_pd_head stays quoted in the pattern so [, * and ? match literally.
+path_dedup() {
+  _pd_rest=$PATH
+  _pd_new=
+  while [ -n "$_pd_rest" ]; do
+    _pd_head=${_pd_rest%%:*}
+    case $_pd_rest in
+      *:*) _pd_rest=${_pd_rest#*:} ;;
+      *) _pd_rest= ;;
+    esac
+    [ -n "$_pd_head" ] || continue
+    case ":$_pd_new:" in
+      *":$_pd_head:"*) continue ;;
+    esac
+    _pd_new=${_pd_new:+$_pd_new:}$_pd_head
+  done
+  PATH=$_pd_new
+  unset -v _pd_rest _pd_new _pd_head
+}
+
+path_dedup

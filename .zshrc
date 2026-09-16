@@ -284,3 +284,7 @@ export OPENAI_BASE_URL="http://127.0.0.1:8787/v1"
 # and Codex fail against a dead ANTHROPIC_BASE_URL.
 source ~/.shell-utils/headroom-proxy-check.zsh
 headroom_proxy_check
+
+# `-U path` only applies on array assignment; the scalar `export PATH=` prepends
+# above bypass it.
+path=($path)
