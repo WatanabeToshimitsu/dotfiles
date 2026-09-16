@@ -4,6 +4,9 @@
 # keep it fast, idempotent, and free of shell-specific features.
 
 export VOLTA_HOME="$HOME/.volta"
+# pnpm support is still behind this flag in Volta 2.0.2; without it `volta pin pnpm`
+# fails and `volta install pnpm` silently installs pnpm as a plain npm package.
+export VOLTA_FEATURE_PNPM=1
 # Prepend on every source rather than skipping when already present: .zprofile's
 # `brew shellenv` runs path_helper (Homebrew 6.x), which rebuilds PATH with
 # /opt/homebrew/bin first on every login shell, so a "skip if already present" guard
