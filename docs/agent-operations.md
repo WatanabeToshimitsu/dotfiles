@@ -106,5 +106,3 @@ claude-sandbox
 定期実行を頼むときは、任せたい作業、触れてよい範囲、時間・回数の上限、判断に迷ったら確認してほしい点を伝えてください。実行方法や検証コマンドはエージェントが調べ、承認用の実行案にまとめます。
 
 実行案は「Loop契約」と呼びます。内容を確認して承認すると、その範囲で定期実行を設定できます。契約が未承認の間は、リポジトリの変更を許可しない構成です。具体的な準備・実行手順は、エージェント向けの[`delivery-workflow`](../claude/skills/delivery-workflow/SKILL.md#scheduled-repository-work)にまとめています。
-
-dotfilesでは試行・検証段階です。[2026年9月9日の試行記録](https://github.com/WatanabeToshimitsu/dotfiles/issues/60#issuecomment-5596708889)では、定期タスクが2回起動し、1回は追加の許可待ちで停止、1回は読み取り専用の調査を完了しました。受け入れ条件は未達で常設化は見送られています。1件の変更を任せる試行も未着手です。進捗は[読み取り専用の試行 #60](https://github.com/WatanabeToshimitsu/dotfiles/issues/60)と[変更作業の試行 #61](https://github.com/WatanabeToshimitsu/dotfiles/issues/61)で管理しています。
