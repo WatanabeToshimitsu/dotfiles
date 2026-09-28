@@ -51,12 +51,12 @@ agent_payload() {
     '{tool_name: "Agent", tool_input: {subagent_type: $subagent_type, model: $model}}'
 }
 
-expect_decision validate-bash.sh "$(bash_payload 'git add -A')" deny "the -A flag"
-expect_decision validate-bash.sh "$(bash_payload 'git add --all')" deny "the --all flag"
-expect_decision validate-bash.sh "$(bash_payload 'git add .')" deny "a bare dot"
-expect_decision validate-bash.sh "$(bash_payload 'git add . ; git commit -m x')" deny "a dot before a separator"
-expect_decision validate-bash.sh "$(bash_payload 'git add README.md')" allow "a named path"
-expect_decision validate-bash.sh "$(bash_payload 'git add ./src/main.ts')" allow "a relative path"
+expect_decision validate-bash.sh "$(bash_payload 'git -C fixture add -A')" deny "the -A flag with -C"
+expect_decision validate-bash.sh "$(bash_payload 'git --no-optional-locks add --all')" deny "the --all flag with global options"
+expect_decision validate-bash.sh "$(bash_payload 'rtk proxy git -C fixture add .')" deny "a bare dot through RTK"
+expect_decision validate-bash.sh "$(bash_payload 'rtk git -Cfixture -C sub --no-optional-locks add . ; git status')" deny "a scoped dot before a separator"
+expect_decision validate-bash.sh "$(bash_payload 'git -C fixture add -- -A')" allow "a named path after --"
+expect_decision validate-bash.sh "$(bash_payload 'rtk proxy git --no-optional-locks -C fixture add ./src/main.ts')" allow "a relative path through RTK"
 expect_decision validate-bash.sh "$(bash_payload 'git commit -m x')" allow "an unrelated command"
 expect_decision validate-bash.sh '{"tool_name":"Read","tool_input":{}}' allow "a non-Bash tool"
 
