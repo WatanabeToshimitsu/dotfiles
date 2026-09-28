@@ -1,6 +1,20 @@
 #!/usr/bin/env bash
-# Integration test for install.sh
+# Integration test for install.sh. Destructive by design — it rewrites dotfiles
+# and runs uninstall.sh — so it works in a disposable HOME of its own and never
+# touches the caller's profile.
 set -euo pipefail
+
+SANDBOX_HOME=$(mktemp -d)
+trap 'rm -rf "$SANDBOX_HOME"' EXIT
+
+# install.sh --symlinks-only and uninstall.sh write only below $HOME; their one
+# other write path, the Codex sync installer, is gated on
+# ~/.codex/dotfiles-sync/state.json, which a fresh HOME does not have. Exported
+# so the install.sh and uninstall.sh runs below cannot fall back to the passwd
+# home.
+HOME="$SANDBOX_HOME"
+export HOME
+echo "=== Disposable HOME: $HOME ==="
 
 DOTFILES_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 ERRORS=0

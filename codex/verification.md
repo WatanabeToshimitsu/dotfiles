@@ -19,8 +19,9 @@ pinact run --check
 git diff --check
 ```
 
-Run `test/test-install.sh` only with a disposable HOME or in the existing Ubuntu
-test image: it intentionally creates and removes fixture dotfiles.
+`test/test-install.sh` intentionally creates and removes fixture dotfiles, so it
+replaces HOME with a disposable directory of its own before the first write; the
+caller's profile is never touched.
 
 | Boundary | Evidence |
 | --- | --- |

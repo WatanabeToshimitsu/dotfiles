@@ -42,9 +42,11 @@ tail -n 80 ~/Library/Logs/dotfiles-doctor.log
 
 ## Claudeのツール出力の圧縮
 
-大きなRead・Grep・Glob・Web・MCPの結果は、フックによって会話に入る前に短縮されます。全文はローカルに7日間保存されます。省略された内容が必要なときは、エージェントに[`expand-tool-output`](../claude/skills/expand-tool-output/SKILL.md)での再取得を依頼してください。
+フックによる圧縮の対象は、Readの本文、Grepの検索内容、成功したWebFetchの結果、MCPのテキスト部分です。画像・メタデータ・配列の全要素は保持されます。形式を判別できない出力や、エラー・診断用の語句を含む出力もそのまま残ります。保持する情報だけでサイズの目安を超える場合は、圧縮せずに渡されます。
 
-以下のコマンドで、保存中のアーカイブから出力の削減量を確認できます。
+元の出力はローカルに7日間保存され、本人だけがアクセスできます。省略された内容が必要なときは、エージェントに[`expand-tool-output`](../claude/skills/expand-tool-output/SKILL.md)での再取得を依頼してください。
+
+以下のコマンドで、保存中のJSONの文字数がどれだけ減ったかを確認できます。トークン数・料金・応答品質や、クライアントが結果を受理したかを示す統計ではありません。
 
 ```bash
 python3 ~/.claude/hooks/compact-tool-output.py stats
