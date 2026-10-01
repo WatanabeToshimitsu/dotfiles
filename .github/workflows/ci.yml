@@ -188,4 +188,4 @@ jobs:
       - name: Build test image
         run: docker build -f test/Dockerfile.ubuntu -t dotfiles-test .
       - name: Run install test
-        run: docker run --rm dotfiles-test bash test/test-install.sh
+        run: docker run --rm --read-only --tmpfs /tmp dotfiles-test bash test/test-install.sh
