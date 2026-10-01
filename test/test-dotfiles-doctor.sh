@@ -282,4 +282,89 @@ check_memory_promotion > "$absent_output"
 [ "$WARNINGS" -eq 0 ] || fail "absent memory directory produced $WARNINGS warning(s), expected 0"
 assert_contains "no agent memory directory for this repository" "$absent_output"
 
+SYNC_HOME="$TEST_OUTPUT_DIR/sync-home"
+SYNC_REPO="$TEST_OUTPUT_DIR/sync-repo"
+SYNC_BIN="$TEST_OUTPUT_DIR/sync-bin"
+SUPPORTED_PYTHON=""
+for candidate in python3 python3.13 python3.11; do
+  if "$candidate" -c 'import sys, tomllib; sys.exit(sys.version_info < (3, 11))' > /dev/null 2>&1; then
+    SUPPORTED_PYTHON=$(command -v "$candidate")
+    break
+  fi
+done
+[ -n "$SUPPORTED_PYTHON" ] || fail "doctor tests require Python 3.11+"
+mkdir -p "$SYNC_HOME/.codex/dotfiles-sync" "$SYNC_REPO/scripts/codex-sync" "$SYNC_BIN"
+: > "$SYNC_HOME/.codex/dotfiles-sync/state.json"
+cat > "$SYNC_REPO/scripts/codex-sync/install.py" <<'PY'
+import tomllib
+print("sync fixture current")
+PY
+cat > "$SYNC_BIN/python3" <<'SH'
+#!/bin/bash
+if [ "$1" = -c ]; then
+  exit 1
+fi
+printf "ModuleNotFoundError: No module named 'tomllib'\n" >&2
+exit 1
+SH
+chmod +x "$SYNC_BIN/python3"
+
+write_sync_python() {
+  cat > "$SYNC_BIN/$1" <<SH
+#!/bin/bash
+exec "$SUPPORTED_PYTHON" "\$@"
+SH
+  chmod +x "$SYNC_BIN/$1"
+}
+
+run_sync_fixture() {
+  local fixture_name="$1" expected_exit="$2"
+  local fixture_exit=0
+  env -i HOME="$SYNC_HOME" PATH=/usr/bin:/bin /bin/bash -c '
+    source "$1"
+    DOTFILES_DIR="$2"
+    PATH="$3"
+    check_codex_sync
+    finish
+  ' bash "$REPO_DIR/.shell-utils/dotfiles-doctor.sh" "$SYNC_REPO" "$SYNC_BIN" \
+    > "$TEST_OUTPUT_DIR/$fixture_name" 2>&1 || fixture_exit=$?
+  [ "$fixture_exit" -eq "$expected_exit" ] \
+    || fail "$fixture_name returned $fixture_exit, expected $expected_exit"
+}
+
+write_sync_python python3.13
+run_sync_fixture sync-compatible 0
+assert_contains 'sync fixture current' "$TEST_OUTPUT_DIR/sync-compatible"
+assert_not_contains 'ModuleNotFoundError' "$TEST_OUTPUT_DIR/sync-compatible"
+
+rm "$SYNC_BIN/python3.13"
+run_sync_fixture sync-unsupported 1
+assert_contains 'Python 3.11+ is unavailable' "$TEST_OUTPUT_DIR/sync-unsupported"
+assert_not_contains 'ModuleNotFoundError' "$TEST_OUTPUT_DIR/sync-unsupported"
+
+rm "$SYNC_BIN/python3"
+run_sync_fixture sync-python-missing 1
+assert_contains 'Python is not installed' "$TEST_OUTPUT_DIR/sync-python-missing"
+
+write_sync_python python3
+cat > "$SYNC_REPO/scripts/codex-sync/install.py" <<'PY'
+import tomllib
+print("sync fixture drift")
+raise SystemExit(1)
+PY
+run_sync_fixture sync-drift 1
+assert_contains 'Codex sync needs attention: sync fixture drift' "$TEST_OUTPUT_DIR/sync-drift"
+
+fixture_exit=0
+env -i HOME="$SYNC_HOME" PATH=/usr/bin:/bin /bin/bash -c '
+  source "$1"
+  PATH="$2"
+  check_agent_harness
+  finish
+' bash "$REPO_DIR/.shell-utils/dotfiles-doctor.sh" "$SYNC_BIN" \
+  > "$TEST_OUTPUT_DIR/cli-missing" 2>&1 || fixture_exit=$?
+[ "$fixture_exit" -eq 1 ] || fail "missing CLI returned $fixture_exit, expected 1"
+assert_contains 'Headroom is not installed' "$TEST_OUTPUT_DIR/cli-missing"
+assert_contains 'Claude Code is not installed' "$TEST_OUTPUT_DIR/cli-missing"
+
 printf 'dotfiles-doctor tests: ok\n'

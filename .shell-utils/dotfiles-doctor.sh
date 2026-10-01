@@ -415,8 +415,24 @@ check_codex_sync() {
     info "not installed; setup: bash install.sh --codex-only --dry-run"
     return 0
   fi
-  local output
-  if output=$(python3 "$DOTFILES_DIR/scripts/codex-sync/install.py" check --root "$DOTFILES_DIR" 2>&1); then
+  local output candidate python="" found_python=0
+  for candidate in python3 python3.13 python3.11; do
+    has_command "$candidate" || continue
+    found_python=1
+    if "$candidate" -c 'import sys; sys.exit(sys.version_info < (3, 11))' > /dev/null 2>&1; then
+      python="$candidate"
+      break
+    fi
+  done
+  if [ -z "$python" ]; then
+    if [ "$found_python" -eq 0 ]; then
+      warn "Codex sync cannot run: Python is not installed; next: install Python 3.11+ and retry dotfiles-doctor.sh"
+    else
+      warn "Codex sync cannot run: Python 3.11+ is unavailable; next: check python3 --version and install a supported Python"
+    fi
+    return 0
+  fi
+  if output=$("$python" "$DOTFILES_DIR/scripts/codex-sync/install.py" check --root "$DOTFILES_DIR" 2>&1); then
     info "merged snapshot and managed links are current; native settings remain unmanaged"
     [ -z "$output" ] || info "$output"
   else
