@@ -23,9 +23,13 @@ decision_for() {
 }
 
 expect_decision() {
-  local hook="$1" payload="$2" expected="$3" label="$4" actual
+  local hook="$1" payload="$2" expected="$3" label="$4" actual reason
   actual=$(decision_for "$hook" "$payload")
   [ "$actual" = "$expected" ] || fail "$hook: $label expected $expected, got $actual"
+  if [ "$#" -eq 5 ]; then
+    reason=$(printf '%s' "$payload" | bash "$HOOKS_DIR/$hook" | jq -r '.hookSpecificOutput.permissionDecisionReason')
+    [ "$reason" = "$5" ] || fail "$hook: $label returned obsolete model-role guidance"
+  fi
 }
 
 expect_exit() {
@@ -66,8 +70,10 @@ expect_decision validate-bash.sh 'not json' allow "malformed input"
 expect_exit validate-bash.sh 'not json' 0 "malformed input"
 
 expect_decision require-subagent-model.sh "$(agent_payload general-purpose sonnet)" allow "an explicit model"
-expect_decision require-subagent-model.sh "$(agent_payload general-purpose inherit)" deny "an inherited model"
-expect_decision require-subagent-model.sh "$(agent_payload general-purpose '')" deny "a missing model"
+expect_decision require-subagent-model.sh "$(agent_payload general-purpose inherit)" deny "an inherited model" \
+  'Specify an explicit non-inherit model for every subagent. Follow delivery-workflow for role selection and independent review.'
+expect_decision require-subagent-model.sh "$(agent_payload general-purpose '')" deny "a missing model" \
+  'Specify an explicit non-inherit model for every subagent. Follow delivery-workflow for role selection and independent review.'
 expect_decision require-subagent-model.sh "$(agent_payload sonnet-worker '')" allow "a pinned subagent type"
 expect_decision require-subagent-model.sh "$(agent_payload fable-deep '')" allow "a pinned subagent type"
 expect_decision require-subagent-model.sh '{"tool_name":"Read","tool_input":{}}' allow "a non-Agent tool"
