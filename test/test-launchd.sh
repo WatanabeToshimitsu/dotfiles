@@ -48,7 +48,7 @@ grep -Fq "loaded: $LABEL" "$SANDBOX/setup.out" || fail "setup_launchd did not re
 assert_log "bootout gui/$(id -u)/$LABEL"
 assert_log "bootstrap gui/$(id -u) $PLIST"
 
-python3 - "$PLIST" "$HOME" "$LABEL" <<'PY'
+AGENT_PATH=$(python3 - "$PLIST" "$HOME" "$LABEL" <<'PY'
 import plistlib
 import sys
 
@@ -62,12 +62,51 @@ expected = {
     "StartCalendarInterval": {"Weekday": 1, "Hour": 10, "Minute": 0},
     "StandardOutPath": f"{home}/Library/Logs/dotfiles-doctor.log",
     "StandardErrorPath": f"{home}/Library/Logs/dotfiles-doctor.log",
+    "EnvironmentVariables": {
+        "PATH": f"{home}/.local/bin:{home}/.volta/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+    },
 }
 for key, want in expected.items():
     got = agent.get(key)
     if got != want:
         sys.exit(f"FAIL: plist {key} is {got!r}, want {want!r}")
+print(agent["EnvironmentVariables"]["PATH"])
 PY
+)
+
+mkdir -p "$HOME/.local/bin" "$HOME/.volta/bin" "$HOME/.headroom/deploy/default"
+: > "$HOME/.headroom/deploy/default/manifest.json"
+cat > "$HOME/.local/bin/claude" <<'SH'
+#!/bin/bash
+case "$*" in
+  '--version') printf '2.1.241 (Claude Code)\n' ;;
+  'mcp list') printf 'context: command - Connected\n' ;;
+  *) exit 2 ;;
+esac
+SH
+cat > "$HOME/.local/bin/headroom" <<'SH'
+#!/bin/bash
+case "$*" in
+  'install status --profile default') printf 'Status: stopped\nHealthy: no\n' ;;
+  'output-savings') printf 'No shaped requests recorded yet.\n' ;;
+  *) exit 2 ;;
+esac
+SH
+printf '#!/bin/bash\nprintf "2.1.241\\n"\n' > "$HOME/.volta/bin/npm"
+chmod +x "$HOME/.local/bin/claude" "$HOME/.local/bin/headroom" "$HOME/.volta/bin/npm"
+
+fixture_exit=0
+env -i HOME="$HOME" PATH="$AGENT_PATH" /bin/bash \
+  "$REPO_DIR/.shell-utils/dotfiles-doctor.sh" --harness-only \
+  > "$SANDBOX/minimal-environment.out" 2>&1 || fixture_exit=$?
+[ "$fixture_exit" -eq 1 ] || fail "stopped proxy returned $fixture_exit, expected 1"
+grep -Fq 'Headroom is stopped or its proxy is unreachable' "$SANDBOX/minimal-environment.out" \
+  || fail "installed Headroom was not checked"
+grep -Fq 'installed 2.1.241; latest stable 2.1.241' "$SANDBOX/minimal-environment.out" \
+  || fail "installed Claude Code was not checked"
+if grep -Eq 'Headroom is not installed|Claude Code is not installed' "$SANDBOX/minimal-environment.out"; then
+  fail "installed CLI was reported missing in the LaunchAgent environment"
+fi
 
 echo "=== The agent runs a doctor entry point that still exists ==="
 [ -x "$REPO_DIR/.shell-utils/dotfiles-doctor.sh" ] || fail ".shell-utils/dotfiles-doctor.sh is missing or not executable"
