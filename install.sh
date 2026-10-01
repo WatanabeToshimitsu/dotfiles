@@ -289,6 +289,10 @@ setup_launchd() {
     <string>$HOME/.shell-utils/dotfiles-doctor.sh</string>
     <string>--notify</string>
   </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key><string>$HOME/.local/bin:$HOME/.volta/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
   <key>StartCalendarInterval</key>
   <dict>
     <key>Weekday</key><integer>1</integer>
