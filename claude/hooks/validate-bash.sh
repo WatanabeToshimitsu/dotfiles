@@ -69,6 +69,11 @@ class Commands:
             arguments = arguments[1:]
             if arguments[:1] == ["proxy"]:
                 arguments = arguments[1:]
+        while len(arguments) > 1 and arguments[0] == "git":
+            option = arguments[1]
+            if option != "--no-optional-locks" and not option.startswith("-C"):
+                break
+            arguments = ["git", *arguments[3 if option == "-C" else 2:]]
         if arguments[:2] == ["git", "add"]:
             options = True
             for argument in arguments[2:]:
