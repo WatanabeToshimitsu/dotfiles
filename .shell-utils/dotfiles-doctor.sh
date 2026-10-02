@@ -9,11 +9,18 @@ DOTFILES_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
 NOTIFY=0
 HARNESS_ONLY=0
 WARNINGS=0
+UNVERIFIED=0
 EXTERNAL_CHECK_TIMEOUT_SECONDS=8
 
 warn() {
-  printf '  WARN: %s\n' "$*"
+  printf '  [ABNORMAL] WARN: %s\n' "$*"
   WARNINGS=$((WARNINGS + 1))
+}
+
+unverified() {
+  printf '  [UNVERIFIED] %s\n' "$1"
+  UNVERIFIED=$((UNVERIFIED + 1))
+  WARNINGS=$((WARNINGS + ${2:-0}))
 }
 
 info() {
@@ -21,8 +28,8 @@ info() {
 }
 
 section_ok() {
-  if [ "$WARNINGS" -eq "$1" ]; then
-    printf '  ok\n'
+  if [ "$WARNINGS" -eq "$1" ] && [ "$UNVERIFIED" -eq "${2:-$UNVERIFIED}" ]; then
+    info "[HEALTHY] checked scope passed"
   fi
 }
 
@@ -69,11 +76,11 @@ headroom_deployment_configured() {
 }
 
 run_headroom_status() {
-  headroom install status --profile default
+  run_with_timeout "$EXTERNAL_CHECK_TIMEOUT_SECONDS" headroom install status --profile default
 }
 
 run_headroom_savings() {
-  headroom output-savings
+  run_with_timeout "$EXTERNAL_CHECK_TIMEOUT_SECONDS" headroom output-savings
 }
 
 # The proxy reports its own feature flags, which is the only view that reflects
@@ -100,7 +107,7 @@ run_claude_mcp_list() {
 }
 
 run_claude_version() {
-  claude --version
+  run_with_timeout "$EXTERNAL_CHECK_TIMEOUT_SECONDS" claude --version
 }
 
 run_claude_latest_version() {
@@ -139,7 +146,7 @@ memory_field() {
 check_headroom_shaper() {
   local flags shaper holdout
   if ! flags=$(run_headroom_runtime_flags 2> /dev/null); then
-    warn "Headroom runtime flags could not be read; next: run curl -s http://127.0.0.1:${HEADROOM_PORT:-8787}/health"
+    unverified "Headroom runtime flags could not be read; next: run curl -s http://127.0.0.1:${HEADROOM_PORT:-8787}/health" 1
     return 0
   fi
 
@@ -161,7 +168,7 @@ check_headroom_shaper() {
 
 check_headroom() {
   echo "== Headroom proxy =="
-  local before=$WARNINGS
+  local before=$WARNINGS unknown_before=$UNVERIFIED
   local output status healthy savings method requests saved reduction
   local reachable=0
 
@@ -173,7 +180,9 @@ check_headroom() {
     if output=$(run_headroom_status 2>&1); then
       status=$(printf '%s\n' "$output" | sed -n 's/^Status:[[:space:]]*//p' | head -n 1)
       healthy=$(printf '%s\n' "$output" | sed -n 's/^Healthy:[[:space:]]*//p' | head -n 1)
-      if [[ "$status" == *running* && "$healthy" == yes* ]]; then
+      if [ -z "$status" ] || [ -z "$healthy" ]; then
+        unverified "Headroom returned no deployment status; next: run headroom doctor" 1
+      elif [[ "$status" == *running* && "$healthy" == yes* ]]; then
         info "deployment is running and proxy is reachable"
         reachable=1
       elif [[ "$status" != *running* && "$healthy" == yes* ]]; then
@@ -185,7 +194,7 @@ check_headroom() {
         warn "Headroom is stopped or its proxy is unreachable; next: run install.sh --headroom-only, then headroom doctor"
       fi
     else
-    warn "Headroom status check failed; next: run headroom doctor"
+      unverified "Headroom status check failed; next: run headroom doctor" 1
     fi
 
     if savings=$(run_headroom_savings 2>&1); then
@@ -197,25 +206,28 @@ check_headroom() {
         saved=$(printf '%s\n' "$savings" | sed -n 's/^[[:space:]]*Saved:[[:space:]]*//p' | head -n 1)
         reduction=$(printf '%s\n' "$savings" | sed -n 's/^[[:space:]]*Reduction:[[:space:]]*//p' | head -n 1)
         if [ -n "$requests" ]; then
+          if [ -z "$method" ] || [ -z "$saved" ] || [ -z "$reduction" ]; then
+            unverified "output-savings fields are incomplete; next: run headroom output-savings"
+          fi
           info "output shaper: ${method:+$method; }$requests; ${saved:-saved amount unavailable}; ${reduction:-reduction unavailable}"
         else
-          info "output shaper: data exists; next: run headroom output-savings for details"
+          unverified "output shaper: data exists; next: run headroom output-savings for details"
         fi
       fi
     else
-      warn "Headroom output-savings check failed; next: run headroom output-savings"
+      unverified "Headroom output-savings check failed; next: run headroom output-savings" 1
     fi
 
     if [ "$reachable" -eq 1 ]; then
       check_headroom_shaper
     fi
   fi
-  section_ok "$before"
+  section_ok "$before" "$unknown_before"
 }
 
 check_mcp_servers() {
   echo "== Claude MCP servers =="
-  local before=$WARNINGS
+  local before=$WARNINGS unknown_before=$UNVERIFIED
   local output plain name line status
   local rows=0 connected=0
 
@@ -233,31 +245,31 @@ check_mcp_servers() {
       elif [[ "$plain" == *"command not found"* || "$plain" == *ENOENT* || "$plain" == *Invalid* || "$plain" == *invalid* ]]; then
         warn "MCP server '$name' has a configuration error; next: run claude mcp list and inspect its command"
       elif [[ "$plain" == *Failed* || "$plain" == *Disconnected* || "$plain" == *"Not connected"* ]]; then
-        info "MCP server '$name' is not connected (possibly temporary); retry with claude mcp list when you need it"
+        unverified "MCP server '$name' is not connected (possibly temporary); retry with claude mcp list when you need it"
       else
-        warn "MCP server '$name' returned an unrecognized status; next: run claude mcp list and inspect its configuration"
+        unverified "MCP server '$name' returned an unrecognized status; next: run claude mcp list and inspect its configuration" 1
       fi
     done <<< "$output"
 
     if [ "$rows" -eq 0 ]; then
-      warn "Claude MCP check returned no server status; next: run claude mcp list"
+      unverified "Claude MCP check returned no server status; next: run claude mcp list" 1
     elif [ "$rows" -eq "$connected" ]; then
       info "$connected MCP server(s) connected"
     fi
   else
     status=$?
     if [ "$status" -eq 124 ]; then
-      info "MCP status check timed out after ${EXTERNAL_CHECK_TIMEOUT_SECONDS}s; skipped as a possibly temporary outage"
+      unverified "MCP status check timed out after ${EXTERNAL_CHECK_TIMEOUT_SECONDS}s; next: retry claude mcp list"
     else
-      warn "Claude MCP status check failed; next: run claude mcp list"
+      unverified "Claude MCP status check failed; next: run claude mcp list" 1
     fi
   fi
-  section_ok "$before"
+  section_ok "$before" "$unknown_before"
 }
 
 check_claude_version() {
   echo "== Claude Code version =="
-  local before=$WARNINGS
+  local before=$WARNINGS unknown_before=$UNVERIFIED
   local local_output latest_output local_version latest_version status
 
   if ! has_command claude; then
@@ -265,13 +277,13 @@ check_claude_version() {
   elif local_output=$(run_claude_version 2>&1); then
     local_version=$(printf '%s\n' "$local_output" | semver_from)
     if [ -z "$local_version" ]; then
-      warn "Claude Code version could not be parsed; next: run claude --version"
+      unverified "Claude Code version could not be parsed; next: run claude --version" 1
     elif ! has_command npm; then
-      warn "npm is unavailable, so the latest Claude Code version cannot be checked; next: rerun install.sh"
+      unverified "npm is unavailable, so the latest Claude Code version cannot be checked; next: rerun install.sh" 1
     elif latest_output=$(run_claude_latest_version 2>&1); then
       latest_version=$(printf '%s\n' "$latest_output" | semver_from)
       if [ -z "$latest_version" ]; then
-        warn "Latest Claude Code version could not be parsed; next: run npm view @anthropic-ai/claude-code version"
+        unverified "Latest Claude Code version could not be parsed; next: run npm view @anthropic-ai/claude-code version" 1
       elif [ "$local_version" = "$latest_version" ]; then
         info "installed $local_version; latest stable $latest_version"
       else
@@ -280,21 +292,173 @@ check_claude_version() {
     else
       status=$?
       if [ "$status" -eq 124 ]; then
-        info "Latest Claude Code version check timed out after ${EXTERNAL_CHECK_TIMEOUT_SECONDS}s; skipped"
+        unverified "Latest Claude Code version check timed out after ${EXTERNAL_CHECK_TIMEOUT_SECONDS}s; next: retry npm view @anthropic-ai/claude-code version"
       else
-        warn "Latest Claude Code version check failed; next: run npm view @anthropic-ai/claude-code version"
+        unverified "Latest Claude Code version check failed; next: run npm view @anthropic-ai/claude-code version" 1
       fi
     fi
   else
-    warn "Claude Code version check failed; next: run claude --version"
+    unverified "Claude Code version check failed; next: run claude --version" 1
   fi
-  section_ok "$before"
+  section_ok "$before" "$unknown_before"
 }
 
 check_agent_harness() {
   check_headroom
   check_mcp_servers
   check_claude_version
+}
+
+check_output_compaction() {
+  echo "== Output compaction: user registration and isolated synthetic probe =="
+  unverified "effective Claude settings and native hook invocation; next: inspect /hooks in Claude Code"
+  if ! has_command python3 || ! python3 -c 'import sys; sys.exit(sys.version_info < (3, 11))' > /dev/null 2>&1; then
+    unverified "compaction probe requires Python 3.11+; next: check python3 --version"
+    return 0
+  fi
+  local output state message
+  if output=$(python3 - "$HOME" "$DOTFILES_DIR" "$EXTERNAL_CHECK_TIMEOUT_SECONDS" 2> /dev/null <<'PY'
+import json
+from pathlib import Path
+import re
+import subprocess
+import sys
+import tempfile
+import time
+
+home, repo = map(Path, sys.argv[1:3])
+deadline = time.monotonic() + float(sys.argv[3])
+command = 'python3 "$HOME/.claude/hooks/compact-tool-output.py"'
+
+def report(state, message):
+    print(f"{state}\t{message}")
+
+try:
+    settings = json.loads((home / ".claude/settings.json").read_text())
+except FileNotFoundError:
+    report("unused", "no user compaction registration")
+    raise SystemExit
+except (ValueError, UnicodeError):
+    report("bad", "user hook settings are invalid; next: validate Claude settings.json")
+    raise SystemExit
+except OSError:
+    report("unknown", "user hook settings could not be read; next: inspect Claude settings.json permissions")
+    raise SystemExit
+try:
+    if not isinstance(settings, dict):
+        raise ValueError
+    disabled = settings.get("disableAllHooks", False)
+    if not isinstance(disabled, bool):
+        raise ValueError
+    if disabled:
+        report("unused", "user hooks are disabled; effective settings remain unverified")
+        raise SystemExit
+    hooks = settings.get("hooks", {})
+    if not isinstance(hooks, dict):
+        raise ValueError
+    groups = hooks.get("PostToolUse", [])
+    if not isinstance(groups, list):
+        raise ValueError
+    registered = False
+    for group in groups:
+        if not isinstance(group, dict) or not isinstance(group.get("hooks"), list):
+            raise ValueError
+        for hook in group["hooks"]:
+            if not isinstance(hook, dict):
+                raise ValueError
+            entry = hook.get("command", "")
+            if "compact-tool-output.py" not in entry:
+                continue
+            if hook.get("type") != "command" or entry != command:
+                report("unknown", "custom compaction registration; next: inspect /hooks in Claude Code")
+                raise SystemExit
+            matcher = group.get("matcher", "")
+            if matcher not in ("", "*", "Read", "Read|Grep|Glob|WebFetch|WebSearch|mcp__.*"):
+                report("unknown", "compaction matcher is outside the checked scope; next: inspect /hooks in Claude Code")
+                raise SystemExit
+            registered = True
+    if not registered:
+        report("unused", "no user compaction registration")
+        raise SystemExit
+except (AttributeError, KeyError, TypeError, ValueError):
+    report("bad", "user hook settings are invalid; next: validate Claude settings.json")
+    raise SystemExit
+report("good", "user compaction registration (static declaration only)")
+try:
+    installed = (home / ".claude/hooks/compact-tool-output.py").read_bytes()
+except FileNotFoundError:
+    report("bad", "registered compaction script is missing; next: rerun install.sh")
+    raise SystemExit
+except OSError:
+    report("unknown", "registered compaction script could not be read; next: check hook permissions")
+    raise SystemExit
+try:
+    known = (repo / "claude/hooks/compact-tool-output.py").read_bytes()
+except OSError:
+    report("unknown", "repository compaction implementation is unavailable; next: check this checkout")
+    raise SystemExit
+if installed != known:
+    report("unknown", "installed compaction script differs; next: compare it with claude/hooks/compact-tool-output.py")
+    raise SystemExit
+try:
+    with tempfile.TemporaryDirectory(prefix="dotfiles-doctor-") as directory:
+        root = Path(directory)
+        script = root / "hook.py"
+        script.write_bytes(known)
+        env = {
+            "HOME": directory, "PATH": "/usr/bin:/bin", "PYTHONDONTWRITEBYTECODE": "1",
+            "CLAUDE_TOOL_OUTPUT_CACHE_DIR": str(root / "cache"),
+            "CLAUDE_TOOL_OUTPUT_MAX_CHARS": "1024", "CLAUDE_TOOL_OUTPUT_PREVIEW_CHARS": "512",
+        }
+        response = {"type": "text", "file": {"content": "synthetic diagnostic line\n" * 300,
+                    "numLines": 300}, "metadata": {"sentinel": 17}}
+
+        def run(*args, data=None):
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise subprocess.TimeoutExpired("synthetic probe", 0)
+            try:
+                return subprocess.run([sys.executable, str(script), *args], input=data,
+                                      capture_output=True, text=True, env=env, cwd=root,
+                                      timeout=remaining, check=True).stdout
+            except OSError:
+                raise RuntimeError from None
+
+        try:
+            compressed = json.loads(run(data=json.dumps({"tool_name": "Read", "tool_response": response})))
+            updated = compressed["hookSpecificOutput"]["updatedToolOutput"]
+            text = updated["file"]["content"]
+            marker = re.search(r"archive ([a-f0-9]{20})", text)
+            if len(text) >= len(response["file"]["content"]) or not marker:
+                raise ValueError
+            preserved = json.loads(json.dumps(updated))
+            preserved["file"]["content"] = response["file"]["content"]
+            archive_id = marker.group(1)
+            archive = json.loads((root / "cache" / f"{archive_id}.json").read_text())
+            restored = json.loads(run("expand", archive_id))
+            if preserved != response or archive["tool_response"] != response or restored != response:
+                raise ValueError
+        except (ValueError, KeyError, TypeError, OSError, subprocess.CalledProcessError):
+            report("bad", "synthetic compaction check failed; next: run python3 -m unittest discover -s claude/hooks/tests -p 'test_*.py'")
+        else:
+            report("good", "synthetic compression and exact restoration (isolated data only)")
+except subprocess.TimeoutExpired:
+    report("unknown", "synthetic compaction check timed out; next: run python3 -m unittest discover -s claude/hooks/tests -p 'test_*.py'")
+except (OSError, RuntimeError):
+    report("unknown", "synthetic compaction probe could not start; next: check Python and temporary directory permissions")
+PY
+  ); then
+    while IFS=$'\t' read -r state message; do
+      case "$state" in
+        good) info "[HEALTHY] $message" ;;
+        bad) warn "$message" ;;
+        unused) info "[NOT APPLICABLE] $message" ;;
+        unknown) unverified "$message" ;;
+      esac
+    done <<< "$output"
+  else
+    unverified "compaction inspection could not run; next: check Python and Claude settings.json"
+  fi
 }
 
 check_brew_drift() {
@@ -308,6 +472,9 @@ check_brew_drift() {
     done < <(comm -23 \
       <(run_brew_leaves | normalize_brew_formulae) \
       <(brewfile_formulae))
+  else
+    info "[NOT APPLICABLE] Homebrew is not installed"
+    return 0
   fi
   section_ok "$before"
 }
@@ -319,7 +486,7 @@ check_memory_promotion() {
 
   memory_dir=$(agent_memory_dir)
   if [ ! -d "$memory_dir" ]; then
-    info "no agent memory directory for this repository"
+    info "[NOT APPLICABLE] no agent memory directory for this repository"
     return 0
   fi
 
@@ -397,11 +564,16 @@ parse_options() {
 finish() {
   echo
   if [ "$WARNINGS" -eq 0 ]; then
-    echo "doctor: all clear"
+    if [ "$UNVERIFIED" -eq 0 ]; then
+      echo "doctor: all clear within the checked scope"
+    else
+      echo "doctor: no warnings; $UNVERIFIED check(s) unverified"
+    fi
     return 0
   fi
 
   echo "doctor: $WARNINGS warning(s)"
+  [ "$UNVERIFIED" -eq 0 ] || info "$UNVERIFIED check(s) unverified"
   info "full harness diagnostics: ~/.shell-utils/dotfiles-doctor.sh --harness-only"
   if [ "$NOTIFY" -eq 1 ] && has_command osascript; then
     osascript -e "display notification \"$WARNINGS warning(s) — run dotfiles-doctor.sh --harness-only\" with title \"dotfiles-doctor\"" > /dev/null 2>&1 || :
@@ -412,7 +584,7 @@ finish() {
 check_codex_sync() {
   echo "== Codex configuration sync =="
   if [ ! -f "$HOME/.codex/dotfiles-sync/state.json" ]; then
-    info "not installed; setup: bash install.sh --codex-only --dry-run"
+    info "[NOT APPLICABLE] not installed; setup: bash install.sh --codex-only --dry-run"
     return 0
   fi
   local output candidate python="" found_python=0
@@ -426,14 +598,14 @@ check_codex_sync() {
   done
   if [ -z "$python" ]; then
     if [ "$found_python" -eq 0 ]; then
-      warn "Codex sync cannot run: Python is not installed; next: install Python 3.11+ and retry dotfiles-doctor.sh"
+      unverified "Codex sync cannot run: Python is not installed; next: install Python 3.11+ and retry dotfiles-doctor.sh" 1
     else
-      warn "Codex sync cannot run: Python 3.11+ is unavailable; next: check python3 --version and install a supported Python"
+      unverified "Codex sync cannot run: Python 3.11+ is unavailable; next: check python3 --version and install a supported Python" 1
     fi
     return 0
   fi
   if output=$("$python" "$DOTFILES_DIR/scripts/codex-sync/install.py" check --root "$DOTFILES_DIR" 2>&1); then
-    info "merged snapshot and managed links are current; native settings remain unmanaged"
+    info "[HEALTHY] merged snapshot and managed links are current; native settings remain unmanaged"
     [ -z "$output" ] || info "$output"
   else
     warn "Codex sync needs attention: $output"
@@ -443,10 +615,14 @@ check_codex_sync() {
 main() {
   parse_options "$@" || return $?
   printf 'dotfiles doctor: %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+  info "scope: Headroom deployment/flags/savings; MCP connectivity; Claude versions; Codex managed snapshot; output compaction"
+  unverified "roles, skills and other hook behavior are not exercised; next: inspect their repository tests and /hooks"
   if [ "$HARNESS_ONLY" -eq 0 ]; then
+    info "additional scope: managed links, Homebrew, memory promotion, restored skills and repository drift"
     check_local_drift
   fi
   check_agent_harness
+  check_output_compaction
   check_codex_sync
   finish
 }
