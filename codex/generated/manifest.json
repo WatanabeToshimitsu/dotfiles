@@ -62,7 +62,7 @@
     "claude/rules/typescript/testing.md": "sha256:92e3d02b4fff30899bc1a2af043d74941adbf3b2c0e972d2fcd2c68c9c2ea70b",
     "claude/rules/typescript/type-safety.md": "sha256:e19702885ad656f3dcbf05d2e40e5ea23611d3f9ff4e3c8f62f400cbecffdba4",
     "claude/rules/web/security.md": "sha256:09d6d20da7db7c1e1baeac8869cb5862594ada592fde62bd0da07fd8f282f9d8",
-    "claude/settings.json": "sha256:ebfc76d67eb2476722c2d6ed7df5d47eb0097cd8d3c5ec5ff5c1e3df1762283d",
+    "claude/settings.json": "sha256:684fd81e47e4364abde4dfea6c8fda803c6670ea91985d3799b27fe9f1f48cfb",
     "claude/skills/code-review/SKILL.md": "sha256:bff6208714d6e9caf6f6f7815196fcdf2eb58fc0117360992d9d1f7b364e61b3",
     "claude/skills/delivery-workflow/SKILL.md": "sha256:abfa8c542fc7b8fb56d0c2a23377f22311ed5a9693e436c9364de082548111c0",
     "claude/skills/expand-tool-output/SKILL.md": "sha256:e7b299a047e186ce9ea1f2c299178c1c9a48c67a93817a0e4c7dfc59a31d961d",
