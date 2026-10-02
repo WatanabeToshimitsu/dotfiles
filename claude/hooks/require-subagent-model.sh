@@ -25,6 +25,6 @@ jq -n '{
   hookSpecificOutput: {
     hookEventName: "PreToolUse",
     permissionDecision: "deny",
-    permissionDecisionReason: "Specify an explicit non-inherit model for every subagent. Use sonnet for implementation, exploration, and routine review; use fable or opus only for high-risk design or adversarial review."
+    permissionDecisionReason: "Specify an explicit non-inherit model for every subagent. Follow delivery-workflow for role selection and independent review."
   }
 }'
