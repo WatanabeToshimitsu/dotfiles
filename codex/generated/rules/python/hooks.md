@@ -5,15 +5,11 @@ paths:
 ---
 # Python Hooks
 
-> This file extends [common/hooks.md](../common/hooks.md) with Python specific content.
+Extend [common/hooks.md](../common/hooks.md).
 
-## PostToolUse Hooks
-
-Configure in `~/.claude/settings.json`:
-
-- **black/ruff**: Auto-format `.py` files after edit
-- **mypy/pyright**: Run type checking after editing `.py` files
-
-## Warnings
-
-- Warn about `print()` statements in edited files (use `logging` module instead)
+- Check the effective settings for the event, matcher, and command before treating
+  formatting or type checking as automatic.
+- Use the project's configured formatter, linter, and type checker for verification.
+  This document is not evidence that black, ruff, mypy, or pyright hooks are active.
+- Changing global hook configuration is a separate task; a source edit does not
+  authorize installing tools or changing the runtime settings.

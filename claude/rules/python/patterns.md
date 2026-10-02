@@ -5,34 +5,8 @@ paths:
 ---
 # Python Patterns
 
-
-## Protocol (Duck Typing)
-
-```python
-from typing import Protocol
-
-class Repository(Protocol):
-    def find_by_id(self, id: str) -> dict | None: ...
-    def save(self, entity: dict) -> dict: ...
-```
-
-## Dataclasses as DTOs
-
-```python
-from dataclasses import dataclass
-
-@dataclass
-class CreateUserRequest:
-    name: str
-    email: str
-    age: int | None = None
-```
-
-## Context Managers & Generators
-
-- Use context managers (`with` statement) for resource management
-- Use generators for lazy evaluation and memory-efficient iteration
-
-## Reference
-
-See skill: `python-patterns` for comprehensive patterns including decorators, concurrency, and package organization.
+- Preserve existing data models and persistence boundaries. Add a Protocol,
+  Repository layer, or DTO only when the requested behavior needs that contract.
+- Use context managers for resources that must be released on success and failure.
+- Use lazy iteration when the input size or access pattern calls for it; do not
+  replace an existing collection API with a generator as unrelated cleanup.
