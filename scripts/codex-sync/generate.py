@@ -98,6 +98,8 @@ def build(root, ref=None):
     adaptations = json.loads(inputs[SKILL_ADAPTATIONS])
     # Only language is portable; all other settings and native runtimes stay local.
     settings = json.loads(inputs.get('claude/settings.json', b'{}'))
+    if 'claude/settings.json' in inputs:
+        inputs['claude/settings.json'] = json_bytes({'language': settings.get('language')})
     output = {}
     index, skill_names = [], {}
     for name, data in sorted(inputs.items()):

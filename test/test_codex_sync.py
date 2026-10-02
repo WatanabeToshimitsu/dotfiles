@@ -98,16 +98,23 @@ class SyncTest(RepositoryCase):
         for settings in (
             {'language': 'Japanese', 'model': 'PRIVATE_MODEL_SENTINEL',
              'newKey': {'env': 'PRIVATE_SETTING_SENTINEL'},
-             'enabledPlugins': {'new-plugin': True}, 'permissions': {'allow': ['Bash(*)']}},
+             'enabledPlugins': {'new-plugin': True}, 'permissions': {'allow': ['Bash(*)']}, 'theme': 'dark'},
             {'language': 'Japanese'},
         ):
             self.put('claude/settings.json', json.dumps(settings))
             output = self.generate()
-            self.assertEqual({p: v for p, v in output.items() if p != 'manifest.json'},
-                             {p: v for p, v in baseline.items() if p != 'manifest.json'})
+            self.assertEqual(output, baseline)
             self.assertNotIn(b'PRIVATE_', b''.join(output.values()))
         self.put('claude/settings.json', '{"language":"English"}')
-        self.assertIn(b'Response language: English.', self.generate()['AGENTS.md'])
+        english = self.generate()
+        self.assertIn(b'Response language: English.', english['AGENTS.md'])
+        self.assertNotEqual(json.loads(english['manifest.json'])['inputs']['claude/settings.json'],
+                            json.loads(baseline['manifest.json'])['inputs']['claude/settings.json'])
+        self.put('claude/settings.json', '{"theme":"light"}')
+        removed = self.generate()
+        self.assertNotIn(b'Response language:', removed['AGENTS.md'])
+        self.assertNotEqual(json.loads(removed['manifest.json'])['inputs']['claude/settings.json'],
+                            json.loads(english['manifest.json'])['inputs']['claude/settings.json'])
         git(self.root, 'rm', '-f', 'claude/settings.json')
         self.assertNotIn(b'Response language:', self.generate()['AGENTS.md'])
 
@@ -462,7 +469,7 @@ class RegressionTest(RepositoryCase):
 
 
 class PublisherTest(RepositoryCase):
-    def publisher_fixture(self):
+    def publisher_fixture(self, source='claude/CLAUDE.md', content='# PR source revision\n'):
         for name in ('.github/workflows/ci.yml', 'scripts/codex-sync/generate.py', 'claude/hooks/remote-mutation-guard.py'):
             self.put(name, '# Trusted fixture implementation\n')
             git(self.root, 'add', name)
@@ -470,8 +477,8 @@ class PublisherTest(RepositoryCase):
         self.bare = self.root.parent / 'remote.git'
         git(self.root.parent, 'init', '--bare', '-q', str(self.bare))
         git(self.root, 'switch', '-qc', 'feature')
-        self.put('claude/CLAUDE.md', '# PR source revision\n')
-        git(self.root, 'add', 'claude/CLAUDE.md')
+        self.put(source, content)
+        git(self.root, 'add', source)
         git(self.root, 'commit', '-qm', 'Revise source without regenerating')
         self.expected = git(self.root, 'rev-parse', 'HEAD')
         git(self.root, 'push', '-q', str(self.bare), 'HEAD:refs/heads/feature')
@@ -509,6 +516,15 @@ class PublisherTest(RepositoryCase):
         self.assertEqual(git(self.root, 'status', '--porcelain'), '')
         paths = git(self.root, 'diff-tree', '--name-only', '--no-commit-id', '-r', result).splitlines()
         self.assertTrue(all(p.startswith('codex/generated/') for p in paths))
+
+    def test_nonportable_settings_do_not_publish_or_dispatch(self):
+        self.publisher_fixture('claude/settings.json', '{"language":"Japanese","theme":"dark"}')
+        with patch.object(publish.subprocess, 'run', side_effect=self.transport), patch.object(publish, 'api', side_effect=self.fake_api):
+            result = publish.publish(self.root, 'owner/repo', 1, self.expected, 'test-token-placeholder')
+        self.assertEqual(result, self.expected)
+        self.assertEqual(git(self.bare, 'rev-parse', 'feature'), self.expected)
+        self.assertEqual(self.dispatches, [])
+        self.assertEqual(git(self.root, 'status', '--porcelain'), '')
 
     def test_publisher_dispatches_pushed_commit_when_pr_api_lags(self) -> None:
         self.publisher_fixture()
