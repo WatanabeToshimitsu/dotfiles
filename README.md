@@ -189,11 +189,9 @@ dotfiles-secrets.sh
 
 このリポジトリのCIでは、PRとmainへのpushを対象に、設定ファイルの検証、インストーラー・フックのテスト、Codex生成物の整合性確認、BetterleaksによるGit履歴全体の秘密情報検査を実行します。検査内容は[`.github/workflows/`](.github/workflows/)で管理しています。
 
-Betterleaksの版とプラットフォームごとのSHA-256は[`scripts/betterleaks.sh`](scripts/betterleaks.sh)の1か所で固定しており、CIと手元の両方がこれを呼びます。手元のmacOSやLinuxでも、Betterleaksを別途入れずに以下で同じ検査を実行できます。
+手元では、Brewfileで入るBetterleaksで同じ検査を実行できます。手元の版がCIで固定した版と違う場合、`test/test-secret-scan.sh`は警告を出します。
 
 ```bash
 bash test/test-secret-scan.sh
-scripts/betterleaks.sh git --redact --verbose --timeout 300 .
+betterleaks git --redact --verbose --timeout 300 .
 ```
-
-初回は現在のプラットフォーム用のリリースを取得し、SHA-256を検証してから`${XDG_CACHE_HOME:-~/.cache}/dotfiles/betterleaks/`へ保存します。実行のたびに、保存済みのバイナリが固定した版を返すことを確認します。

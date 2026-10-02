@@ -47,7 +47,7 @@ jobs:
         with:
           persist-credentials: false
       - name: shellcheck
-        run: shellcheck -S warning .shell-utils/dotfiles-update uninstall.sh install.sh test/test-install.sh test/test-dotfiles-doctor.sh test/test-dotfiles-secrets.sh test/test-external-dependencies.sh test/test-notification.sh test/test-claude-sandbox.sh test/test-claude-hooks.sh test/test-launchd.sh test/test-secret-scan.sh scripts/betterleaks.sh claude/hooks/*.sh .shell-utils/*.sh .shell-utils/claude-sandbox
+        run: shellcheck -S warning .shell-utils/dotfiles-update uninstall.sh install.sh test/test-install.sh test/test-dotfiles-doctor.sh test/test-dotfiles-secrets.sh test/test-external-dependencies.sh test/test-notification.sh test/test-claude-sandbox.sh test/test-claude-hooks.sh test/test-launchd.sh test/test-secret-scan.sh claude/hooks/*.sh .shell-utils/*.sh .shell-utils/claude-sandbox
       - name: Test 1Password secret rendering
         run: bash test/test-dotfiles-secrets.sh
       - name: Test dotfiles doctor
@@ -74,6 +74,9 @@ jobs:
   secret-scan:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      BETTERLEAKS_VERSION: 1.9.0
+      BETTERLEAKS_SHA256: f8b185a39ffcece2a1ca82bf3a4e7435cd81963ffd16b7a9128daf75f35f6de7
     steps:
       - name: Bind dispatched checks to the requested commit
         env:
@@ -87,9 +90,18 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
       - name: Install Betterleaks
-        run: scripts/betterleaks.sh version
+        run: |
+          archive="$RUNNER_TEMP/betterleaks.tar.gz"
+          install_dir="$RUNNER_TEMP/betterleaks"
+          curl --fail --location --silent --show-error \
+            "https://github.com/betterleaks/betterleaks/releases/download/v${BETTERLEAKS_VERSION}/betterleaks_${BETTERLEAKS_VERSION}_linux_x64.tar.gz" \
+            --output "$archive"
+          printf '%s  %s\n' "$BETTERLEAKS_SHA256" "$archive" | sha256sum --check --strict -
+          mkdir -p "$install_dir"
+          tar -xzf "$archive" -C "$install_dir" betterleaks
+          printf '%s\n' "$install_dir" >> "$GITHUB_PATH"
       - name: Scan Git history
-        run: scripts/betterleaks.sh git --redact --verbose --timeout 300 .
+        run: betterleaks git --redact --verbose --timeout 300 .
       - name: Test public-repository boundary
         run: bash test/test-secret-scan.sh
       - name: Test external dependency boundary

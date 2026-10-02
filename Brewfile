@@ -13,6 +13,7 @@ brew "python@3.11"
 brew "awscli"
 brew "bash-completion@2"
 brew "bat"
+brew "betterleaks"
 brew "caddy"
 brew "claude-squad"
 brew "cloudflared", link: false
