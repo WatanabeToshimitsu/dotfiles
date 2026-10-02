@@ -1,7 +1,7 @@
 {
   "executables": [],
   "files": {
-    "AGENTS.md": "sha256:b6c65e24ff1a4271a61fb37ab58bf7e899768deb52ab402a1b49d69ba2ab3fcc",
+    "AGENTS.md": "sha256:0cec3b994c349b220f346feb639009d08dbde38b330ad7bf805d25d186f09017",
     "rules/common/coding-style.md": "sha256:9f3badeb37672cc4331427722dc0ff84bd4520fa8e551713ccf44ab196878f55",
     "rules/common/github-actions.md": "sha256:dd83e898d6979615d69c358ea9664bb671ca70ff0e3b781ef48ee7ebf8d921a2",
     "rules/common/hooks.md": "sha256:4ba0deefe041a662d05786a59198c96ca9d0eb919610d26223702bfa28274a91",
@@ -36,7 +36,7 @@
     "skills/ticket/reference.example.md": "sha256:ff8b827ee6fff1441a072567b50be70d4d2c50b07f3737690732062b544c0ea3"
   },
   "inputs": {
-    "claude/CLAUDE.md": "sha256:4503aee9efda75b67792961c941e96d50a12b8905a86ed5f5527f96282dafbf8",
+    "claude/CLAUDE.md": "sha256:81453d44e3be31b3accb3815aea20d88855afd4bd16f89e41b691356d137c9ea",
     "claude/rules/common/coding-style.md": "sha256:9f3badeb37672cc4331427722dc0ff84bd4520fa8e551713ccf44ab196878f55",
     "claude/rules/common/github-actions.md": "sha256:dd83e898d6979615d69c358ea9664bb671ca70ff0e3b781ef48ee7ebf8d921a2",
     "claude/rules/common/hooks.md": "sha256:4ba0deefe041a662d05786a59198c96ca9d0eb919610d26223702bfa28274a91",
