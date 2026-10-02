@@ -63,7 +63,7 @@
     "claude/rules/typescript/testing.md": "sha256:92e3d02b4fff30899bc1a2af043d74941adbf3b2c0e972d2fcd2c68c9c2ea70b",
     "claude/rules/typescript/type-safety.md": "sha256:e19702885ad656f3dcbf05d2e40e5ea23611d3f9ff4e3c8f62f400cbecffdba4",
     "claude/rules/web/security.md": "sha256:09d6d20da7db7c1e1baeac8869cb5862594ada592fde62bd0da07fd8f282f9d8",
-    "claude/settings.json": "sha256:ebfc76d67eb2476722c2d6ed7df5d47eb0097cd8d3c5ec5ff5c1e3df1762283d",
+    "claude/settings.json": "sha256:4a11cc804fcfa8251dd720258b44c20c82160964595f3c25b08abbf7f52d00ad",
     "claude/skills/code-review/SKILL.md": "sha256:bff6208714d6e9caf6f6f7815196fcdf2eb58fc0117360992d9d1f7b364e61b3",
     "claude/skills/delivery-workflow/SKILL.md": "sha256:26be2b863804e01168f7b5a51b3fea59931e0f35569b3a5cf4e855f6bd348952",
     "claude/skills/delivery-workflow/references/scheduled-work.md": "sha256:3061e98457efb212fec0a426959af040de9a89f4643cffe8da5133cd74adcfb3",

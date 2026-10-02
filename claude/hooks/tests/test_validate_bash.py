@@ -23,7 +23,7 @@ class ValidateBashTests(unittest.TestCase):
 
     def test_literal_prose_is_not_a_command(self):
         cases = [
-            "git commit -m 'Keep git add -A blocked'",
+            "git -C 'fixture path' --no-optional-locks commit -m 'Keep git add -A blocked'",
             'git commit --message="Keep git add --all blocked"',
             "gh pr create --body 'git add -A remains denied' --title 'git add . policy'",
             "gh pr edit 111 --body 'Do not run git add -A'",
@@ -38,7 +38,7 @@ class ValidateBashTests(unittest.TestCase):
 
     def test_heredoc_prose_is_not_a_command(self):
         cases = [
-            "git commit -F - <<'EOF'\nKeep git add -A blocked\nEOF\n",
+            "git -Cfixture commit -F - <<'EOF'\nKeep git add -A blocked\nEOF\n",
             'gh pr create --body-file - <<"EOF"\nDo not git add --all\nEOF\n',
             "cat <<EOF\ngit add -A\nEOF\n",
             "cat <<-'EOF'\n\tgit add -A\n\tEOF\n",
