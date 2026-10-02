@@ -321,11 +321,25 @@ credentials, and common private-key formats. Placeholder files such as
 `.env.example` and `.npmrc.example` remain trackable.
 
 Every pull request and push to `main` scans the complete Git history with the
-checksum-verified Gitleaks version pinned in CI. `test/test-secret-scan.sh`
-checks both sides of the boundary: a synthetic credential must be detected,
-while placeholder-only configuration must pass. There are currently no
-`.gitleaksignore` or custom allowlist exceptions; add any future exception as
-narrowly as possible and document why it is safe.
+checksum-verified Gitleaks version pinned in `scripts/gitleaks.sh`.
+`test/test-secret-scan.sh` checks both sides of the boundary: a synthetic
+credential must be detected, while placeholder-only configuration must pass.
+There are currently no `.gitleaksignore` or custom allowlist exceptions; add
+any future exception as narrowly as possible and document why it is safe.
+
+CI and local runs share that pin, so the same checks run on macOS and Linux
+without installing Gitleaks globally:
+
+```bash
+bash test/test-secret-scan.sh
+scripts/gitleaks.sh git --redact --verbose --timeout 300 .
+```
+
+The first run downloads the release for the current platform, verifies its
+SHA-256, and caches it under `${XDG_CACHE_HOME:-~/.cache}/dotfiles/gitleaks/`.
+Each run checks that the cached binary reports the pinned version.
+`test/test-external-dependencies.sh` fails if CI or the boundary test carries
+its own Gitleaks pin or calls `gitleaks` from PATH.
 
 GitHub push protection is the first remote guard and Gitleaks CI is the
 repository-owned, reproducible check. A machine-local pre-commit scanner may be
@@ -339,9 +353,10 @@ verify it:
 
 - GitHub Actions use full commit SHAs, with release tags left as comments for
   Renovate and reviewers. The `pin-actions` job rejects floating references.
-- CI invokes `json5` at an exact npm version. Gitleaks and the Linux fallback
-  download of `ghq` use exact releases and SHA-256 checksums. Headroom is also
-  installed at an exact Python package version.
+- CI invokes `json5` at an exact npm version. Gitleaks, pinned once in
+  `scripts/gitleaks.sh` for CI and local runs, and the Linux fallback download
+  of `ghq` use exact releases and SHA-256 checksums. Headroom is also installed
+  at an exact Python package version.
 
 Some first-run bootstrap operations intentionally follow upstream. The
 Homebrew installer runs only when Homebrew is absent; agent Skills, fzf, GitHub
