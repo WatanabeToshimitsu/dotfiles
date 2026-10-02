@@ -63,6 +63,13 @@ for dir in "${MANIFEST_DIRS[@]}"; do
     echo "$SENTINEL_CONTENT" > "$HOME/$dir/sentinel.txt"
 done
 
+echo "=== Pre-creating real files from each managed file list ==="
+BACKUP_FILES=("${MANIFEST_FILES[0]}" "${MANIFEST_CONFIG_FILES[0]}" ".claude/${MANIFEST_CLAUDE_FILES[0]}")
+for rel in "${BACKUP_FILES[@]}"; do
+    mkdir -p "$HOME/$(dirname "$rel")"
+    printf '%s: %s\n' "$SENTINEL_CONTENT" "$rel" > "$HOME/$rel"
+done
+
 echo "=== Pre-creating the retired ~/.huskyrc symlink ==="
 # Husky reads .config/husky/init.sh since #83, so the repository no longer
 # carries .huskyrc and the link starts out dangling.
@@ -148,6 +155,17 @@ for rel in "${MANIFEST_DIRS[@]}"; do
         echo "  OK: $rel contents preserved under ~/.dotfiles-backup"
     else
         echo "  FAIL: $rel contents were deleted instead of backed up"
+        ERRORS=$((ERRORS + 1))
+    fi
+done
+
+echo "=== Verifying pre-existing file contents were backed up exactly ==="
+for rel in "${BACKUP_FILES[@]}"; do
+    backups=("$HOME/.dotfiles-backup"/*/"$rel")
+    if [ "${#backups[@]}" -eq 1 ] && cmp -s "${backups[0]}" <(printf '%s: %s\n' "$SENTINEL_CONTENT" "$rel"); then
+        echo "  OK: $rel contents preserved under ~/.dotfiles-backup"
+    else
+        echo "  FAIL: $rel original contents were not backed up exactly"
         ERRORS=$((ERRORS + 1))
     fi
 done
