@@ -7,215 +7,144 @@ description: Implement, test, commit, push, or prepare a pull request for a repo
 
 Scale the process to the change's uncertainty and risk.
 
-1. Inspect repository guidance, relevant code and tests, current branch, and existing worktree changes.
-2. Define the smallest coherent change and its verification target.
-3. Follow the stage contract below before implementation. For behavior changes, the implementer follows RED, GREEN, REFACTOR. Keep refactoring separate from feature behavior.
-4. The implementer runs focused checks, classifies failures, fixes the cause, and reruns affected checks.
-5. Use the `code-review` skill with the independent reviewer assigned by artifact author.
-6. Self-review the final diff for scope and accidental changes.
-7. After C handback and D, apply the review outcome rules below before authorized Git delivery: stage explicit paths, create logical commits, and use a normal push to the repository's existing remote. Do not force-push, use forced refspecs, mirror remote refs, or delete remote refs. Delegated C implementers do not commit or push as part of C.
-8. Before creating any PR, including a Draft PR, prepare its exact target, title, body, and complete outgoing commit range. Inspect them for secrets, personal data, and confidential information. Report findings and anything left uninspected. Obtain the user's confirmation immediately before creation. A clean pattern scan is not proof of safety. Do not save permanent PR-creation approval or use another API to evade the confirmation. Create a Draft PR only when one is needed.
+1. Inspect repository guidance, code, tests, branch, and unrelated dirty files.
+2. Define the smallest coherent change and its acceptance checks.
+3. Follow the stage contract. Use RED, GREEN, REFACTOR for behavior changes;
+   keep refactoring separate from feature behavior.
+4. Run focused checks, fix their cause, and rerun affected checks.
+5. Use `code-review` with the independent reviewer selected by artifact author.
+6. Self-review the complete final diff for scope and accidental changes.
+7. After C handback and D, apply the outcomes below before authorized Git
+   delivery. Stage explicit files, commit logical units, and push normally.
+   Never force-push, use forced refspecs, mirror, or delete remote refs.
+   Delegated C implementers do not commit or push.
+8. Before each PR, including a Draft, prepare its target, title, body, and full
+   outgoing commit range. Inspect them for secrets, personal and confidential
+   information; report findings and uninspected parts. Obtain human confirmation
+   immediately before creation. Pattern scans alone do not establish safety.
+   Never save permanent creation approval or evade it through another API.
+   Create a Draft only when needed.
 
-Preserve unrelated user changes. Follow the repository's commit and PR conventions. Never add Claude attribution. Do not claim checks passed unless they actually ran; state any verification that could not run.
-
-Ask before committing to product behavior, architecture, data model, compatibility, security, data-loss, or other expensive-to-reverse choices that cannot be resolved from existing evidence.
+Preserve unrelated changes and repository conventions. Never add Claude
+attribution or report unrun checks as passing. Ask about consequential product,
+architecture, data, compatibility, security, or data-loss choices unresolved
+by existing evidence.
 
 ## Scheduled repository work
 
-When planning or carrying out scheduled or repeated repository work, read
-[the scheduled-work reference](references/scheduled-work.md). Prepare the
-technical plan from repository evidence; ask the user for unresolved intent,
-scope, limits, and preferences. Planning does not authorize activation or writes.
+For scheduled or repeated work, read [scheduled-work](references/scheduled-work.md).
+Build the technical plan from repository evidence; ask only for unresolved
+intent, scope, limits, and preferences. Planning authorizes neither activation
+nor writes.
 
 ## Stage contract
 
-The user-facing frontier model leads the task by default. Either Claude or Codex
-may design, implement, test, and fix through its authorized tools. Delegate for
-concrete reasons such as tools, capacity, existing ownership, or demonstrated
-suitability. Preserve accepted designs and the task's owner when changing models;
-a provider change alone is not a reason to redesign or open a competing task.
+The configured user-facing frontier leads by default and retains accountability.
+Either provider may design and implement. Delegate for tools, capacity, ownership,
+or suitability; preserve accepted designs and owners when changing providers.
 
 | Stage | Owner | Exit evidence |
 | --- | --- | --- |
-| A: design, policy, acceptance criteria | Frontier lead or capable delegate | Scoped design and acceptance criteria |
-| B: design review | Independent reviewer selected below | Findings disposition and actual review level |
-| C: implementation, tests, fixes | Lead or capable delegate | Scoped artifact and actual check results |
-| D: implementation review | Independent reviewer selected below | Findings disposition and actual review level |
+| A: design and acceptance criteria | Frontier lead or capable delegate | Scoped design and criteria |
+| B: design review | Independent reviewer selected below | Findings disposition and actual level |
+| C: implementation, tests, fixes | Lead or capable delegate | Scoped artifact and actual checks |
+| D: implementation review | Independent reviewer selected below | Findings disposition and actual level |
 
-One model may perform A and C. Select B from A's author and D from C's author,
-regardless of the coordinator. For example, if an Astra lead delegates C to
-Claude, D prefers a fresh Codex frontier reviewer. A reviewer must not have helped
-produce the artifact; the lead's self-check is never independent approval.
-Agent names, model attributes, or an enabled plugin do not establish an actual
-cross-family invocation.
+Select B from A's author and D from C's author, regardless of coordinator.
+Reviewers must not help author the artifact. Self-checks, agent names, model
+attributes, and plugin configuration do not prove independent approval or
+cross-family invocation. Tiny tasks may put A in the claim and B at the start
+of C if B did not author A; neither B nor D is waived.
 
-Permission boundaries, user changes, repository ownership rules, and existing
-Loop stop conditions take precedence. Stage assignments grant no additional
-permission to publish, commit, change authentication, or relax sandbox rules.
-
-Tiny tasks may keep exploration, coordination, and implementation in the current
-lead context. A may be concise acceptance criteria in the authorized claim
-record. B may open the C invocation if that reviewer did not author A. Resolve
-substantiated blocking findings before dependent C edits; apply the continuation
-rules below when review is unavailable or advisory. D remains independent. These
-shortcuts waive neither review stage nor its evidence record.
-
-Scale review depth by risk. Review the coherent final artifact once per stage,
-not after every edit. Revisit the affected review when fixes or later changes
-invalidate the reviewed artifact or acceptance criteria.
+Permissions, user changes, ownership rules, and Loop stop conditions take
+precedence. Stages grant no publishing, authentication, spending, or sandbox
+authority. Resolve substantiated blocking B findings before dependent C work.
+Review the coherent artifact once per stage; revisit affected reviews when
+later changes invalidate the artifact or acceptance criteria.
 
 ### Models and availability
 
-Use current client metadata or provider primary documentation to identify
-frontier capability and supported routes. Fable and Astra are current examples,
-not permanent role assignments. Keep the configured user-facing frontier model;
-do not silently replace it with a lower model. Delegation does not change the
-lead's responsibility for final decisions.
+Use current client or provider metadata for frontier capability and supported
+routes. Fable and Astra are examples, not permanent roles. Keep the configured
+lead; never silently downgrade it or ask the user to repeat authorized fallback
+choices. Try the actual stage invocation, not duplicate availability probes.
 
-Record requested model, observed model, and evidence source. Native dispatch
-with explicit model selection is valid client evidence. Otherwise use actual
-provider/client metadata when present; JSON need not expose a model field.
-Model self-report is never evidence. CLI model arguments are requests, not
-served-model evidence. Missing metadata stays `unknown` and cannot establish
-frontier approval, although the output may supply advisory evidence.
-
-For B and D, automatically select the first available, authorized option:
-
-| Order | Reviewer | Permitted outcome |
+| Order | Fresh reviewer | Outcome |
 | --- | --- | --- |
-| 1 | Other-family frontier in a fresh context | Independent frontier review |
-| 2 | Same-family frontier in a fresh non-author context | Independent frontier review; record the fallback and shared-model blind spots |
-| 3 | Strongest available non-frontier model | Advisory findings for the frontier lead to verify |
-| 4 | Lightweight model | Narrow evidence gathering or candidate findings, never approval |
+| 1 | Other-family frontier | Independent frontier review |
+| 2 | Same-family non-author frontier | Independent frontier review; disclose fallback and shared blind spots |
+| 3 | Strongest available non-frontier | Advice for the lead to verify |
+| 4 | Lightweight model | Narrow evidence only; never approval |
 
-Do not ask the user to repeat the model choice or fallback authorization. Report
-the selected route and reason briefly. Use the actual stage invocation as the
-availability check; avoid duplicate model-probe turns. Do not launch every row
-merely to satisfy a checklist. Read-only helpers keep their existing tool limits;
-implementation requires a capable lead or delegate with authorized write tools.
+Report the route and reason. Record requested/observed model and evidence source:
+explicit native dispatch is client evidence; otherwise use actual client/provider
+metadata. CLI arguments are requests and self-report is never evidence. Missing
+metadata stays unknown and cannot establish frontier approval.
 
-Record exhausted quota scope (model, provider, or account), failed candidates,
-and retry/reset time when supplied. Unknown scope and limits remain unknown;
-a successful turn is not a quota audit. Skip a known depleted shared bucket
-until reset or new availability evidence. For unknown scope, try each otherwise
-eligible alternative at most once per selection and stop when the failure
-establishes a shared exhausted bucket. Retain this evidence across stages so the
-same failure is not probed again without new evidence.
-
-Distinguish exhausted quota from transient rate limiting, unavailable routes,
-authentication failures, and permission denials. Honor a supplied retry delay
-for a bounded transient retry when practical; do not keep the task in a retry
-loop. Never change authentication, bypass permission denials through fallback,
-add providers, switch to paid credentials, enable spending, or consume credits
-or usage resets without separate authorization. Do not infer no login from a
-failed sandboxed auth check. This policy creates no waiting automation.
+**Before retrying or selecting a fallback after quota, route, authentication,
+permission, or lead-availability failure, read [recovery](references/recovery.md).**
+Do not bypass denials or change authentication, providers, permissions, spending,
+credits, or usage resets without separate authority. A sandbox auth failure
+does not prove missing login. No frontier lead: save a handoff and pause
+dependent work. Never reprobe a known exhausted bucket without reset or new
+availability evidence.
 
 ### Review outcomes and continuation
 
-Record B and D separately. Use `PASS` only for a completed, verified independent
-frontier review whose substantiated blocking findings are resolved. Use
-`ADVISORY` for lower-tier or unknown-model findings and `UNREVIEWED` when no
-independent review ran. A lower-tier report with no findings is not frontier
-approval. Never relabel same-family review as cross-family review.
+Record B and D separately. `PASS` requires completed, verified independent
+frontier review and resolution of substantiated blockers. Use `ADVISORY` for
+lower-tier or unknown-model findings, `UNREVIEWED` when no review ran. Do not
+call same-family review cross-family or advice/no findings frontier approval.
 
-The frontier lead checks each proposed correction against the specification,
-reproduction, counterexample, or actual verification results. Accept supported
-findings, explain rejected claims, and check for regressions after fixes. Do not
-rewrite correct behavior to satisfy unsupported or stylistic demands. An
-unverifiable material concern stays unresolved; preserving existing behavior
-does not dispose of that concern.
+Verify corrections against specifications, reproductions, counterexamples, or
+actual checks. Accept supported findings, explain rejected claims, and check
+regressions. Do not rewrite correct behavior for unsupported or stylistic
+demands. Material uncertainty remains unresolved; unchanged behavior alone
+does not dispose of it.
 
-While a frontier lead remains available, reversible in-scope preparation,
-implementation, and checks may continue with advisory or missing review recorded.
-This exception does not authorize dependent work on unresolved consequential
-design choices, security, data-loss, or compatibility risks. Keep those decisions
-and their delivery paused until the necessary evidence and frontier review are
-available. For low-impact work whose acceptance criteria are verified, authorized
-delivery may proceed with the reduced review level explicitly reported; never
-claim full approval. PR confirmation and all other publication boundaries remain.
-
-If no frontier can continue as lead, save the artifact state, actual checks,
-unresolved decisions, review levels, quota evidence, writer status, and next
-resumption step. Pause dependent work without repeatedly asking to downgrade or
-spend. A quota failure during delegated C still requires stopped-writer recovery
-before reassignment; elapsed time alone does not return writer authority.
+An available frontier lead may continue reversible in-scope preparation,
+implementation, and checks with reduced review recorded. Unresolved consequential
+design, security, data-loss, or compatibility risks keep dependent work and
+delivery paused until the necessary evidence and frontier review are available.
+Verified low-impact work may receive authorized delivery with its reduced
+review level disclosed. PR confirmation and native boundaries still apply.
 
 ### Handoff and exclusive editing
 
-The lead retains the issue label, claim, branch, and dedicated worktree. Each
-handoff packet names the inviting lead, owner label, branch, base/ref, and exact
-allowed paths. During C only its implementer may edit or run mutating commands
-in the claimed worktree and shared deliverable paths. If C is delegated, the
-lead and all other agents stay read-only there; if the lead performs C, it is
-the sole writer. Private coordination evidence elsewhere and unrelated worktrees
-are outside this writer restriction.
-Write authority returns to the lead after the implementer's completed or stopped
-report. If a crash leaves no report, reclaim it only after runtime/process
-evidence confirms the implementer and all spawned write-capable work have stopped,
-a read-only worktree/base/allowed-path check is complete, and the lead records C
-as stopped. Unknown or orphan writers keep the handoff blocked. Stop on an
-out-of-scope request, a changed base/ref, or unlisted worktree changes. Either
-lead may implement subsequent fixes after authority has returned, within the
-same scope and permissions.
-Give C an appropriate bounded runtime timeout. On timeout, use the stopped-writer
-recovery above; elapsed time alone does not prove that every writer has stopped.
+The lead retains claim, label, branch, and worktree. Every C handoff names the
+lead, owner, base/ref, and exact allowed paths. C alone may edit or run mutations
+in the claimed worktree and deliverable paths; during delegated C everyone else
+stays read-only there. Private coordination and unrelated worktrees are outside
+this restriction. Stop on out-of-scope requests, moved base, or unlisted changes.
+Give C a bounded runtime timeout; fixes require returned authority and the same
+scope and permissions.
 
-A reviewer must not have helped produce the artifact. Start a fresh context
-with a private packet containing purpose, acceptance criteria, relevant guidance,
-artifact or full scoped diff, base/ref, allowed paths, actual verification
-results, and the review question. Omit inherited conversation, author verdicts,
-prior review outcomes, unrelated changes, and user dirty files. Reviewers use
-the packet and report missing evidence; the lead supplies what is needed or
-records a blocker. Do not duplicate exploration or approve unseen changes.
+Authority returns after a completed or stopped C report. **Before reassignment
+after a crash, quota failure, timeout, or unknown writer, read
+[recovery](references/recovery.md#recover-a-stopped-writer).** Elapsed time alone
+does not return authority. Unknown or orphan writers keep the handoff blocked.
 
-Keep packets, raw output, absolute worktree/evidence paths, and telemetry private.
-For authorized issue/PR updates, publish only a sanitized summary: family,
-requested/observed model and evidence source, author/reviewer role, review level, stage,
-repo-relative paths, base/ref, actual result, elapsed time, intervention count,
-and stop reason. Check every public field for secrets, personal information,
-and local paths before posting. Count human interventions and evidence
-redispatches separately. A blocked handoff names the missing stage and retains
-these private/public records; any PR remains Draft. Unrun stages are `not run`.
-An explicit user decision to proceed unreviewed never turns that stage into PASS.
+Give fresh reviewers only a private packet: purpose, criteria, guidance,
+artifact or complete scoped diff, base/ref, allowed paths, actual checks, and
+question. Exclude inherited conversation, author verdicts, prior outcomes, and
+dirty files. Supply missing evidence or record a blocker; do not repeat
+exploration or approve unseen changes. Read-only helpers retain their limits;
+implementation needs authorized write tools.
+
+Keep packets, raw output, absolute paths, and telemetry private. Inspect every
+public field before posting an authorized sanitized summary: family, requested/
+observed model and evidence, author/reviewer roles, stage/level, relative paths,
+base/ref, actual results, elapsed time, interventions, and stop reason. Count
+human interventions and evidence redispatches separately. Blocked handoffs name
+the missing stage and keep PRs Draft. Unrun stages are `not run`; permission
+to proceed unreviewed never makes them `PASS`.
 
 ### Invocation routes
 
-Prefer an available native dispatch with explicit model selection and a fresh,
-bounded context. Supply only the packet to reviewers and transfer C's allowed
-paths and exclusive writer role to the implementer. Verify the actual callable
-route; existing plugin configuration alone is not proof of one.
-
-Native `fable-deep` retains read-only tools: packet-only behavior is a prompt
-restriction, not isolation from unrelated files. Prefer the tool-less Claude CLI
-route below when tool isolation is needed; read-only tools alone do not enforce it.
-
-CLI alternatives below use private directories and explicit stdin. Replace the
-placeholders, check installed CLI support, and retain normal rules, sandbox,
-and authentication. These examples are invocation instructions, not run evidence.
-
-```bash
-# B or D when Codex is selected; packet-only, no edits or tool execution.
-rtk proxy codex exec -m gpt-6-astra -C "<packet-dir>" --skip-git-repo-check \
-  --ephemeral --sandbox read-only --json \
-  --output-last-message "<evidence>/design-review.md" - \
-  < "<packet-dir>/packet.md" > "<evidence>/design-review.jsonl"
-
-# C example when a capable Codex delegate is selected.
-rtk proxy codex exec -m gpt-6-astra -C "<worktree>" --sandbox workspace-write \
-  --json --output-last-message "<evidence>/implementation.md" - \
-  < "<packet-dir>/packet.md" > "<evidence>/implementation.jsonl"
-
-# B or D when Claude is selected; run from the private packet directory.
-rtk proxy claude --restricted --tools '' --disallowedTools 'mcp__*' \
-  --strict-mcp-config --mcp-config '{"mcpServers":{}}' \
-  --disable-slash-commands --no-chrome \
-  --no-session-persistence --model fable --effort high --print --output-format json \
-  < "<packet-dir>/packet.md" > "<evidence>/implementation-review.json"
-```
-
-Apply the stage-specific fallback above if a model is rejected. Do not bypass
-sandbox, rules, or user configuration to make a route work. The Codex read-only
-sandbox prevents writes, not reads: explicitly instruct the reviewer to use only
-the supplied packet and not invoke tools. For Claude, extract model evidence
-from `modelUsage` when present; for Codex, use available client metadata or the
-native selection record. Keep absent fields unknown rather than inventing them.
+Prefer a verified native route with explicit model selection and fresh bounded
+context. Reviewer packets grant no tool authority; C receives exact paths and
+exclusive writer authority. For CLI routes, read the
+[shared requirements](references/invocation.md#cli-requirements) and only the
+applicable provider/stage section. For native `fable-deep`, read the
+[Claude isolation limits](references/invocation.md#claude-review). Configuration
+alone proves neither a callable route nor isolation.
