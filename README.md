@@ -187,4 +187,11 @@ dotfiles-secrets.sh
 
 ## このリポジトリのGitHub設定
 
-このリポジトリのCIでは、PRとmainへのpushを対象に、設定ファイルの検証、インストーラー・フックのテスト、Codex生成物の整合性確認、GitleaksによるGit履歴全体の秘密情報検査を実行します。検査内容は[`.github/workflows/`](.github/workflows/)で管理しています。
+このリポジトリのCIでは、PRとmainへのpushを対象に、設定ファイルの検証、インストーラー・フックのテスト、Codex生成物の整合性確認、BetterleaksによるGit履歴全体の秘密情報検査を実行します。検査内容は[`.github/workflows/`](.github/workflows/)で管理しています。
+
+手元では、Brewfileで入るBetterleaksで同じ検査を実行できます。手元の版がCIで固定した版と違う場合、`test/test-secret-scan.sh`は警告を出します。
+
+```bash
+bash test/test-secret-scan.sh
+betterleaks git --redact --verbose --timeout 300 .
+```
