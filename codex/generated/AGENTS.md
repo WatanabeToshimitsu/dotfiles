@@ -63,6 +63,10 @@ The user-facing frontier model leads the task and may design, implement, refacto
 # モデルとコンテキスト
 
 - Keep the user-facing frontier model as lead by default. Delegate for concrete reasons such as tools, capacity, existing ownership, or demonstrated suitability; preserve accepted designs and one writer per shared scope.
+- Reuse explicit user authorization for collaboration and necessary packet sharing within the approved task, providers, purpose, and data scope. Do not ask again for design review, implementation review, or review after fixes when those boundaries are unchanged.
+- Carry the actual approval basis and its task, providers, purpose, and permitted data scope in each private handoff and invocation. Share only the necessary artifact, acceptance criteria, and verification; remove secrets, personal information, and unrelated material.
+- Check changed tasks, providers, purposes, or expanded data against the existing approval, and obtain only the missing authorization before dependent sharing. Identify the rejecting authority, action, and reason for a runtime permission denial; never evade it through another route, provider, or agent.
+- Approval reuse grants no new tool, authentication, spending, publication, or permission authority. Preserve PR confirmation and unsolicited-post restrictions, and record document checks, actual model calls, and approval-runtime results separately.
 - Review designs and implementations in fresh contexts that did not produce the artifact. Select reviewers by the artifact author's family, not the coordinator's family.
 - Automatically prefer another-family frontier, then a same-family frontier, then the strongest available non-frontier adviser, then lightweight evidence gathering. Keep final decisions with a frontier lead; verify findings against specifications and actual checks. Advisory or missing review is never frontier approval.
 - Record quota scope and retry/reset evidence; avoid repeated failed calls and confirmation questions. Do not silently downgrade the user-facing model, enable spending, or change permissions. If no frontier can continue as lead, save a handoff and pause dependent work.
