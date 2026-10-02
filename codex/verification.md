@@ -23,6 +23,9 @@ git diff --check
 replaces HOME with a disposable directory of its own before the first write; the
 caller's profile is never touched.
 
+The settings input fingerprint covers a canonical language-only projection, not
+the complete Claude settings file. Other input and output hashes keep their coverage.
+
 | Boundary | Evidence |
 | --- | --- |
 | Public generation | 36 tracked inputs; 34 outputs; 25 rules with all 67 scope patterns; six skills. Only response language is imported from settings; other settings and native runtimes are excluded as categories. Shared AGENTS text is 9,817 bytes before local instructions. |
