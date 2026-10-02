@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if ! command -v gitleaks >/dev/null 2>&1; then
-  echo "FAIL: gitleaks is required" >&2
+BETTERLEAKS="$(cd "$(dirname "$0")/.." && pwd)/scripts/betterleaks.sh"
+
+if ! "$BETTERLEAKS" version >/dev/null; then
+  echo "FAIL: scripts/betterleaks.sh is unavailable" >&2
   exit 1
 fi
 
@@ -55,12 +57,16 @@ mkdir -p "$tmp_dir/leak" "$tmp_dir/clean"
 
 synthetic_prefix="AKIA"
 synthetic_tail="Q7W4ERT5Y2UI6OPA"
-printf 'aws_access_key_id = %s%s\n' \
-  "$synthetic_prefix" "$synthetic_tail" > "$tmp_dir/leak/credentials"
+synthetic_pair_head="qt2lUw0ee0hx5Wzl"
+synthetic_pair_tail="fFggzLQ/L6ui/49h44PGF2wY"
+# Betterleaks reports an access key ID only with a secret access key within five lines.
+printf 'aws_access_key_id = %s%s\naws_secret_access_key = %s%s\n' \
+  "$synthetic_prefix" "$synthetic_tail" \
+  "$synthetic_pair_head" "$synthetic_pair_tail" > "$tmp_dir/leak/credentials"
 
 echo "=== Verifying a synthetic credential is rejected ==="
 report="$tmp_dir/findings.json"
-if gitleaks dir --no-banner --no-color --redact --timeout 30 \
+if "$BETTERLEAKS" dir --no-banner --no-color --redact --timeout 30 \
   --report-format json --report-path "$report" "$tmp_dir/leak"; then
   echo "  FAIL: synthetic credential was not detected"
   ERRORS=$((ERRORS + 1))
@@ -87,7 +93,7 @@ printf '%s\n' \
   'private_key_path=/path/to/private.key' > "$tmp_dir/clean/.env.example"
 
 echo "=== Verifying placeholder configuration is accepted ==="
-if gitleaks dir --no-banner --no-color --redact --timeout 30 "$tmp_dir/clean"; then
+if "$BETTERLEAKS" dir --no-banner --no-color --redact --timeout 30 "$tmp_dir/clean"; then
   echo "  OK: placeholder configuration accepted"
 else
   echo "  FAIL: placeholder configuration produced a finding"
