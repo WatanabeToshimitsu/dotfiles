@@ -7,16 +7,11 @@ paths:
 ---
 # TypeScript/JavaScript Hooks
 
-> This file extends [common/hooks.md](../common/hooks.md) with TypeScript/JavaScript specific content.
+Extend [common/hooks.md](../common/hooks.md).
 
-## PostToolUse Hooks
-
-Configure in `~/.claude/settings.json`:
-
-- **Prettier**: Auto-format JS/TS files after edit
-- **TypeScript check**: Run `tsc` after editing `.ts`/`.tsx` files
-- **console.log warning**: Warn about `console.log` in edited files
-
-## Stop Hooks
-
-- **console.log audit**: Check all modified files for `console.log` before session ends
+- Check the effective settings for the event, matcher, and command before treating
+  formatting, type checking, or console warnings as automatic.
+- Use the project's configured formatter and type checker for verification.
+  A documented setup suggestion does not register a hook.
+- Changing global hook configuration is a separate task; a source edit does not
+  authorize installing tools or changing the runtime settings.

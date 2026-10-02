@@ -5,34 +5,10 @@ paths:
 ---
 # Python Testing
 
-> This file extends [common/testing.md](../common/testing.md) with Python specific content.
+Extend [common/testing.md](../common/testing.md).
 
-## Framework
-
-Use **pytest** as the testing framework.
-
-## Coverage
-
-```bash
-pytest --cov=src --cov-report=term-missing
-```
-
-## Test Organization
-
-Use `pytest.mark` for test categorization:
-
-```python
-import pytest
-
-@pytest.mark.unit
-def test_calculate_total():
-    ...
-
-@pytest.mark.integration
-def test_database_connection():
-    ...
-```
-
-## Reference
-
-See skill: `python-testing` for detailed pytest patterns and fixtures.
+- Keep the project's existing runner and fixture style, including `unittest`.
+  Do not migrate a regression test to pytest or add pytest solely from this rule.
+- Use existing coverage gates and commands; run the smallest relevant suite first.
+- Follow the existing fixture cleanup convention so temporary state is removed
+  even when an assertion fails.

@@ -7,12 +7,9 @@ paths:
 ---
 # TypeScript/JavaScript Testing
 
-> This file extends [common/testing.md](../common/testing.md) with TypeScript/JavaScript specific content.
+Extend [common/testing.md](../common/testing.md).
 
-## E2E Testing
-
-Use **Playwright** as the E2E testing framework for critical user flows.
-
-## Agent Support
-
-- **e2e-runner** - Playwright E2E testing specialist
+- Use the project's existing test runner, fixtures, and coverage commands.
+- Exercise critical user flows through existing E2E coverage when the changed
+  behavior needs it. Do not introduce Playwright or another runner solely because
+  a global rule mentions it.
