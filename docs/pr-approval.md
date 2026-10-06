@@ -7,17 +7,42 @@ mirror updates, and remote deletions remain blocked by the publication guard.
 For every PR, including a draft, the agent must prepare and show the exact
 repository, base/head, title, body, and complete outgoing commit range. Inspect
 them for secrets, personal data, and confidential information, report both the
-findings and any uninspected scope, then obtain the user's explicit confirmation
-immediately before calling the creation tool. A request to implement a change is
-not approval to publish an unspecified PR. Changed publication content needs new
-confirmation. Never save that confirmation as a permanent allow rule.
+findings and any uninspected scope, then verify explicit human approval covers
+the prepared publication before calling the creation tool.
+
+An explicit approval for multiple, split, or continued PR creation may carry over
+within its repository, task, content, and limits. A single-PR approval ends after
+that PR. Honor specified counts and conditions; an approved bounded task can
+limit multiple PRs without a fixed count. A request to implement or continue work
+alone is not publication approval and does not permit an unapproved split.
+
+Check the actual approval basis against the latest authoritative user instructions.
+Ask only for missing or expanded authority. Revoked approval stops creation;
+unverifiable approval cannot be recovered from an old note alone. Resuming the
+same task does not require another confirmation when current instructions and
+approval coverage can be established. Stop on unresolved sensitive findings;
+resolve them with evidence, not an annotation claiming a value is fake.
+Uninspected scope requires concrete disclosure and individual approval.
+
+Keep the approval basis and scope in private handoffs; never publish conversation
+text or save permanent or repository-wide allow rules. PR approval grants no
+merge, issue closure, profile, scheduling, spending, or private-data sharing
+authority. Native rejection or cancellation stops that PR and dependent
+publication. Establish its reason and affected scope before continuing;
+a human rejection is evidence to reassess approval, not unused PR capacity.
+Never evade a denial through another route, provider, or agent.
+
+Report approval coverage and document checks separately from observed native
+review, hook, and permission results. Document compliance does not prove runtime
+permission or that future native confirmation will be skipped. Normal commits
+and pushes, including later PR updates, retain their existing scope and guards.
 
 ## Codex: connector and CLI
 
 Prefer the GitHub connector when available. Keep its PR-creation tool set to
 `approval_mode = "prompt"` with the app's `approvals_reviewer = "user"`.
-GitHub CLI is also supported after the same publication review and user
-confirmation. In the user's Codex rules, replace the previous connector-only
+GitHub CLI is also supported after the same publication review and explicit
+approval coverage. In the user's Codex rules, replace the previous connector-only
 `forbidden` entries for these commands with `prompt` entries; adding new rules
 without removing the old entries leaves the stronger prohibition active:
 
@@ -37,9 +62,9 @@ Codex does not support a hook `permissionDecision: "ask"`. The hook therefore
 blocks detected risks and returns inspection context for other PR attempts,
 including CLI attempts. It does not open a human approval dialog or verify that
 consent occurred. Under Auto-review, a CLI `prompt` can go to the automatic
-reviewer, so it does not guarantee a human dialog either. The agent must obtain
-the user's confirmation in the conversation **before invoking the tool**, as
-required by `AGENTS.md`; the hook's context is not a substitute for that step.
+reviewer, so it does not guarantee a human dialog either. The agent must establish
+the user's explicit approval coverage **before invoking the tool**, reusing a
+covered approval or obtaining missing consent; hook context is not consent.
 The connector retains its separate native human approval setting.
 
 Codex PR creation through `gh api` remains blocked because its request body and
@@ -51,7 +76,7 @@ may be explicitly empty) or a readable `--body-file`. The hook blocks missing
 text, stdin, unreadable or oversized body files, and options that generate or
 edit text after inspection, such as `--fill`, `--editor`, `--web`, `--template`,
 `--recover`, and `--attach`. Unrecognized flags and combined short flags are
-also blocked. Prepare the final text before requesting user confirmation.
+also blocked. Prepare the final text before checking its approval coverage.
 
 The native Codex Bash payload observed on 2026-09-14 contained
 `tool_input.command` and the session `cwd`, but no tool-level `workdir`.
@@ -65,14 +90,13 @@ rtk proxy git -C /absolute/repo push origin topic
 
 Use absolute `--body-file` paths for Codex CLI PR creation. PR commit-range
 inspection still uses the session cwd and may be incomplete. Review the complete
-outgoing range separately and disclose uninspected scope before seeking
-confirmation.
+outgoing range separately and disclose uninspected scope for individual approval.
 
 Automatic commit inspection is best-effort: a missing base, repository mismatch,
 fork head, or oversized history produces an uninspected-range warning, not a
 denial. The agent must review the complete outgoing range separately, for example
-through the connector, and disclose anything it cannot inspect before seeking
-confirmation. This preserves PRs whose remote commits cannot be resolved locally.
+through the connector, and obtain individual approval for anything it cannot
+inspect. This preserves PRs whose remote commits cannot be resolved locally.
 Body files can change between hook inspection and execution; use inline `--body`
 when that risk matters, and do not edit an approved body file before creation.
 

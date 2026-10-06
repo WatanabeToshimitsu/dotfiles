@@ -25,7 +25,19 @@ The user-facing frontier model leads the task and may design, implement, refacto
 - 権限に配送が含まれる場合は、検証後に論理単位で commit、通常の push まで進める。強制 push、強制 refspec、リモートの削除は行わない。
 - For `git push`, include a literal absolute repository path in the command, such as `rtk proxy git -C /absolute/repo push origin topic`, even when the tool sets `workdir`. Codex shell hooks may receive only the command and session cwd.
 - For Codex CLI PR creation, use an absolute `--body-file` path.
-- PR は Draft も含め、作成先・タイトル・本文・公開対象の全コミットを準備してから、作成直前にユーザーの確認を取る。作成前に秘密情報・個人情報・機密情報を検査し、結果と未検査範囲を提示する。フックのパターン検査だけで安全と断定しない。PR 作成時の確認を恒久許可に保存しない。
+- Before every PR, including a Draft, prepare and show the target, title, body,
+  full outgoing commit range, and inspection results for secrets, personal and
+  confidential information. Pattern scans alone do not establish safety.
+- Reuse explicit PR-creation approval only within its repository, task, content,
+  and limits. Multiple PRs require explicit approval for multiple, split, or
+  continued PR creation; a single-PR approval ends after that PR.
+- Check the actual approval against the latest user instructions before creation.
+  Ask only for missing or expanded authority. Stop on unresolved sensitive findings,
+  revoked or unverifiable approval, or runtime rejection; uninspected scope needs
+  disclosure and individual approval. Never evade a denial through another route.
+- Keep approval evidence private, never in permanent allow rules. PR approval
+  grants no merge, profile, scheduling, spending, or private-data sharing authority.
+  Keep native checks and report instruction checks separately from runtime results.
 - JavaScript/TypeScript を含む範囲のリポジトリ検査やリファクタリングでは、`repository-audit` skill を使い、Knip の結果または実行できなかった理由を残す。
 
 詳細な進行手順とレビュー基準は、該当時に `delivery-workflow` と `code-review` skill を使う。
@@ -66,7 +78,7 @@ The user-facing frontier model leads the task and may design, implement, refacto
 - Reuse explicit user authorization for collaboration and necessary packet sharing within the approved task, providers, purpose, and data scope. Do not ask again for design review, implementation review, or review after fixes when those boundaries are unchanged.
 - Carry the actual approval basis and its task, providers, purpose, and permitted data scope in each private handoff and invocation. Share only the necessary artifact, acceptance criteria, and verification; remove secrets, personal information, and unrelated material.
 - Check changed tasks, providers, purposes, or expanded data against the existing approval, and obtain only the missing authorization before dependent sharing. Identify the rejecting authority, action, and reason for a runtime permission denial; never evade it through another route, provider, or agent.
-- Approval reuse grants no new tool, authentication, spending, publication, or permission authority. Preserve PR confirmation and unsolicited-post restrictions, and record document checks, actual model calls, and approval-runtime results separately.
+- Approval reuse grants no new tool, authentication, spending, publication, or permission authority. Preserve explicit PR publication approval and unsolicited-post restrictions, and record document checks, actual model calls, and approval-runtime results separately.
 - Review designs and implementations in fresh contexts that did not produce the artifact. Select reviewers by the artifact author's family, not the coordinator's family.
 - Automatically prefer another-family frontier, then a same-family frontier, then the strongest available non-frontier adviser, then lightweight evidence gathering. Keep final decisions with a frontier lead; verify findings against specifications and actual checks. Advisory or missing review is never frontier approval.
 - Record quota scope and retry/reset evidence; avoid repeated failed calls and confirmation questions. Do not silently downgrade the user-facing model, enable spending, or change permissions. If no frontier can continue as lead, save a handoff and pause dependent work.

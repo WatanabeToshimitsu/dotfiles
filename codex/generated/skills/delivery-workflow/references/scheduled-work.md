@@ -52,7 +52,12 @@ new initiatives, or scheduling the next run. Follow any narrower project rules.
 Apply the delivery stage contract to authorized changes, including ownership,
 independent review, one writer, and verification. A Loop contract does not grant
 auto-merge, production operations, secret changes, or permanent PR-creation
-approval. Preserve per-creation PR confirmation and all native permission checks.
+approval. Follow the
+[publication guidance](https://github.com/WatanabeToshimitsu/dotfiles/blob/main/docs/pr-approval.md)
+for each PR's preparation, inspection, and explicit approval coverage. Interactive
+PR approval alone does not authorize scheduled or unattended publication: the
+approved project contract must explicitly cover that execution, publication, and
+its limits. Preserve all native permission checks.
 
 Stop at the first exhausted budget, missing authority, changed ownership,
 contract stop condition, or unresolved consequential decision. Repair failed

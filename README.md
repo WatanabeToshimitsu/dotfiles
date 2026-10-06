@@ -125,7 +125,11 @@ npx skills update natural-japanese -g -y
 
 ### PR作成時の確認
 
-エージェントは、作成先・タイトル・本文・公開する全コミットを準備し、秘密情報などの検査結果を示してから、PR作成の直前に承認を求めます。依頼範囲内の通常のcommit・pushは、その都度の確認なしで進みます。詳細は[PR公開前の確認](docs/pr-approval.md)を参照してください。
+Before each PR, agents prepare its publication details and show inspection results.
+Explicit PR approval can carry over within the approved task and repository;
+missing or expanded approval still requires confirmation. Normal commits and
+pushes within the request proceed without repeated confirmation.
+See [PR publication approval](docs/pr-approval.md).
 
 <a id="notifications"></a>
 
