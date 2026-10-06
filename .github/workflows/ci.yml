@@ -120,6 +120,19 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Validate symlink manifest nesting
+        run: |
+          source symlink-manifest.sh
+          files=("${MANIFEST_FILES[@]}" "${MANIFEST_CONFIG_FILES[@]}" "${MANIFEST_CLAUDE_FILES[@]/#/.claude/}")
+          for i in "${!MANIFEST_DIRS[@]}"; do
+            dir="${MANIFEST_DIRS[$i]}"
+            for path in "${files[@]}" "${MANIFEST_DIRS[@]:$((i + 1))}"; do
+              if [[ "$path" == "$dir" || "$path" == "$dir/"* || "$dir" == "$path/"* ]]; then
+                printf 'Conflicting manifest paths: %s and %s\n' "$dir" "$path" >&2
+                exit 1
+              fi
+            done
+          done
       - name: Check generated Codex configuration
         run: python3 scripts/codex-sync/generate.py --check
       - name: Validate TOML (herdr)
