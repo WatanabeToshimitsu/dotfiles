@@ -20,9 +20,14 @@ Scale the process to the change's uncertainty and risk.
    Delegated C implementers do not commit or push.
 8. Before each PR, including a Draft, prepare its target, title, body, and full
    outgoing commit range. Inspect them for secrets, personal and confidential
-   information; report findings and uninspected parts. Obtain human confirmation
-   immediately before creation. Pattern scans alone do not establish safety.
-   Never save permanent creation approval or evade it through another API.
+   information; report findings and uninspected parts. Verify explicit human
+   approval covers the prepared publication and latest instructions. Reuse it
+   within the approved repository, task, content, and limits; multiple PRs need
+   explicit multiple, split, or continued PR approval. Ask only for missing or
+   expanded authority. Stop on unresolved sensitive findings or runtime rejection;
+   uninspected scope needs disclosure and individual approval. Pattern scans alone
+   do not establish safety. Never save permanent approval or evade native checks.
+   Follow the [publication guidance](https://github.com/WatanabeToshimitsu/dotfiles/blob/main/docs/pr-approval.md).
    Create a Draft only when needed.
 
 Preserve unrelated changes and repository conventions. Never add Claude
