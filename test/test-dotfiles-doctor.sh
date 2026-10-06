@@ -98,6 +98,12 @@ check_agent_harness > "$mcp_timeout_output"
 [ "$WARNINGS" -eq 0 ] || fail "MCP timeout produced $WARNINGS warning(s), expected 0"
 assert_contains "MCP status check timed out after 8s" "$mcp_timeout_output"
 assert_contains "installed 2.1.241; latest stable 2.1.241" "$mcp_timeout_output"
+osascript() { fail "temporary outage sent a notification"; }
+NOTIFY=1 finish > "$TEST_OUTPUT_DIR/mcp-timeout-summary"
+assert_contains "unverified" "$TEST_OUTPUT_DIR/mcp-timeout-summary"
+assert_not_contains "all clear" "$TEST_OUTPUT_DIR/mcp-timeout-summary"
+check_mcp_servers > "$TEST_OUTPUT_DIR/mcp-timeout-section"
+assert_not_contains "[HEALTHY]" "$TEST_OUTPUT_DIR/mcp-timeout-section"
 
 run_claude_mcp_list() {
   printf 'broken: missing-command - ✗ Failed: command not found\n'
@@ -217,6 +223,15 @@ assert_contains "run install.sh --headroom-only" "$unhealthy_output"
 assert_contains "MCP server 'serena' is not connected (possibly temporary)" "$unhealthy_output"
 assert_contains "Claude Code installed 2.1.231; latest stable 2.1.241" "$unhealthy_output"
 assert_not_contains "credential-do-not-log" "$unhealthy_output"
+
+run_claude_latest_version() { return 124; }
+WARNINGS=0
+UNVERIFIED=0
+check_claude_version > "$TEST_OUTPUT_DIR/version-timeout"
+[ "$WARNINGS" -eq 0 ] || fail "latest version timeout produced a warning"
+[ "$UNVERIFIED" -eq 1 ] || fail "latest version timeout was not classified as unverified"
+assert_contains "[UNVERIFIED]" "$TEST_OUTPUT_DIR/version-timeout"
+assert_not_contains "[HEALTHY]" "$TEST_OUTPUT_DIR/version-timeout"
 
 MEMORY_FIXTURE="$TEST_OUTPUT_DIR/memory"
 mkdir -p "$MEMORY_FIXTURE"
@@ -366,5 +381,91 @@ env -i HOME="$SYNC_HOME" PATH=/usr/bin:/bin /bin/bash -c '
 [ "$fixture_exit" -eq 1 ] || fail "missing CLI returned $fixture_exit, expected 1"
 assert_contains 'Headroom is not installed' "$TEST_OUTPUT_DIR/cli-missing"
 assert_contains 'Claude Code is not installed' "$TEST_OUTPUT_DIR/cli-missing"
+
+COMPACT_HOME="$TEST_OUTPUT_DIR/compact-home"
+COMPACT_BIN="$TEST_OUTPUT_DIR/compact-bin"
+COMPACT_TMP="$TEST_OUTPUT_DIR/compact-tmp"
+mkdir -p "$COMPACT_HOME/.claude/hooks" "$COMPACT_BIN" "$COMPACT_TMP"
+ln -s "$SUPPORTED_PYTHON" "$COMPACT_BIN/python3"
+ln -s .claude "$COMPACT_HOME/claude"
+printf 'raise RuntimeError("doctor must not execute the hook")\n' > "$COMPACT_HOME/.claude/hooks/compact-tool-output.py"
+
+write_compaction_settings() {
+  cat > "$COMPACT_HOME/.claude/settings.json" <<'JSON'
+{"env":{"SECRET_TOKEN":"credential-do-not-log"},"hooks":{"PostToolUse":[{"matcher":"Read|Grep|Glob|WebFetch|WebSearch|mcp__.*","hooks":[{"type":"command","command":"python3 \"$HOME/.claude/hooks/compact-tool-output.py\"","timeout":10}]}]}}
+JSON
+}
+
+run_compaction_fixture() {
+  local fixture_name="$1" expected_exit="$2" fixture_exit=0
+  env -i HOME="$COMPACT_HOME" PATH="$COMPACT_BIN:/usr/bin:/bin" TMPDIR="$COMPACT_TMP" \
+    CLAUDE_TOOL_OUTPUT_CACHE_DIR="$COMPACT_HOME/real-cache" SECRET_TOKEN=credential-do-not-log \
+    /bin/bash -c '
+      source "$1"
+      DOTFILES_DIR="$2"
+      EXTERNAL_CHECK_TIMEOUT_SECONDS="$3"
+      check_output_compaction
+      finish
+    ' bash "$REPO_DIR/.shell-utils/dotfiles-doctor.sh" "$COMPACT_HOME" "${3:-8}" \
+    > "$TEST_OUTPUT_DIR/$fixture_name" 2>&1 || fixture_exit=$?
+  [ "$fixture_exit" -eq "$expected_exit" ] \
+    || fail "$fixture_name returned $fixture_exit, expected $expected_exit"
+  assert_not_contains credential-do-not-log "$TEST_OUTPUT_DIR/$fixture_name"
+  assert_not_contains "all clear" "$TEST_OUTPUT_DIR/$fixture_name"
+  [ -z "$(ls -A "$COMPACT_TMP")" ] || fail "$fixture_name created temporary files"
+}
+
+write_compaction_settings
+cp "$COMPACT_HOME/.claude/settings.json" "$TEST_OUTPUT_DIR/settings-original"
+mkdir "$COMPACT_HOME/real-cache"
+printf 'existing private archive\n' > "$COMPACT_HOME/real-cache/sentinel.json"
+run_compaction_fixture compact-static 0
+assert_contains "[HEALTHY] user compaction registration and script file (static only)" "$TEST_OUTPUT_DIR/compact-static"
+assert_contains "[UNVERIFIED] compaction behavior and effective Claude hook invocation" "$TEST_OUTPUT_DIR/compact-static"
+assert_contains "test_compact_tool_output.py" "$TEST_OUTPUT_DIR/compact-static"
+assert_not_contains "synthetic" "$TEST_OUTPUT_DIR/compact-static"
+cmp "$COMPACT_HOME/.claude/settings.json" "$TEST_OUTPUT_DIR/settings-original" || fail "inspection changed user settings"
+assert_contains "existing private archive" "$COMPACT_HOME/real-cache/sentinel.json"
+[ "$(ls -A "$COMPACT_HOME/real-cache")" = sentinel.json ] || fail "inspection wrote to the real cache"
+
+rm "$COMPACT_HOME/.claude/settings.json"
+run_compaction_fixture compact-unused 0
+assert_contains "[NOT APPLICABLE] no user compaction registration" "$TEST_OUTPUT_DIR/compact-unused"
+
+printf '{"secret":"credential-do-not-log"\n' > "$COMPACT_HOME/.claude/settings.json"
+run_compaction_fixture compact-invalid-settings 1
+assert_contains "[ABNORMAL] WARN: user hook settings are invalid" "$TEST_OUTPUT_DIR/compact-invalid-settings"
+
+printf '{"hooks":{"PostToolUse":[{"hooks":{}}]}}\n' > "$COMPACT_HOME/.claude/settings.json"
+run_compaction_fixture compact-invalid-schema 1
+assert_contains "user hook settings are invalid" "$TEST_OUTPUT_DIR/compact-invalid-schema"
+
+rm "$COMPACT_HOME/.claude/settings.json"
+mkdir "$COMPACT_HOME/.claude/settings.json"
+run_compaction_fixture compact-unreadable-settings 0
+assert_contains "[UNVERIFIED] user hook settings could not be read" "$TEST_OUTPUT_DIR/compact-unreadable-settings"
+rmdir "$COMPACT_HOME/.claude/settings.json"
+
+mkfifo "$COMPACT_HOME/.claude/settings.json"
+run_compaction_fixture compact-read-timeout 0 0.1
+assert_contains "[UNVERIFIED] compaction inspection could not run" "$TEST_OUTPUT_DIR/compact-read-timeout"
+rm "$COMPACT_HOME/.claude/settings.json"
+
+printf '{"disableAllHooks":true,"hooks":{}}\n' > "$COMPACT_HOME/.claude/settings.json"
+run_compaction_fixture compact-disabled 0
+assert_contains "[NOT APPLICABLE] user hooks are disabled" "$TEST_OUTPUT_DIR/compact-disabled"
+
+cat > "$COMPACT_HOME/.claude/settings.json" <<'JSON'
+{"hooks":{"PostToolUse":[{"hooks":[{"type":"command","command":"python3 \"$HOME/.claude/hooks/compact-tool-output.py\"; touch \"$HOME/unexpected-execution\""}]}]}}
+JSON
+run_compaction_fixture compact-custom-command 0
+assert_contains "[UNVERIFIED] custom compaction registration" "$TEST_OUTPUT_DIR/compact-custom-command"
+[ ! -e "$COMPACT_HOME/unexpected-execution" ] || fail "doctor executed a custom command"
+
+write_compaction_settings
+rm "$COMPACT_HOME/.claude/hooks/compact-tool-output.py"
+run_compaction_fixture compact-missing 1
+assert_contains "[ABNORMAL] WARN: registered compaction script is missing" "$TEST_OUTPUT_DIR/compact-missing"
+assert_not_contains "[HEALTHY]" "$TEST_OUTPUT_DIR/compact-missing"
 
 printf 'dotfiles-doctor tests: ok\n'

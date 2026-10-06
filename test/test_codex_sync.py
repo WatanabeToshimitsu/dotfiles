@@ -1,4 +1,3 @@
-import io
 import json
 import os
 from pathlib import Path
@@ -9,7 +8,6 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
-from urllib.error import HTTPError
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,7 +15,6 @@ SCRIPTS = ROOT / 'scripts/codex-sync'
 sys.path.insert(0, str(SCRIPTS))
 import generate
 import install
-import publish
 
 
 def git(root, *args):
@@ -399,7 +396,7 @@ class RegressionTest(RepositoryCase):
         with self.assertRaisesRegex(ValueError, 'manifest'):
             generate.write(self.root, out)
 
-    def test_executable_skill_resource_survives_generation_install_and_publish(self):
+    def test_executable_skill_resource_survives_generation_and_install(self):
         self.put('claude/skills/demo/run.sh', '#!/bin/sh\nprintf resource-ok\n')
         script = self.root / 'claude/skills/demo/run.sh'
         script.chmod(0o755)
@@ -408,9 +405,7 @@ class RegressionTest(RepositoryCase):
         install.apply(install.plan(self.root, self.home))
         executable = self.home / '.agents/skills/demo/run.sh'
         self.assertEqual(subprocess.check_output([str(executable)], text=True), 'resource-ok')
-        self.put('claude/CLAUDE.md', '# Updated\n')
-        commit = publish.make_commit(self.root, git(self.root, 'rev-parse', 'HEAD'), generate.build(self.root))
-        self.assertTrue(git(self.root, 'ls-tree', commit, 'codex/generated/skills/demo/run.sh').startswith('100755'))
+        self.assertTrue(git(self.root, 'ls-tree', 'HEAD', 'codex/generated/skills/demo/run.sh').startswith('100755'))
 
     def test_disabled_directory_and_quoted_duplicate_name_are_protected(self):
         self.merged()
@@ -467,195 +462,6 @@ class RegressionTest(RepositoryCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertNotIn(b'Symlink setup complete!', result.stdout)
 
-
-class PublisherTest(RepositoryCase):
-    def publisher_fixture(self, source='claude/CLAUDE.md', content='# PR source revision\n'):
-        for name in ('.github/workflows/ci.yml', 'scripts/codex-sync/generate.py', 'claude/hooks/remote-mutation-guard.py'):
-            self.put(name, '# Trusted fixture implementation\n')
-            git(self.root, 'add', name)
-        self.merged()
-        self.bare = self.root.parent / 'remote.git'
-        git(self.root.parent, 'init', '--bare', '-q', str(self.bare))
-        git(self.root, 'switch', '-qc', 'feature')
-        self.put(source, content)
-        git(self.root, 'add', source)
-        git(self.root, 'commit', '-qm', 'Revise source without regenerating')
-        self.expected = git(self.root, 'rev-parse', 'HEAD')
-        git(self.root, 'push', '-q', str(self.bare), 'HEAD:refs/heads/feature')
-        git(self.root, 'switch', '-q', 'main')
-        git(self.root, 'remote', 'add', 'origin', 'https://github.com/owner/repo.git')
-        self.dispatches = []
-        real_run = subprocess.run
-        def transport(args, **kwargs):
-            args = list(args)
-            if 'fetch' in args and 'https://github.com/owner/repo.git' in args:
-                args[args.index('https://github.com/owner/repo.git')] = str(self.bare)
-            if 'push' in args and 'origin' in args:
-                args[args.index('origin')] = str(self.bare)
-            result = real_run(args, **kwargs)
-            if 'push' in args and result.returncode:
-                raise AssertionError(result.stderr)
-            return result
-        self.transport = transport
-
-    def fake_api(self, repo, suffix, token, data=None):
-        if suffix == '/pulls/1':
-            return {'state': 'open', 'base': {'ref': 'main'}, 'user': {'login': 'author'},
-                    'head': {'repo': {'full_name': 'owner/repo'},
-                             'sha': git(self.bare, 'rev-parse', 'refs/heads/feature'), 'ref': 'feature'}}
-        self.assertEqual(suffix, '/actions/workflows/ci.yml/dispatches')
-        self.dispatches.append(data)
-
-    def test_full_publisher_generates_same_branch_and_dispatches_final_sha(self):
-        self.publisher_fixture()
-        with patch.object(publish.subprocess, 'run', side_effect=self.transport), patch.object(publish, 'api', side_effect=self.fake_api):
-            result = publish.publish(self.root, 'owner/repo', 1, self.expected, 'test-token-placeholder')
-        self.assertEqual(git(self.bare, 'rev-parse', 'feature'), result)
-        self.assertEqual(git(self.root, 'rev-parse', result + '^'), self.expected)
-        self.assertEqual(self.dispatches, [{'ref': 'feature', 'inputs': {'expected_sha': result}}])
-        self.assertEqual(git(self.root, 'status', '--porcelain'), '')
-        paths = git(self.root, 'diff-tree', '--name-only', '--no-commit-id', '-r', result).splitlines()
-        self.assertTrue(all(p.startswith('codex/generated/') for p in paths))
-
-    def test_nonportable_settings_do_not_publish_or_dispatch(self):
-        self.publisher_fixture('claude/settings.json', '{"language":"Japanese","theme":"dark"}')
-        with patch.object(publish.subprocess, 'run', side_effect=self.transport), patch.object(publish, 'api', side_effect=self.fake_api):
-            result = publish.publish(self.root, 'owner/repo', 1, self.expected, 'test-token-placeholder')
-        self.assertEqual(result, self.expected)
-        self.assertEqual(git(self.bare, 'rev-parse', 'feature'), self.expected)
-        self.assertEqual(self.dispatches, [])
-        self.assertEqual(git(self.root, 'status', '--porcelain'), '')
-
-    def test_publisher_dispatches_pushed_commit_when_pr_api_lags(self) -> None:
-        self.publisher_fixture()
-
-        def stale_api(repo: str, suffix: str, token: str, data: dict | None = None) -> dict | None:
-            result = self.fake_api(repo, suffix, token, data)
-            if suffix == '/pulls/1':
-                result['head']['sha'] = self.expected
-            return result
-
-        with patch.object(publish.subprocess, 'run', side_effect=self.transport), \
-             patch.object(publish, 'api', side_effect=stale_api):
-            result = publish.publish(self.root, 'owner/repo', 1, self.expected, 'test-token-placeholder')
-
-        self.assertEqual(git(self.bare, 'rev-parse', 'feature'), result)
-        self.assertEqual(self.dispatches, [{'ref': 'feature', 'inputs': {'expected_sha': result}}])
-
-    def test_dispatch_failure_reports_pushed_sha_and_retry_does_not_commit_again(self):
-        self.publisher_fixture()
-        response_error = HTTPError('https://example.invalid/private', 503, 'PRIVATE_API_RESPONSE', {}, None)
-        self.addCleanup(response_error.close)
-        def fail_dispatch(repo, suffix, token, data=None):
-            if suffix.endswith('/dispatches'):
-                raise response_error
-            return self.fake_api(repo, suffix, token, data)
-        with patch.object(publish.subprocess, 'run', side_effect=self.transport), patch.object(publish, 'api', side_effect=fail_dispatch):
-            with self.assertRaisesRegex(ValueError, 'CI dispatch failed') as failure:
-                publish.publish(self.root, 'owner/repo', 1, self.expected, 'test-token-placeholder')
-        pushed = git(self.bare, 'rev-parse', 'feature')
-        self.assertIn(pushed, str(failure.exception))
-        self.assertNotEqual(pushed, self.expected)
-        self.assertIn('CI dispatch failed (HTTP 503)', str(failure.exception))
-        self.assertNotIn('PRIVATE_API_RESPONSE', str(failure.exception))
-        self.assertNotIn('example.invalid', str(failure.exception))
-        self.assertTrue(response_error.closed)
-        with patch.object(publish.subprocess, 'run', side_effect=self.transport), patch.object(publish, 'api', side_effect=self.fake_api):
-            result = publish.publish(self.root, 'owner/repo', 1, pushed, 'test-token-placeholder')
-        self.assertEqual(result, pushed)
-        self.assertEqual(self.dispatches, [{'ref': 'feature', 'inputs': {'expected_sha': pushed}}])
-
-    def assert_protected_implementation_outcome(self, path, *, deleted=False):
-        self.publisher_fixture()
-        git(self.root, 'switch', '-q', 'feature')
-        if deleted:
-            git(self.root, 'rm', '-q', path)
-        else:
-            self.put(path, '# Unreviewed PR implementation\n')
-            git(self.root, 'add', path)
-        git(self.root, 'commit', '-qm', 'Change protected implementation')
-        head = git(self.root, 'rev-parse', 'HEAD')
-        git(self.root, 'push', '-q', str(self.bare), 'HEAD:refs/heads/feature')
-        git(self.root, 'switch', '-q', 'main')
-        with patch.object(publish.subprocess, 'run', side_effect=self.transport), \
-             patch.object(publish, 'api', side_effect=self.fake_api), \
-             patch.object(generate, 'ROOT', self.root), \
-             patch.object(generate, 'build') as build, \
-             patch.dict(os.environ, {'GITHUB_ACTIONS': 'true', 'GH_TOKEN': 'test-token-placeholder'}), \
-             patch.object(sys, 'argv', ['publish.py', '--repo', 'owner/repo', '--pr', '1', '--expected-head', head]), \
-             patch.object(sys, 'stdout', new_callable=io.StringIO) as output, \
-             patch.object(sys, 'stderr', new_callable=io.StringIO) as error:
-            result = publish.main()
-        self.assertEqual(result, 1 if deleted else 0)
-        if deleted:
-            self.assertIn('codex sync publisher:', error.getvalue())
-            self.assertNotIn('skipped', output.getvalue())
-        else:
-            self.assertIn('::notice::Automatic Codex sync skipped', output.getvalue())
-            self.assertEqual(error.getvalue(), '')
-        build.assert_not_called()
-        self.assertEqual(git(self.bare, 'rev-parse', 'feature'), head)
-        self.assertEqual(self.dispatches, [])
-        self.assertEqual(git(self.root, 'status', '--porcelain'), '')
-
-    def test_changed_ci_is_skipped_before_publication(self):
-        self.assert_protected_implementation_outcome('.github/workflows/ci.yml')
-
-    def test_changed_generator_is_skipped_before_publication(self):
-        self.assert_protected_implementation_outcome('scripts/codex-sync/generate.py')
-
-    def test_changed_guard_is_skipped_before_publication(self):
-        self.assert_protected_implementation_outcome('claude/hooks/remote-mutation-guard.py')
-
-    def test_unreadable_protected_input_still_fails_before_publication(self):
-        self.assert_protected_implementation_outcome('claude/hooks/remote-mutation-guard.py', deleted=True)
-
-    def test_pr_boundary_refuses_forks_dependabot_and_stale_heads(self):
-        pr = {'state': 'open', 'base': {'ref': 'main'}, 'user': {'login': 'author'},
-              'head': {'repo': {'full_name': 'owner/repo'}, 'sha': 'a' * 40, 'ref': 'feature'}}
-        self.assertEqual(publish.validate_pr(pr, 'owner/repo', 'a' * 40), 'feature')
-        for category in ('fork', 'dependabot', 'race'):
-            candidate = json.loads(json.dumps(pr))
-            if category == 'fork':
-                candidate['head']['repo']['full_name'] = 'fork/repo'
-            elif category == 'dependabot':
-                candidate['user']['login'] = 'dependabot[bot]'
-            else:
-                candidate['head']['sha'] = 'b' * 40
-            with self.assertRaises(ValueError):
-                publish.validate_pr(candidate, 'owner/repo', 'a' * 40)
-
-    def test_generated_commit_changes_only_owned_paths_without_touching_worktree(self):
-        self.merged()
-        self.put('claude/CLAUDE.md', '# Updated source\n')
-        git(self.root, 'add', 'claude/CLAUDE.md')
-        git(self.root, 'commit', '-qm', 'Change source')
-        head = git(self.root, 'rev-parse', 'HEAD')
-        before = git(self.root, 'status', '--porcelain')
-        commit = publish.make_commit(self.root, head, generate.build(self.root))
-        self.assertEqual(git(self.root, 'rev-parse', commit + '^'), head)
-        self.assertEqual(git(self.root, 'rev-parse', 'HEAD'), head)
-        self.assertEqual(git(self.root, 'status', '--porcelain'), before)
-        paths = git(self.root, 'diff-tree', '--no-commit-id', '--name-only', '-r', commit).splitlines()
-        self.assertTrue(paths)
-        self.assertTrue(all(p.startswith('codex/generated/') for p in paths))
-
-    def test_normal_push_succeeds_and_stale_advertised_head_is_refused(self):
-        self.merged()
-        bare = self.root.parent / 'remote.git'
-        subprocess.run(['git', 'init', '--bare', '-q', str(bare)], check=True)
-        git(self.root, 'remote', 'add', 'origin', str(bare))
-        head = git(self.root, 'rev-parse', 'HEAD')
-        git(self.root, 'push', '-q', 'origin', 'HEAD:refs/heads/feature')
-        self.put('claude/CLAUDE.md', '# Revision one\n')
-        first = publish.make_commit(self.root, head, generate.build(self.root))
-        publish.push(self.root, first, 'feature', head)
-        self.assertEqual(git(bare, 'rev-parse', 'refs/heads/feature'), first)
-        self.put('claude/CLAUDE.md', '# Revision two\n')
-        second = publish.make_commit(self.root, first, generate.build(self.root))
-        with self.assertRaisesRegex(ValueError, 'raced'):
-            publish.push(self.root, second, 'feature', head)
-        self.assertEqual(git(bare, 'rev-parse', 'refs/heads/feature'), first)
 
 
 if __name__ == '__main__':

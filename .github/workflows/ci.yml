@@ -4,12 +4,6 @@ on:
   push:
     branches: [main]
   pull_request:
-  workflow_dispatch:
-    inputs:
-      expected_sha:
-        description: Exact branch head requested by the sync publisher
-        required: true
-        type: string
 
 permissions:
   contents: read
@@ -18,13 +12,6 @@ jobs:
   pin-actions:
     runs-on: ubuntu-latest
     steps:
-      - name: Bind dispatched checks to the requested commit
-        env:
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
-        run: |
-          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
-            test "$EXPECTED_SHA" = "$GITHUB_SHA"
-          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -36,13 +23,6 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - name: Bind dispatched checks to the requested commit
-        env:
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
-        run: |
-          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
-            test "$EXPECTED_SHA" = "$GITHUB_SHA"
-          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -78,13 +58,6 @@ jobs:
       BETTERLEAKS_VERSION: 1.9.0
       BETTERLEAKS_SHA256: f8b185a39ffcece2a1ca82bf3a4e7435cd81963ffd16b7a9128daf75f35f6de7
     steps:
-      - name: Bind dispatched checks to the requested commit
-        env:
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
-        run: |
-          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
-            test "$EXPECTED_SHA" = "$GITHUB_SHA"
-          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -110,13 +83,6 @@ jobs:
   validate-configs:
     runs-on: ubuntu-latest
     steps:
-      - name: Bind dispatched checks to the requested commit
-        env:
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
-        run: |
-          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
-            test "$EXPECTED_SHA" = "$GITHUB_SHA"
-          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -161,13 +127,6 @@ jobs:
   smoke-macos:
     runs-on: macos-latest
     steps:
-      - name: Bind dispatched checks to the requested commit
-        env:
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
-        run: |
-          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
-            test "$EXPECTED_SHA" = "$GITHUB_SHA"
-          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -188,13 +147,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - name: Bind dispatched checks to the requested commit
-        env:
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
-        run: |
-          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
-            test "$EXPECTED_SHA" = "$GITHUB_SHA"
-          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
