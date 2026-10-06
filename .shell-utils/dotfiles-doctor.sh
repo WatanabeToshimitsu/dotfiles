@@ -310,24 +310,21 @@ check_agent_harness() {
 }
 
 check_output_compaction() {
-  echo "== Output compaction: user registration and isolated synthetic probe =="
-  unverified "effective Claude settings and native hook invocation; next: inspect /hooks in Claude Code"
-  if ! has_command python3 || ! python3 -c 'import sys; sys.exit(sys.version_info < (3, 11))' > /dev/null 2>&1; then
-    unverified "compaction probe requires Python 3.11+; next: check python3 --version"
+  echo "== Output compaction: static user registration and script path =="
+  unverified "compaction behavior and effective Claude hook invocation are not exercised; next: inspect /hooks in Claude Code"
+  info "compression/restoration tests: python3 -m unittest discover -s claude/hooks/tests -p 'test_compact_tool_output.py'"
+  if ! has_command python3; then
+    unverified "compaction inspection requires Python 3; next: check python3 --version"
     return 0
   fi
   local output state message
-  if output=$(python3 - "$HOME" "$DOTFILES_DIR" "$EXTERNAL_CHECK_TIMEOUT_SECONDS" 2> /dev/null <<'PY'
+  if output=$(run_with_timeout "$EXTERNAL_CHECK_TIMEOUT_SECONDS" python3 -c "$(cat <<'PY'
 import json
 from pathlib import Path
-import re
-import subprocess
+import stat
 import sys
-import tempfile
-import time
 
-home, repo = map(Path, sys.argv[1:3])
-deadline = time.monotonic() + float(sys.argv[3])
+home = Path(sys.argv[1])
 command = 'python3 "$HOME/.claude/hooks/compact-tool-output.py"'
 
 def report(state, message):
@@ -335,118 +332,59 @@ def report(state, message):
 
 try:
     settings = json.loads((home / ".claude/settings.json").read_text())
-except FileNotFoundError:
-    report("unused", "no user compaction registration")
-    raise SystemExit
-except (ValueError, UnicodeError):
-    report("bad", "user hook settings are invalid; next: validate Claude settings.json")
-    raise SystemExit
-except OSError:
-    report("unknown", "user hook settings could not be read; next: inspect Claude settings.json permissions")
-    raise SystemExit
-try:
-    if not isinstance(settings, dict):
-        raise ValueError
     disabled = settings.get("disableAllHooks", False)
     if not isinstance(disabled, bool):
         raise ValueError
     if disabled:
         report("unused", "user hooks are disabled; effective settings remain unverified")
         raise SystemExit
-    hooks = settings.get("hooks", {})
-    if not isinstance(hooks, dict):
-        raise ValueError
-    groups = hooks.get("PostToolUse", [])
+    groups = settings.get("hooks", {}).get("PostToolUse", [])
     if not isinstance(groups, list):
         raise ValueError
     registered = False
     for group in groups:
-        if not isinstance(group, dict) or not isinstance(group.get("hooks"), list):
+        hooks = group["hooks"]
+        if not isinstance(hooks, list):
             raise ValueError
-        for hook in group["hooks"]:
-            if not isinstance(hook, dict):
-                raise ValueError
+        for hook in hooks:
             entry = hook.get("command", "")
+            if not isinstance(entry, str):
+                raise ValueError
             if "compact-tool-output.py" not in entry:
                 continue
             if hook.get("type") != "command" or entry != command:
                 report("unknown", "custom compaction registration; next: inspect /hooks in Claude Code")
                 raise SystemExit
-            matcher = group.get("matcher", "")
-            if matcher not in ("", "*", "Read", "Read|Grep|Glob|WebFetch|WebSearch|mcp__.*"):
+            if group.get("matcher", "") not in ("", "*", "Read", "Read|Grep|Glob|WebFetch|WebSearch|mcp__.*"):
                 report("unknown", "compaction matcher is outside the checked scope; next: inspect /hooks in Claude Code")
                 raise SystemExit
             registered = True
     if not registered:
         report("unused", "no user compaction registration")
         raise SystemExit
+except FileNotFoundError:
+    report("unused", "no user compaction registration")
+    raise SystemExit
+except OSError:
+    report("unknown", "user hook settings could not be read; next: inspect Claude settings.json permissions")
+    raise SystemExit
 except (AttributeError, KeyError, TypeError, ValueError):
     report("bad", "user hook settings are invalid; next: validate Claude settings.json")
     raise SystemExit
-report("good", "user compaction registration (static declaration only)")
+
 try:
-    installed = (home / ".claude/hooks/compact-tool-output.py").read_bytes()
+    if not stat.S_ISREG((home / ".claude/hooks/compact-tool-output.py").stat().st_mode):
+        report("bad", "registered compaction path is not a file; next: rerun install.sh")
+        raise SystemExit
 except FileNotFoundError:
     report("bad", "registered compaction script is missing; next: rerun install.sh")
     raise SystemExit
 except OSError:
-    report("unknown", "registered compaction script could not be read; next: check hook permissions")
+    report("unknown", "registered compaction path could not be checked; next: check hook permissions")
     raise SystemExit
-try:
-    known = (repo / "claude/hooks/compact-tool-output.py").read_bytes()
-except OSError:
-    report("unknown", "repository compaction implementation is unavailable; next: check this checkout")
-    raise SystemExit
-if installed != known:
-    report("unknown", "installed compaction script differs; next: compare it with claude/hooks/compact-tool-output.py")
-    raise SystemExit
-try:
-    with tempfile.TemporaryDirectory(prefix="dotfiles-doctor-") as directory:
-        root = Path(directory)
-        script = root / "hook.py"
-        script.write_bytes(known)
-        env = {
-            "HOME": directory, "PATH": "/usr/bin:/bin", "PYTHONDONTWRITEBYTECODE": "1",
-            "CLAUDE_TOOL_OUTPUT_CACHE_DIR": str(root / "cache"),
-            "CLAUDE_TOOL_OUTPUT_MAX_CHARS": "1024", "CLAUDE_TOOL_OUTPUT_PREVIEW_CHARS": "512",
-        }
-        response = {"type": "text", "file": {"content": "synthetic diagnostic line\n" * 300,
-                    "numLines": 300}, "metadata": {"sentinel": 17}}
-
-        def run(*args, data=None):
-            remaining = deadline - time.monotonic()
-            if remaining <= 0:
-                raise subprocess.TimeoutExpired("synthetic probe", 0)
-            try:
-                return subprocess.run([sys.executable, str(script), *args], input=data,
-                                      capture_output=True, text=True, env=env, cwd=root,
-                                      timeout=remaining, check=True).stdout
-            except OSError:
-                raise RuntimeError from None
-
-        try:
-            compressed = json.loads(run(data=json.dumps({"tool_name": "Read", "tool_response": response})))
-            updated = compressed["hookSpecificOutput"]["updatedToolOutput"]
-            text = updated["file"]["content"]
-            marker = re.search(r"archive ([a-f0-9]{20})", text)
-            if len(text) >= len(response["file"]["content"]) or not marker:
-                raise ValueError
-            preserved = json.loads(json.dumps(updated))
-            preserved["file"]["content"] = response["file"]["content"]
-            archive_id = marker.group(1)
-            archive = json.loads((root / "cache" / f"{archive_id}.json").read_text())
-            restored = json.loads(run("expand", archive_id))
-            if preserved != response or archive["tool_response"] != response or restored != response:
-                raise ValueError
-        except (ValueError, KeyError, TypeError, OSError, subprocess.CalledProcessError):
-            report("bad", "synthetic compaction check failed; next: run python3 -m unittest discover -s claude/hooks/tests -p 'test_*.py'")
-        else:
-            report("good", "synthetic compression and exact restoration (isolated data only)")
-except subprocess.TimeoutExpired:
-    report("unknown", "synthetic compaction check timed out; next: run python3 -m unittest discover -s claude/hooks/tests -p 'test_*.py'")
-except (OSError, RuntimeError):
-    report("unknown", "synthetic compaction probe could not start; next: check Python and temporary directory permissions")
+report("good", "user compaction registration and script file (static only)")
 PY
+  )" "$HOME" 2> /dev/null
   ); then
     while IFS=$'\t' read -r state message; do
       case "$state" in
