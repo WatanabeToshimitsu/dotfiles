@@ -113,56 +113,39 @@ backups can contain private local instructions; never commit or upload them.
 
 ## PR generation and verification
 
-The read-only preview workflow generates a diff artifact for every PR, including
-forks and Dependabot. The existing `validate-configs` job checks committed output.
-The publisher workflow runs on `pull_request_target` using the reviewed base
-commit, with `contents: write`, `actions: write`, and `pull-requests: read` in its
-publisher job only. Those token permissions are repository-wide: path and API
-restrictions are enforced by the helper, not by GitHub's token scope. Adding this
-workflow to the implementation branch was explicitly approved by the maintainer.
-
-The publisher reads PR blobs as data and never checks out or executes PR code.
-It does not consume artifacts or caches from the preview workflow. Only open
-same-repository PRs targeting main are eligible; forks and Dependabot remain
-read-only. It makes a single-parent commit affecting `codex/generated/` only,
-checks the server-advertised head in a temporary pre-push hook, and uses a normal
-push. Concurrent updates fail without force-pushing. CI, generator or publication
-guard changes require local regeneration and ordinary PR checks.
-When those protected files differ from the reviewed base, the publisher emits a
-notice that automatic sync was skipped and exits successfully without generating,
-pushing, or dispatching CI. This does not replace `validate-configs` or other
-ordinary PR checks. Unreadable or deleted protected files and other inspection,
-generation, push, or dispatch errors still fail.
-
-The workflow checks out the event's base SHA. Merge publisher fixes into main
-before updating an affected PR from main so its next synchronization run uses
-the updated base. A fix only on the PR branch cannot change its trusted publisher.
-
-After pushing, the publisher dispatches read-only CI on the same branch with the
-expected SHA. Every CI job rejects a dispatch on a different head. The repository
-ruleset checked on 2026-09-11 requires `lint`, `validate-configs` and
-`install-ubuntu` from GitHub Actions; keep their names and inspect the checks on
-the final generated commit. The workflow does not claim success on their behalf.
-GitHub may require approval for bot-triggered PR runs; ordinary bot pushes do not
-retrigger push workflows. The explicit dispatch is the final-commit check path.
-
-A post-push API or dispatch failure reports the pushed SHA. To recover, inspect
-the current PR head and run CI explicitly for that branch and SHA:
+Generate locally in an isolated issue branch and include the reviewed output in
+the same change as its source:
 
 ```sh
-gh workflow run ci.yml --ref <pr-branch> -f expected_sha=<pushed-sha>
+python3 -B scripts/codex-sync/generate.py
+python3 -B scripts/codex-sync/generate.py --check
+git diff -- codex/generated
 ```
 
-A new publisher run on an already generated commit can dispatch CI again without
-adding another commit. Rerunning the original event with an obsolete head fails
-safely. A branch can still move between dispatch and CI startup; check the actual
-head and workflow results before merging. No token scope, branch protection,
-review policy, user Git hook or merge setting is changed by the installer.
+The generator reads tracked repository inputs from the working tree, including
+intended source edits. It does not read the installed Claude/Codex profile.
+Explicitly add new public input files to Git before generation. Keep unrelated
+local preferences and private ticket references out of this branch. Review both
+the source and generated difference, commit only the intended files, and use
+the ordinary authorized push workflow.
 
-The first merge bootstraps the publisher. A later, approved representative PR is
-required to prove same-PR generation and final-commit checks on GitHub, followed
-by a real merged local update and a new Codex task. These live acceptance steps
-are not covered by the disposable tests.
+The read-only preview workflow generates a diff artifact for every PR, including
+forks and Dependabot. It does not commit or push changes. The required
+`validate-configs` job runs `generate.py --check` against committed output and
+fails if a source change has not been regenerated. The artifact helps inspect
+the difference; it is not the merge gate. There is no automatic generation
+commit or publisher-specific CI dispatch to repair missing output.
+
+Inspect the final PR head and its ordinary CI checks before merging. Keep the
+required job names `lint`, `validate-configs` and `install-ubuntu`; inspect the
+current repository ruleset rather than assuming its requirements are unchanged.
+Retry failed checks through the ordinary workflow run, and check their commit
+before merging. The preview and CI retain `contents: read`; repository token
+settings, branch protection, user Git hooks and merge policy are unchanged.
+
+After an approved merge, run the local update/apply steps and start a new Codex
+task. Applying and restoring the real profile remain separate acceptance work;
+disposable fixtures do not prove model obedience or refresh an existing task.
 
 ## Deliberately native settings
 
@@ -177,5 +160,4 @@ per-agent exclusion inventory is maintained.
 References: [instruction discovery](https://learn.chatgpt.com/docs/agent-configuration/agents-md),
 [skill discovery](https://learn.chatgpt.com/docs/build-skills),
 [native hook trust](https://learn.chatgpt.com/docs/hooks),
-[app-server discovery](https://learn.chatgpt.com/docs/app-server),
-[GitHub token event behavior](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow).
+[app-server discovery](https://learn.chatgpt.com/docs/app-server).
