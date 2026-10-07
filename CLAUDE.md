@@ -19,7 +19,7 @@ This is a personal dotfiles repository that manages shell configurations, editor
 ## Key Design Decisions
 
 - **Zsh plugin manager**: Zinit (zdharma-continuum/zinit) with lazy-loading (`wait"0a"`, `wait"0b"`)
-- **Prompt**: oh-my-posh (not Powerlevel10k; `.p10k.zsh` has been removed)
+- **Prompt**: oh-my-posh, themed by `oh-my-posh-theme/`
 - **Node.js version manager**: Volta (not nvm in zsh; nvm is only in `.bashrc`)
 - **Python version manager**: pyenv with lazy initialization (unfunction pattern to defer `pyenv init`)
 - **Fuzzy finder**: fzf integrated with ripgrep (`rg`) for file search, bat for preview
@@ -27,7 +27,7 @@ This is a personal dotfiles repository that manages shell configurations, editor
 - **Modern CLI replacements**: `lsd` (ls), `bat` (cat), `rg` (grep) — all guarded with `command -v` checks
 - **SSH**: 1Password SSH agent (`SSH_AUTH_SOCK` points to 1Password agent socket, guarded with socket existence check)
 - **Claude Code config**: Stored in `claude/` (not `.claude/`) to avoid project-level config conflict. File-level symlinks to `~/.claude/`
-- **Symlink strategy**: `install.sh` uses an explicit file list (not `.*` glob) to avoid linking `.git`, `.claude`, etc.
+- **Symlink strategy**: `install.sh` and `uninstall.sh` share the explicit file list in `symlink-manifest.sh` (not a `.*` glob) to avoid linking `.git`, `.claude`, etc.
 
 ## Commands
 

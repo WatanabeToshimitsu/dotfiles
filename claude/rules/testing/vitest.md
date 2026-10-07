@@ -8,9 +8,9 @@ paths:
 
 ## Test Structure
 
-- **YOU MUST:** Follow Arrange-Act-Assert pattern
-- **YOU MUST:** Use descriptive test names explaining expected behavior
-- **YOU MUST:** Keep tests independent and isolated
+- Follow the Arrange-Act-Assert pattern.
+- Use descriptive test names that explain the expected behavior.
+- Keep tests independent and isolated.
 
 ## Test Organization Order
 

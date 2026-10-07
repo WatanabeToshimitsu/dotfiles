@@ -21,18 +21,15 @@ For bug fixes, first add the smallest regression test that reproduces the report
 
 ## Test Structure (AAA Pattern)
 
-Prefer Arrange-Act-Assert structure for tests:
+Prefer Arrange-Act-Assert structure, with blank lines between the phases:
 
 ```typescript
 test('calculates similarity correctly', () => {
-  // Arrange
   const vector1 = [1, 0, 0]
   const vector2 = [0, 1, 0]
 
-  // Act
   const similarity = calculateCosineSimilarity(vector1, vector2)
 
-  // Assert
   expect(similarity).toBe(0)
 })
 ```

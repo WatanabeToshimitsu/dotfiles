@@ -21,7 +21,5 @@ existing type, validation, error-handling, and logging conventions.
 - Preserve immutable updates where shared state depends on them.
 - Propagate failures through the existing error contract; do not silently swallow
   them or lose diagnostic context when narrowing unknown errors.
-- Validate boundary input with the existing validator. This rule alone does not
-  justify adding Zod or replacing the project's schemas.
+- Validate boundary input with the project's existing validator and schemas.
 - Use existing production logging; remove debugging output before delivery.
-  This document does not establish that a console warning hook is registered.
