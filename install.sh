@@ -315,6 +315,8 @@ EOF
 }
 
 # Weekly dotfiles-doctor drift check; notifies only when warnings are found.
+# Daily worktree-gc removes merged agent worktrees, because sessions are
+# usually closed right after the PR merges.
 setup_launchd() {
   [ "$(uname -s)" = "Darwin" ] || return 0
 
@@ -323,6 +325,10 @@ setup_launchd() {
     <key>Hour</key><integer>10</integer>
     <key>Minute</key><integer>0</integer>" \
     /bin/bash "$HOME/.shell-utils/dotfiles-doctor.sh" --notify
+  install_launch_agent com.kz86n.worktree-gc \
+    "    <key>Hour</key><integer>10</integer>
+    <key>Minute</key><integer>15</integer>" \
+    /usr/bin/env python3 "$HOME/.shell-utils/worktree-gc" --apply
 }
 
 setup_cli_tools() {
