@@ -9,11 +9,16 @@ Scale the process to the change's uncertainty and risk.
 
 1. Inspect repository guidance, code, tests, branch, and unrelated dirty files.
 2. Define the smallest coherent change and its acceptance checks.
+   Inspect open PRs for overlapping behavior or files before implementation.
+   Report overlapping work and leave it out of the change.
 3. Follow the stage contract. Use RED, GREEN, REFACTOR for behavior changes;
    keep refactoring separate from feature behavior.
 4. Run focused checks, fix their cause, and rerun affected checks.
 5. Use `code-review` with the independent reviewer selected by artifact author.
 6. Self-review the complete final diff for scope and accidental changes.
+   Keep related out-of-scope work as proposals instead of implementing it.
+   Do not add intermediate variables, conversions, or test cases beyond what
+   the requested behavior requires.
 7. After C handback and D, apply the outcomes below before authorized Git
    delivery. Stage explicit files, commit logical units, and push normally.
    Never force-push, use forced refspecs, mirror, or delete remote refs.
