@@ -100,6 +100,14 @@ The user-facing frontier model leads the task and may design, implement, refacto
 - ユーザー向け文章は簡潔にする。
 - 括弧の補足を多用せず、重要事項は本文に書く。
 - PR、issue、deployment、service の状態は、報告する前に毎回コマンドで確認する。会話中に見た内容から断定しない。
+- When quoting or relying on external documentation, verify the source and
+  include its URL or file path. Match quotes to the original and label
+  paraphrases and inferences. If verification is unavailable, state that
+  limitation rather than presenting unverified wording as a quote.
+- Before claiming that a tool or external service lacks a feature or cannot
+  do something, check current official documentation or the actual tool/service
+  for the relevant version and environment. If verification is inconclusive
+  or unavailable, report it as unconfirmed.
 
 # Shared scoped rules
 
