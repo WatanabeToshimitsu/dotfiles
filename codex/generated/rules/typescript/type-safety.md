@@ -6,5 +6,5 @@ paths:
 
 # Type Safety
 
-- **NEVER:** Use `any` type (if absolutely necessary, document reason with comment)
-- **YOU MUST:** Use strict TypeScript settings
+- Avoid `any`. Where it is unavoidable, state the reason in a comment at that line.
+- Use strict TypeScript settings.
