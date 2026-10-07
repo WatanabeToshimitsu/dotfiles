@@ -21,7 +21,7 @@ Include, using absolute paths and `file:line` references so nothing depends on c
 - **Decisions and constraints**: choices already agreed with the user, approaches rejected and why.
 - **Verification**: commands that prove the work is correct (tests, lint, build).
 
-When using the memory directory, follow the memory conventions (frontmatter with `type: project`, a pointer line in `MEMORY.md`) so the handoff also survives a brand-new session.
+When using the memory directory, save the handoff as a `project` memory in the format the memory instructions define, with its pointer line in `MEMORY.md`, so it also survives a brand-new session.
 
 ## 2. Present the compact command
 
