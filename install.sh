@@ -267,14 +267,20 @@ install_gh_cli() {
   fi
 }
 
-# Weekly dotfiles-doctor drift check; notifies only when warnings are found.
-# The plist is generated here (not stored in the repo) so $HOME is baked in.
-
-setup_launchd() {
-  [ "$(uname -s)" = "Darwin" ] || return 0
-
-  local label="com.kz86n.dotfiles-doctor"
+# Plists are generated here (not stored in the repo) so $HOME is baked in.
+# Usage: install_launch_agent <label> <schedule> <program> [args...]
+# where <schedule> is the inner XML of StartCalendarInterval.
+install_launch_agent() {
+  local label="$1" schedule="$2"
+  shift 2
   local plist="$HOME/Library/LaunchAgents/$label.plist"
+  local log="$HOME/Library/Logs/${label#com.kz86n.}.log"
+  local arguments="" argument
+
+  for argument in "$@"; do
+    arguments="${arguments}    <string>$argument</string>
+"
+  done
 
   mkdir -p "$HOME/Library/LaunchAgents"
   cat > "$plist" << EOF
@@ -285,32 +291,38 @@ setup_launchd() {
   <key>Label</key><string>$label</string>
   <key>ProgramArguments</key>
   <array>
-    <string>/bin/bash</string>
-    <string>$HOME/.shell-utils/dotfiles-doctor.sh</string>
-    <string>--notify</string>
-  </array>
+${arguments}  </array>
   <key>EnvironmentVariables</key>
   <dict>
     <key>PATH</key><string>$HOME/.local/bin:$HOME/.volta/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
   </dict>
   <key>StartCalendarInterval</key>
   <dict>
-    <key>Weekday</key><integer>1</integer>
-    <key>Hour</key><integer>10</integer>
-    <key>Minute</key><integer>0</integer>
+$schedule
   </dict>
-  <key>StandardOutPath</key><string>$HOME/Library/Logs/dotfiles-doctor.log</string>
-  <key>StandardErrorPath</key><string>$HOME/Library/Logs/dotfiles-doctor.log</string>
+  <key>StandardOutPath</key><string>$log</string>
+  <key>StandardErrorPath</key><string>$log</string>
 </dict>
 </plist>
 EOF
 
   launchctl bootout "gui/$(id -u)/$label" 2> /dev/null || :
   if launchctl bootstrap "gui/$(id -u)" "$plist"; then
-    echo "  loaded: $label (weekly Mon 10:00)"
+    echo "  loaded: $label"
   else
     echo "  failed: launchctl bootstrap $label"
   fi
+}
+
+# Weekly dotfiles-doctor drift check; notifies only when warnings are found.
+setup_launchd() {
+  [ "$(uname -s)" = "Darwin" ] || return 0
+
+  install_launch_agent com.kz86n.dotfiles-doctor \
+    "    <key>Weekday</key><integer>1</integer>
+    <key>Hour</key><integer>10</integer>
+    <key>Minute</key><integer>0</integer>" \
+    /bin/bash "$HOME/.shell-utils/dotfiles-doctor.sh" --notify
 }
 
 setup_cli_tools() {
