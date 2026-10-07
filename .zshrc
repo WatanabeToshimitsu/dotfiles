@@ -131,6 +131,12 @@ export OPEN_BY_MY_EDITOR='code'
 
 export PATH="/opt/homebrew/opt/openjdk/bin:$PATH"
 
+# Let apphosts find the user-local .NET runtime.
+if [[ -d "$HOME/.dotnet" ]]; then
+  export DOTNET_ROOT="$HOME/.dotnet"
+  export PATH="$DOTNET_ROOT:$PATH"
+fi
+
 REACT_EDITOR=code
 
 export FZF_CTRL_T_COMMAND='rg --files --hidden --follow --glob "!.git/*"'
