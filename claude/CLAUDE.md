@@ -12,6 +12,18 @@
 - コードや既存資料から分かることは先に調べる。
 - バグ修正は報告された問題に絞り、正しく直せる最小の変更を選ぶ。
 - ユーザーにモデル選択やコンテキスト管理を委ねず、自分で調整する。
+- For widespread failures of tests or CI jobs, group the failures and investigate
+  a shared cause before fixing cases individually. Start with relevant recent
+  changes; if they do not explain the failures, broaden the investigation
+  according to the affected areas to dependencies, mocks, setup, or runtime.
+  Distinguish confirmed causes from hypotheses; narrow the search if no shared
+  cause is found.
+- For unresolved architecture or infrastructure choices, compare two or three
+  viable options in a short table before exploring one deeply. Include a simpler
+  managed option or explain why it is unsuitable, and recommend one using
+  requirements and trade-offs. Respect choices already made by the user and
+  skip comparison for small changes or obvious fixes. Follow existing judgment
+  and approval rules for continuation and material concerns.
 
 # 実装と配送
 
