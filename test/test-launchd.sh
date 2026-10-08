@@ -108,6 +108,32 @@ if grep -Eq 'Headroom is not installed|Claude Code is not installed' "$SANDBOX/m
   fail "installed CLI was reported missing in the LaunchAgent environment"
 fi
 
+echo "=== Darwin: the worktree-gc agent runs daily ==="
+GC_LABEL="com.kz86n.worktree-gc"
+GC_PLIST="$HOME/Library/LaunchAgents/$GC_LABEL.plist"
+[ -f "$GC_PLIST" ] || fail "no plist at $GC_PLIST"
+assert_log "bootstrap gui/$(id -u) $GC_PLIST"
+python3 - "$GC_PLIST" "$HOME" "$GC_LABEL" <<'PY'
+import plistlib
+import sys
+
+path, home, label = sys.argv[1:4]
+with open(path, "rb") as f:
+    agent = plistlib.load(f)
+
+expected = {
+    "Label": label,
+    "ProgramArguments": ["/bin/bash", f"{home}/.shell-utils/worktree-gc", "--apply"],
+    "StartCalendarInterval": {"Hour": 10, "Minute": 15},
+    "StandardOutPath": f"{home}/Library/Logs/worktree-gc.log",
+}
+for key, want in expected.items():
+    got = agent.get(key)
+    if got != want:
+        sys.exit(f"FAIL: plist {key} is {got!r}, want {want!r}")
+PY
+[ -x "$REPO_DIR/.shell-utils/worktree-gc" ] || fail ".shell-utils/worktree-gc is missing or not executable"
+
 echo "=== The agent runs a doctor entry point that still exists ==="
 [ -x "$REPO_DIR/.shell-utils/dotfiles-doctor.sh" ] || fail ".shell-utils/dotfiles-doctor.sh is missing or not executable"
 printf '%s\n' "${MANIFEST_DIRS[@]}" | grep -Fqx '.shell-utils' \
