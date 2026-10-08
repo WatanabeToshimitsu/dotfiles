@@ -6,23 +6,15 @@ paths:
 ---
 # Go Security
 
-> This file extends [common/security.md](../common/security.md) with Go specific content.
-
-## Secret Management
-
-```go
-apiKey := os.Getenv("OPENAI_API_KEY")
-if apiKey == "" {
-    log.Fatal("OPENAI_API_KEY not configured")
-}
-```
+Read and follow [common/security.md](../common/security.md) for secret handling,
+including required-value validation, alongside this language's rules.
 
 ## Security Scanning
 
-- Use **gosec** for static security analysis:
-  ```bash
-  gosec ./...
-  ```
+Use the project's configured security checks and commands for relevant
+changes. Do not add scanners solely for unrelated edits. For security-sensitive
+changes, verify coverage; if it is missing or unavailable, report it as
+unverified and agree on additional checks before delivery.
 
 ## Context & Timeouts
 
