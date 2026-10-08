@@ -47,6 +47,19 @@ Scale the process to the change's uncertainty and risk.
    do not establish safety. Never save permanent approval or evade native checks.
    Follow the [publication guidance](https://github.com/WatanabeToshimitsu/dotfiles/blob/main/docs/pr-approval.md).
    Create a Draft only when needed.
+9. After live confirmation that this task's PR is merged, clean up only its
+   local worktree and branch when cleanup is authorized. Verify their HEAD
+   still matches the merged PR HEAD. Keep checkouts with dirty, untracked,
+   or ignored files, active writers, shared use, another owner, or unknown
+   ownership or activity; report why.
+   Use existing cleanup tools only when they preserve these checks, through
+   supported managed-worktree archival or non-forced removal. Delete a local
+   branch only after it is no longer checked out and `git branch -d` accepts
+   it; keep refused branches, including squash/rebase cases.
+   Fetch origin and fast-forward only a clean, inactive default-branch
+   checkout. Keep missing, dirty, active, or diverged checkouts and report
+   why; do not switch, stash, reset, or overwrite them.
+   Never delete remote branches. Briefly report removed and retained items.
 
 Preserve unrelated changes and repository conventions. Never add Claude
 attribution or report unrun checks as passing. Ask about consequential product,
