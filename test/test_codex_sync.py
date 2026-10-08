@@ -1,6 +1,8 @@
+import html
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import shlex
 import subprocess
@@ -8,6 +10,7 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+from urllib.parse import unquote
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -15,6 +18,98 @@ SCRIPTS = ROOT / 'scripts/codex-sync'
 sys.path.insert(0, str(SCRIPTS))
 import generate
 import install
+
+
+def markdown_prose(text):
+    lines, fence = [], None
+    for line in text.splitlines():
+        marker = re.match(r'^ {0,3}(`{3,}|~{3,})', line)
+        if marker and fence is None:
+            fence = marker[1]
+            lines.append('')
+        elif fence:
+            if marker and marker[1][0] == fence[0] and len(marker[1]) >= len(fence) and not line[marker.end():].strip():
+                fence = None
+            lines.append('')
+        else:
+            lines.append(line)
+    return '\n'.join(lines)
+
+
+def markdown_anchors(text):
+    # GitHub heading IDs: https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#section-links
+    anchors = set()
+    for heading in re.findall(r'(?m)^ {0,3}#{1,6}\s+(.+?)(?:\s+#+)?$', markdown_prose(text)):
+        heading = re.sub(r'(\*\*|__|[*_]|`)(.+?)\1', r'\2', heading)
+        stem = re.sub(r'[^\w -]', '', html.unescape(heading).lower()).strip().replace(' ', '-')
+        anchor, suffix = stem, 1
+        while anchor in anchors:
+            anchor = f'{stem}-{suffix}'
+            suffix += 1
+        anchors.add(anchor)
+    return anchors
+
+
+def instruction_reference_errors(root):
+    root = root.resolve()
+    # Only prose inline links and explicitly named skills are checked, not arbitrary Markdown or command examples.
+    # The ticket reference is machine-local and may contain private data; never read it or its aliases.
+    local_reference = root / 'claude/skills/ticket/reference.md'
+    paths = [root / 'CLAUDE.md', root / 'claude/CLAUDE.md']
+    paths += [path for directory in ('rules', 'skills', 'agents')
+              for path in (root / 'claude' / directory).rglob('*.md')]
+    skills = {path.parent.name for path in (root / 'claude/skills').glob('*/SKILL.md')}
+    # Bundled skill names, not runtime availability: https://code.claude.com/docs/en/skills#bundled-skills
+    skills.update({'batch', 'claude-api', 'code-review', 'debug', 'doctor', 'loop', 'simplify', 'verify'})
+    sources = re.search(r'\b(?:local\s+)?skill_sources=\((.*?)\)', (root / 'install.sh').read_text(), re.S)
+    external_skills = re.findall(r'^\s*"[^"\n]+:([a-z0-9-]+)"\s*$', sources[1], re.M) if sources else []
+    if not external_skills:
+        return ['install.sh: could not parse non-empty skill_sources without executing it']
+    skills.update(external_skills)
+    marked_name = r'(?:`[a-z0-9-]+`|\*\*[a-z0-9-]+\*\*)'
+    errors = []
+    for path in paths:
+        if path == local_reference or path.resolve() == local_reference or not path.exists():
+            continue
+        if not path.resolve().is_relative_to(root):
+            errors.append(f'{path.relative_to(root)}: instruction file leaves repository')
+            continue
+        for number, line in enumerate(markdown_prose(path.read_text()).splitlines(), 1):
+            location = f'{path.relative_to(root)}:{number}'
+            names = re.findall(r'See skill:\s*(?:`|\*\*)?([a-z0-9-]+)', line)
+            for group in re.findall(r'((?:' + marked_name + r'\s*(?:(?:,|and|と)\s*)?)+)\s+skills?\b', line):
+                names += [left or right for left, right in re.findall(r'`([a-z0-9-]+)`|\*\*([a-z0-9-]+)\*\*', group)]
+            for name in set(names) - skills:
+                errors.append(f'{location}: unknown skill {name}; check local skills, skill_sources, or bundled allowlist')
+            link_line = re.sub(r'(`+).*?\1', '', line)
+            for link in re.findall(r'\[[^\]]*\]\(([^\s)]+)(?:\s+["\'][^"\']*["\'])?\)', link_line):
+                # External URLs, home paths, and explicit placeholder tokens are nonportable examples.
+                if re.match(r'[a-zA-Z][a-zA-Z0-9+.-]*:', link) or link.startswith(('//', '~')) or re.search(r'[<>{}$]', link):
+                    continue
+                destination, _, fragment = link.partition('#')
+                destination = unquote(destination.partition('?')[0])
+                fragment = unquote(fragment)
+                target = path if not destination else (root / destination.lstrip('/') if destination.startswith('/') else path.parent / destination)
+                target = Path(os.path.abspath(target))
+                if target == local_reference or target.resolve() == local_reference:
+                    continue
+                if not target.is_relative_to(root) or not target.resolve().is_relative_to(root):
+                    errors.append(f'{location}: link leaves repository: {link}')
+                    continue
+                cursor = root
+                for part in target.relative_to(root).parts:
+                    if not cursor.resolve().is_relative_to(root) or not cursor.is_dir() or part not in {child.name for child in cursor.iterdir()}:
+                        break
+                    cursor /= part
+                else:
+                    if cursor.exists():
+                        if fragment:
+                            anchors = markdown_anchors(cursor.read_text()) if cursor.is_file() else set()
+                            if fragment not in anchors:
+                                errors.append(f'{location}: missing anchor {fragment}; available: {sorted(anchors)}')
+                        continue
+                errors.append(f'{location}: missing or wrong-case link: {link}')
+    return errors
 
 
 def git(root, *args):
@@ -57,6 +152,72 @@ class RepositoryCase(unittest.TestCase):
         git(self.root, 'add', 'claude', 'codex')
         git(self.root, 'commit', '-qm', 'Generated')
         git(self.root, 'update-ref', 'refs/remotes/origin/main', 'HEAD')
+
+
+class InstructionReferenceTest(RepositoryCase):
+    def setUp(self):
+        super().setUp()
+        self.put('install.sh', 'local skill_sources=(\n  "fixture/skills:external-demo"\n)\n')
+        self.put('claude/skills/demo/guide.md', '## Known\n')
+
+    def test_missing_file_anchor_and_skill_references_are_rejected(self):
+        for text in (
+            '[missing](gone.md)',
+            '[anchor](skills/demo/guide.md#missing)',
+            'See skill: `missing-skill`',
+            'Use `missing-skill` skill.',
+            'Use **missing-skill** skill.',
+        ):
+            with self.subTest(text=text):
+                self.put('claude/CLAUDE.md', text)
+                self.assertTrue(instruction_reference_errors(self.root))
+
+    def test_supported_references_and_nonportable_examples_are_accepted(self):
+        self.put('claude/skills/demo/guide #space.md',
+                 '# 常用の`設定`と安全！\n## A _known_ `section`!\n## Repeat\n## Repeat\n')
+        self.put('claude/CLAUDE.md', '''# Here
+[self](#here)
+[title](skills/demo/guide%20%23space.md#a-known-section "Guide")
+[Japanese](skills/demo/guide%20%23space.md#常用の設定と安全)
+[duplicate](skills/demo/guide%20%23space.md#repeat-1)
+[directory](skills/demo)
+See skill: `demo`
+See skill: `external-demo`
+See skill: `loop`
+Use `demo` and `external-demo` skills.
+Use **external-demo** skill.
+[machine-local](skills/ticket/reference.md)
+[external](https://example.invalid/missing#absent)
+[placeholder](<project>/guide.md)
+[placeholder]({project}/guide.md)
+[home](~/local.md)
+`[example](absent.md)`
+```markdown
+[example](absent.md)
+See skill: `missing-skill`
+```
+''')
+        self.put('CLAUDE.md', '[source](claude/CLAUDE.md)\n')
+        self.put('claude/rules/demo.md', '[guide](../skills/demo/guide.md#known)\n')
+        self.put('claude/agents/demo.md', '[guide](../skills/demo/guide.md#known)\n')
+        local = self.root / 'claude/skills/ticket/reference.md'
+        local.parent.mkdir()
+        local.write_bytes(b'\xff')
+        self.assertEqual(instruction_reference_errors(self.root), [])
+
+    def test_wrong_case_escaped_paths_and_code_block_anchors_are_rejected(self):
+        self.put('claude/skills/demo/guide.md', '## Known\n```\n## Example\n```\n')
+        for link in ('skills/demo/Guide.md', '../../user/local.md', 'skills/demo/guide.md#example'):
+            with self.subTest(link=link):
+                self.put('claude/CLAUDE.md', '[invalid](' + link + ')')
+                self.assertTrue(instruction_reference_errors(self.root))
+
+    def test_unrecognized_external_skill_inventory_is_reported(self):
+        self.put('install.sh', 'local unrelated=()\n')
+        self.assertTrue(instruction_reference_errors(self.root))
+
+    def test_repository_instruction_references_are_valid(self):
+        self.assertEqual(instruction_reference_errors(ROOT), [])
 
 
 class SyncTest(RepositoryCase):

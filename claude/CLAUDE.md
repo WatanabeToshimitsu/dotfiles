@@ -54,6 +54,19 @@ The user-facing frontier model leads the task and may design, implement, refacto
 
 詳細な進行手順とレビュー基準は、該当時に `delivery-workflow` と `code-review` skill を使う。
 
+# Claude Code Configuration Scope
+
+- Default Claude Code skills, commands, settings, hooks, and permission rules to
+  user scope unless the user explicitly requests project or local scope.
+  In dotfiles, keep managed sources under `claude/` for the existing installation
+  flow to distribute to `~/.claude/`.
+- Before proposing an allowlist entry, read the effective user/project/local
+  permission rules in `~/.claude/settings.json`, `.claude/settings.json`, and
+  `.claude/settings.local.json` or `/permissions`. Do not add an entry already
+  covered by an existing wildcard.
+- Scope determines placement. Follow the request and existing approval procedures
+  when editing permissions or applying changes to the user profile.
+
 # コメント
 
 コードには How、テストコードには What、コミットログには Why、コードコメントには Why not を書く。Why not は、別の書き方を採らなかった理由を指す。ルールやツールが求めるものを除き、それ以外のコードコメントは書かない。
