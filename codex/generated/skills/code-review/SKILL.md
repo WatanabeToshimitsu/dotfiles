@@ -7,6 +7,15 @@ description: Review a design, code change, branch, commit, or pull request for c
 
 Review the coherent final diff after relevant verification has run.
 
+## Review request and target
+
+Treat every review request as fresh. Read the current target and recompute
+findings; do not reuse a previous verdict as the result of a new request.
+Use the explicit target in the request or arguments. Otherwise, resolve the PR
+for the current branch using the available GitHub integration or CLI.
+Do not ask when current repository state identifies the target. Ask only when
+it remains ambiguous, cannot be determined, or no current-branch PR exists.
+
 ## Reviewer by author
 
 - Review both designs and implementations independently of their author. Either Claude or Codex may have produced either artifact.
@@ -16,7 +25,8 @@ Review the coherent final diff after relevant verification has run.
 
 The [delivery stage contract](../delivery-workflow/SKILL.md#stage-contract) defines models, fallback, tiny-task precedence, invocation, and handoff records. Read it before dispatch. Pass purpose, acceptance criteria, relevant guidance, the artifact, and actual verification results; exclude author verdicts, prior review outcomes, and unrelated user changes.
 
-Do not start a separate review after every edit. Do not repeat the same exploration in multiple agents.
+Do not start a separate review after every edit unless the user explicitly
+requests one. Do not repeat the same exploration in multiple agents.
 
 ## Review order
 
