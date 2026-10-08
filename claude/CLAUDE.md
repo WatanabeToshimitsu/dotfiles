@@ -10,6 +10,7 @@
 
 - 明白で可逆的かつ依頼範囲内の行動は、細かく確認せず自然な完了地点まで進める。
 - コードや既存資料から分かることは先に調べる。
+- 他リポジトリを参照する調査や実装では、先に origin を fetch し、origin の既定ブランチ（trunk / main）の内容を根拠にする。作業ブランチや古いローカル checkout を根拠にしない。
 - バグ修正は報告された問題に絞り、正しく直せる最小の変更を選ぶ。
 - ユーザーにモデル選択やコンテキスト管理を委ねず、自分で調整する。
 - For widespread failures of tests or CI jobs, group the failures and investigate
