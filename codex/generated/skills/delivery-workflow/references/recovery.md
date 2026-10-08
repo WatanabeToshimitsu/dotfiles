@@ -25,6 +25,23 @@ to paid credentials, enable spending, consume credits or usage resets without
 separate authorization. A failed sandbox auth check is not proof of no login.
 This procedure creates no waiting automation.
 
+## Stop a stalled review
+
+Treat a B or D invocation that exceeds its declared wall-clock limit without
+a completed review as a failed route, even if it emits progress. Record the
+deadline, elapsed time, and missing result; do not report it as PASS.
+
+Use the client's cancellation facility or terminate only the call and child
+processes you started, then try to confirm they stopped. Record an unconfirmed
+stop as blocked; it does not prevent selecting the next eligible read-only
+reviewer. Do not retry the same stalled route during that review's selection.
+Choose routes with enforceable time limits and cancellation; unsupported
+routes are unavailable.
+
+Write-capable or unknown work blocks dependent editing until the stopped-writer
+procedure below returns authority. Elapsed time alone does not release writer
+authority.
+
 ## Preserve an available lead
 
 An available frontier lead retains final decisions and verifies advisory findings.
