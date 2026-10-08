@@ -17,12 +17,12 @@ WT="$SANDBOX/wt"
 mkdir -p "$SANDBOX/bin" "$WT"
 export PATH="$SANDBOX/bin:$PATH"
 printf '#!/bin/sh\nprintf "%%s\\n" "%s" "%s"\n' "$REPO" "$WT/merged" > "$SANDBOX/bin/ghq"
+mkdir -p "$SANDBOX/pr-heads"
 cat > "$SANDBOX/bin/gh" << SH
 #!/bin/sh
-case "\$*" in
-  *"--head squashed"*) cat "$SANDBOX/squashed-head" ;;
-  *"--head moved"*) echo 0000000000000000000000000000000000000000 ;;
-esac
+branch=\$(printf '%s\\n' "\$@" | sed -n '/^--head\$/{n;p;}')
+cat "$SANDBOX/pr-heads/\$branch" 2> /dev/null
+exit 0
 SH
 chmod +x "$SANDBOX/bin/ghq" "$SANDBOX/bin/gh"
 
@@ -47,17 +47,24 @@ worktree() {
   git -C "$WT/$1" commit -qm "$1"
 }
 
+merged_pr() {
+  git -C "$WT/$1" rev-parse HEAD > "$SANDBOX/pr-heads/$1"
+}
+
 merged_worktree() {
   worktree "$1"
+  merged_pr "$1"
   git -C "$REPO" merge -q --no-ff "$1" -m "Merge $1"
   git -C "$REPO" push -q origin main
 }
 
 merged_worktree merged
 worktree squashed
-git -C "$WT/squashed" rev-parse HEAD > "$SANDBOX/squashed-head"
+merged_pr squashed
 worktree unmerged
 worktree moved
+echo 0000000000000000000000000000000000000000 > "$SANDBOX/pr-heads/moved"
+git -C "$REPO" worktree add -q -b fresh "$WT/fresh" main
 merged_worktree dirty
 echo edited > "$WT/dirty/dirty.txt"
 merged_worktree untracked
@@ -80,7 +87,7 @@ for name in merged squashed; do
   [ ! -e "$WT/$name" ] || fail "$name was not removed: $output"
   git -C "$REPO" rev-parse -q --verify "refs/heads/$name" > /dev/null || fail "branch $name was deleted"
 done
-for name in unmerged moved dirty untracked locked nested detached; do
+for name in unmerged moved fresh dirty untracked locked nested detached; do
   [ -d "$WT/$name" ] || fail "$name was removed: $output"
 done
 [ "$(cat "$WT/dirty/dirty.txt")" = edited ] || fail "an uncommitted edit was lost"

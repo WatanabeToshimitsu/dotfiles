@@ -11,12 +11,10 @@ case "${1:-}" in
   *) echo "usage: worktree-gc [--apply]" >&2; exit 2 ;;
 esac
 
+# Only a merged PR counts: "HEAD is in the default branch" would also match a
+# freshly created worktree that has no commits yet.
 is_merged() {
-  local repo=$1 branch=$2 head=$3 default
-  if default=$(git -C "$repo" symbolic-ref -q refs/remotes/origin/HEAD) &&
-    git -C "$repo" merge-base --is-ancestor "$head" "$default" 2> /dev/null; then
-    return 0
-  fi
+  local repo=$1 branch=$2 head=$3
   (cd "$repo" && gh pr list --state merged --head "$branch" --json headRefOid --jq '.[].headRefOid' 2> /dev/null) |
     grep -qx "$head"
 }
