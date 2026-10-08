@@ -1,206 +1,62 @@
-#!/usr/bin/env python3
-"""Remove linked git worktrees whose branch is merged and that nobody uses.
+#!/usr/bin/env bash
+# Remove linked git worktrees whose branch is merged, in every ghq repository.
+# Dry run unless --apply. `git worktree remove` runs without --force, so git
+# itself refuses a worktree with uncommitted, untracked, or locked state, and
+# the branch is kept, so no commit is lost.
+set -uo pipefail
 
-Removal runs `git worktree remove` without --force, so git itself refuses a
-worktree with uncommitted or untracked files, and the branch is kept, so no
-commit on it is lost.
-"""
+case "${1:-}" in
+  --apply) apply=1 ;;
+  "") apply=0 ;;
+  *) echo "usage: worktree-gc [--apply]" >&2; exit 2 ;;
+esac
 
-from __future__ import annotations
-
-import argparse
-import json
-import os
-import subprocess
-import sys
-import time
-from dataclasses import dataclass
-from typing import Dict, List, Optional, Set
-
-DAY = 86400
-
-
-def git(cwd: str, *args: str) -> subprocess.CompletedProcess:
-    # GIT_OPTIONAL_LOCKS=0 keeps status from refreshing the index, which
-    # would make a dry run write to the worktree and look like activity.
-    env = {**os.environ, "GIT_OPTIONAL_LOCKS": "0", "GIT_TERMINAL_PROMPT": "0"}
-    return subprocess.run(["git", "-C", cwd, *args], capture_output=True, text=True, env=env,
-                          stdin=subprocess.DEVNULL)
-
-
-class Tools:
-    def repos(self) -> List[str]:
-        result = subprocess.run(["ghq", "list", "--full-path"], capture_output=True, text=True)
-        return result.stdout.splitlines() if result.returncode == 0 else []
-
-    def merged_pr_heads(self, repo: str, branch: str) -> Optional[Set[str]]:
-        command = ["gh", "pr", "list", "--state", "merged", "--head", branch, "--json", "headRefOid"]
-        try:
-            result = subprocess.run(command, cwd=repo, capture_output=True, text=True, timeout=60)
-            return {pr["headRefOid"] for pr in json.loads(result.stdout)} if result.returncode == 0 else None
-        except (OSError, ValueError, subprocess.TimeoutExpired):
-            return None
-
-    def cwds(self) -> Optional[List[str]]:
-        try:
-            result = subprocess.run(["lsof", "-a", "-d", "cwd", "-Fn"], capture_output=True, text=True, timeout=60)
-        except (OSError, subprocess.TimeoutExpired):
-            return None
-        if result.returncode != 0:
-            return None
-        return [line[1:] for line in result.stdout.splitlines() if line.startswith("n")]
-
-
-@dataclass
-class Worktree:
-    path: str
-    head: str = ""
-    branch: Optional[str] = None
-    locked: bool = False
-    prunable: bool = False
-
-
-def list_worktrees(repo: str) -> List[Worktree]:
-    result = git(repo, "worktree", "list", "--porcelain", "-z")
-    if result.returncode != 0:
-        return []
-    entries: List[Worktree] = []
-    for field in result.stdout.split("\0"):
-        key, _, value = field.partition(" ")
-        if key == "worktree":
-            entries.append(Worktree(path=value))
-        elif entries and key == "HEAD":
-            entries[-1].head = value
-        elif entries and key == "branch" and value.startswith("refs/heads/"):
-            entries[-1].branch = value[len("refs/heads/"):]
-        elif entries and key == "locked":
-            entries[-1].locked = True
-        elif entries and key == "prunable":
-            entries[-1].prunable = True
-    return entries
-
-
-def is_under(path: str, root: str) -> bool:
-    return path == root or path.startswith(root.rstrip(os.sep) + os.sep)
-
-
-def last_activity(path: str) -> float:
-    admin = git(path, "rev-parse", "--absolute-git-dir").stdout.strip()
-    candidates = [path] + [os.path.join(admin, name) for name in ("HEAD", "index", os.path.join("logs", "HEAD"))]
-    return max(os.stat(p).st_mtime for p in candidates if os.path.exists(p))
-
-
-def is_merged(repo: str, tree: Worktree, tools: Tools) -> bool:
-    default = git(repo, "symbolic-ref", "-q", "refs/remotes/origin/HEAD").stdout.strip()
-    if default and git(repo, "merge-base", "--is-ancestor", tree.head, default).returncode == 0:
-        return True
-    heads = tools.merged_pr_heads(repo, tree.branch)
-    return bool(heads) and tree.head in heads
-
-
-def usage(tree: Worktree, worktree_paths: List[str], cwds: Optional[List[str]]) -> Optional[str]:
-    real = os.path.realpath(tree.path)
-    # Removing a worktree also deletes ignored files such as .claude/worktrees/,
-    # which may hold another worktree.
-    if any(other != real and is_under(other, real) for other in worktree_paths):
-        return "contains-worktree"
-    if cwds is None:
-        return "cwd-check-failed"
-    if any(is_under(cwd, real) for cwd in cwds):
-        return "in-use"
-    return None
-
-
-def decide(repo: str, tree: Worktree, worktree_paths: List[str], cwds: Optional[List[str]],
-           tools: Tools, min_idle_days: float) -> str:
-    if tree.locked:
-        return "locked"
-    if tree.branch is None:
-        return "detached"
-    reason = usage(tree, worktree_paths, cwds)
-    if reason:
-        return reason
-    if time.time() - last_activity(tree.path) < min_idle_days * DAY:
-        return "recent"
-    status = git(tree.path, "status", "--porcelain", "--untracked-files=all")
-    if status.returncode != 0 or status.stdout:
-        return "dirty"
-    if not is_merged(repo, tree, tools):
-        return "not-merged"
-    return "merged"
-
-
-def by_repository(repos: List[str]) -> Dict[str, List[Worktree]]:
-    # ghq also lists linked worktrees, and each lists its repository's main
-    # worktree first, so keying by that path scans every repository once.
-    worktrees: Dict[str, List[Worktree]] = {}
-    for repo in repos:
-        trees = list_worktrees(repo)
-        if trees:
-            worktrees.setdefault(trees[0].path, trees)
-    return worktrees
-
-
-def every_worktree_path(repos: List[str], tools: Tools) -> List[str]:
-    # Nesting is checked against every ghq repository, not only the ones
-    # being scanned, since another repository's worktree may sit inside.
-    return [os.path.realpath(w.path) for trees in by_repository(tools.repos() + repos).values()
-            for w in trees if os.path.isdir(w.path)]
-
-
-def run(repos: List[str], apply: bool, min_idle_days: float, tools: Tools, out=sys.stdout) -> None:
-    worktrees = by_repository(repos)
-    worktree_paths = every_worktree_path(repos, tools)
-    cwds = tools.cwds()
-    for repo, trees in worktrees.items():
-        for tree in trees[1:]:
-            if tree.prunable or not os.path.isdir(tree.path):
-                continue
-            reason = decide(repo, tree, worktree_paths, cwds, tools, min_idle_days)
-            label = tree.branch or tree.head[:12]
-            if reason != "merged":
-                print(f"keep     {reason:18} {tree.path} [{label}]", file=out)
-            elif not apply:
-                print(f"remove   {reason:18} {tree.path} [{label}]", file=out)
-            else:
-                # Checked again last, with no network wait in between, since a
-                # shell, agent, or nested worktree may have appeared, or the
-                # worktree may have moved to another commit, meanwhile.
-                cwds_now = tools.cwds()
-                current = next((w for w in list_worktrees(repo) if w.path == tree.path), None)
-                if current is None or (current.head, current.branch, current.locked) != (
-                        tree.head, tree.branch, tree.locked):
-                    reason = "changed"
-                elif time.time() - last_activity(tree.path) < min_idle_days * DAY:
-                    reason = "recent"
-                else:
-                    reason = usage(tree, every_worktree_path(repos, tools), cwds_now) or reason
-                if reason != "merged":
-                    print(f"keep     {reason:18} {tree.path} [{label}]", file=out)
-                    continue
-                result = git(repo, "worktree", "remove", tree.path)
-                outcome = "removed " if result.returncode == 0 else "refused "
-                print(f"{outcome} {reason:18} {tree.path} [{label}] {result.stderr.strip()}".rstrip(), file=out)
-
-
-def main(argv: Optional[List[str]] = None) -> int:
-    parser = argparse.ArgumentParser(
-        prog="worktree-gc",
-        description="Remove linked git worktrees whose branch is merged and that nobody uses. "
-        "Dry run unless --apply is given.",
-    )
-    parser.add_argument("repos", nargs="*", help="repositories to scan (default: every ghq repository)")
-    parser.add_argument("--apply", action="store_true", help="remove the worktrees listed as remove")
-    parser.add_argument("--min-idle-days", type=float, default=3,
-                        help="keep worktrees whose root, HEAD, or index changed more recently "
-                        "than this; ignored files are not checked (default: 3)")
-    args = parser.parse_args(argv)
-    tools = Tools()
-    repos = [os.path.abspath(repo) for repo in args.repos] or tools.repos()
-    print(time.strftime("worktree-gc %Y-%m-%d %H:%M:%S") + ("" if args.apply else " (dry run)"))
-    run(repos, args.apply, args.min_idle_days, tools)
+is_merged() {
+  local repo=$1 branch=$2 head=$3 default
+  if default=$(git -C "$repo" symbolic-ref -q refs/remotes/origin/HEAD) &&
+    git -C "$repo" merge-base --is-ancestor "$head" "$default" 2> /dev/null; then
     return 0
+  fi
+  (cd "$repo" && gh pr list --state merged --head "$branch" --json headRefOid --jq '.[].headRefOid' 2> /dev/null) |
+    grep -qx "$head"
+}
 
+consider() {
+  local repo=$1 path=$2 branch=$3 head=$4 error
+  [ -n "$branch" ] && [ -d "$path" ] || return 0
+  is_merged "$repo" "$branch" "$head" || return 0
+  # Ignored directories such as .claude/worktrees/ are deleted with the
+  # worktree, and may hold another checkout.
+  if [ -n "$(find "$path" -mindepth 2 -name .git -print -quit 2> /dev/null)" ]; then
+    echo "keep     $path [$branch]: contains another checkout"
+  elif [ "$apply" -eq 0 ]; then
+    echo "remove   $path [$branch]"
+  elif error=$(git -C "$repo" worktree remove "$path" 2>&1); then
+    echo "removed  $path [$branch]"
+  else
+    echo "refused  $path [$branch]: $error"
+  fi
+}
 
-if __name__ == "__main__":
-    sys.exit(main())
+# ghq also lists worktrees that live under its root, so repositories are
+# deduplicated by their shared git directory.
+ghq list --full-path | while read -r repo; do
+  git -C "$repo" rev-parse --path-format=absolute --git-common-dir 2> /dev/null
+done | sort -u | while read -r common; do
+  main="" path="" branch="" head=""
+  while IFS= read -r line; do
+    case "$line" in
+      "worktree "*) path=${line#worktree } ;;
+      "HEAD "*) head=${line#HEAD } ;;
+      "branch refs/heads/"*) branch=${line#branch refs/heads/} ;;
+      "")
+        if [ -z "$main" ]; then
+          main=$path
+        elif [ -n "$path" ]; then
+          consider "$main" "$path" "$branch" "$head"
+        fi
+        path="" branch="" head=""
+        ;;
+    esac
+  done < <(git -C "$common" worktree list --porcelain)
+done
