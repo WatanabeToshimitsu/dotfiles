@@ -23,6 +23,19 @@ Scale the process to the change's uncertainty and risk.
    delivery. Stage explicit files, commit logical units, and push normally.
    Never force-push, use forced refspecs, mirror, or delete remote refs.
    Delegated C implementers do not commit or push.
+   After each authorized push, identify CI runs/checks for the repository,
+   branch, and exact pushed HEAD. Watch them through an available background
+   or nonblocking call, such as `gh pr checks --watch` or
+   `gh run watch <run-id> --exit-status`, with a finite deadline set before
+   starting. Keep the conversation responsive and honor cancellation and
+   Loop stops; use bounded status snapshots if a nonblocking watch is
+   unavailable. Recheck the HEAD before reporting, after each new push,
+   and after PR creation for PR-triggered CI. Skip monitoring only when CI
+   is not configured; an empty check list is not proof of absent CI.
+   Report actual conclusions and links without waiting for another request;
+   unfinished or unavailable checks remain pending or unknown. Investigate
+   failures and report their cause; fixes and re-pushes stay within the
+   existing task and delivery authority.
 8. Before each PR, including a Draft, prepare its target, title, body, and full
    outgoing commit range. Inspect them for secrets, personal and confidential
    information; report findings and uninspected parts. Verify explicit human
