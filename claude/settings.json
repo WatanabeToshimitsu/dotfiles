@@ -456,7 +456,8 @@
     "codex@openai-codex": true,
     "context7@claude-plugins-official": true,
     "discernment-nudge@anthropic-agent-skills": true,
-    "typescript-lsp@claude-plugins-official": true
+    "typescript-lsp@claude-plugins-official": true,
+    "scene-tag@scene-tag-annotator": true
   },
   "extraKnownMarketplaces": {
     "claude-powerline": {
@@ -489,6 +490,12 @@
       "source": {
         "source": "github",
         "repo": "anthropics/skills"
+      }
+    },
+    "scene-tag-annotator": {
+      "source": {
+        "source": "github",
+        "repo": "hdwlab/CoMLOpsSceneTagAnnotationTool"
       }
     }
   },
