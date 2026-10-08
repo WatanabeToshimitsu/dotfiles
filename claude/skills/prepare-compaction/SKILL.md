@@ -5,30 +5,27 @@ description: Prepare for context compaction by persisting the current task state
 
 # Prepare Compaction
 
-Goal: after `/compact`, work must resume without re-discovering anything. Persist state first, then hand the user the exact command and the follow-up prompt.
+Goal: after `/compact`, preserve agreed intent and resume from freshly recovered state.
 
-## 1. Persist task state
+## 1. Persist task context
 
-Write a handoff file before anything else. Prefer the session memory directory (`<memory dir>/compaction-handoff.md`); fall back to the scratchpad directory if no memory directory is available. Overwrite any previous handoff file.
+Write a task-specific handoff file first. Use a private task workspace or scratchpad excluded from repository tracking, generation, and publication. Choose a unique name for this task and verify ownership before replacing or deleting it. Respect the client's memory policy; this workflow grants no memory-write authority.
 
-Include, using absolute paths and `file:line` references so nothing depends on conversation context:
+Include only information that commands cannot recover:
 
-- **Goal**: the user's original request in one or two sentences.
-- **Done**: completed steps, with commit hashes / PR numbers if any.
-- **In progress**: exactly where work stopped, including uncommitted files and their state.
-- **Next steps**: ordered, concrete actions.
-- **Key locations**: files, symbols, branches, and worktrees involved.
-- **Decisions and constraints**: choices already agreed with the user, approaches rejected and why.
-- **Verification**: commands that prove the work is correct (tests, lint, build).
+- **Intent**: the task goal and user requirements not recorded in existing artifacts.
+- **Decisions and constraints**: user agreements, authorization scope, and rejected options with their reasons.
+- **Ownership**: who owns existing changes and current writer authority that repository or runtime inspection cannot establish.
+- **Next action**: what to do next, what to verify, and unresolved decisions.
 
-When using the memory directory, save the handoff as a `project` memory in the format the memory instructions define, with its pointer line in `MEMORY.md`, so it also survives a brand-new session.
+For recoverable facts, including GitHub state, commit history, diffs, check results, paths, and line numbers, record scoped read-only commands instead of copied results. Give commands the stable repository or evidence locators needed to run them after compaction. Recheck current state before editing.
 
 ## 2. Present the compact command
 
 Output a fenced block the user can copy, tailoring the Keep/Drop lists to the actual task:
 
 ```
-/compact Keep: the task goal, next steps, decisions, and key file paths recorded in <handoff path>. Drop: raw tool output, file contents already persisted, and abandoned exploration.
+/compact Keep: the intent, decisions, ownership, next action, and recovery commands recorded in <handoff path>. Drop: raw tool output, cached Git/GitHub state, and file contents recoverable with commands.
 ```
 
 ## 3. Present the continuation prompt
@@ -36,7 +33,7 @@ Output a fenced block the user can copy, tailoring the Keep/Drop lists to the ac
 Output a second fenced block for the user to paste right after compaction finishes:
 
 ```
-Read <handoff path> and resume from its "Next steps" section. Verify the listed file references still match reality before editing. When the task is complete, delete the handoff file (and its MEMORY.md pointer line, if any).
+Read <handoff path>, recover current state using its commands, and resume its "Next action". Preserve the recorded agreements and ownership; resolve missing or conflicting evidence before editing. When the task is complete, delete only this task's handoff file.
 ```
 
 Do not attempt to run `/compact` yourself; only the user can trigger it. End your reply by telling the user to run the command from step 2, then paste the prompt from step 3.
