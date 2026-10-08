@@ -7,34 +7,6 @@ paths:
 # Go Patterns
 
 
-## Functional Options
-
-```go
-type Option func(*Server)
-
-func WithPort(port int) Option {
-    return func(s *Server) { s.port = port }
-}
-
-func NewServer(opts ...Option) *Server {
-    s := &Server{port: 8080}
-    for _, opt := range opts {
-        opt(s)
-    }
-    return s
-}
-```
-
-## Small Interfaces
-
-Define interfaces where they are used, not where they are implemented.
-
-## Dependency Injection
-
-Use constructor functions to inject dependencies:
-
-```go
-func NewUserService(repo UserRepository, logger Logger) *UserService {
-    return &UserService{repo: repo, logger: logger}
-}
-```
+- Reuse the project's constructors and dependency boundaries.
+- Add interfaces or options only when required by the requested behavior or tests.
+- Limit new interfaces to the operations their consumers need.

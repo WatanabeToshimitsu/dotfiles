@@ -10,35 +10,22 @@ Use these rules for FastAPI projects alongside the general Python rules.
 
 ## Structure
 
-- Put app construction in `create_app()`.
-- Keep routers thin; move persistence and business behavior into services or CRUD helpers.
-- Keep request schemas, update schemas, and response schemas separate.
-- Keep database sessions and auth in dependencies.
+- Follow the project's app, router, schema, and dependency structure.
+- Add factories or layers only when required by the requested behavior.
+- Keep database sessions and auth in the project's dependencies; preserve their lifetimes.
+- Do not create unmanaged sessions or long-lived clients inside route handlers.
 
 ## Async
 
-- Use `async def` for endpoints that perform I/O.
-- Use async database and HTTP clients from async endpoints.
-- Do not call `requests`, sync SQLAlchemy sessions, or blocking file/network operations from async routes.
-
-## Dependency Injection
-
-```python
-@router.get("/users/{user_id}")
-async def get_user(
-    user_id: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    ...
-```
-
-Do not create `SessionLocal()` or long-lived clients inside route handlers.
+- Follow the project's sync or async I/O stack.
+- Keep blocking database, HTTP, and file operations off the event loop.
+- Choose handlers using FastAPI's [sync/async execution rules](https://fastapi.tiangolo.com/async/).
 
 ## Schemas
 
 - Never include passwords, password hashes, access tokens, refresh tokens, or internal auth state in response models.
-- Use `response_model` on endpoints that return application data.
+- Validate and filter application responses using the project's `response_model`
+  or response-type convention.
 - Use field constraints instead of hand-written validation when Pydantic can express the rule.
 
 ## Security
@@ -53,4 +40,4 @@ Do not create `SessionLocal()` or long-lived clients inside route handlers.
 
 - Override the exact dependency used by `Depends`.
 - Clear `app.dependency_overrides` after tests.
-- Prefer async test clients for async applications.
+- Use the project's test client and async test conventions.
