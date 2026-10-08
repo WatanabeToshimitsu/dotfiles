@@ -343,7 +343,7 @@
     "defaultMode": "auto",
     "disableBypassPermissionsMode": "disable"
   },
-  "model": "claude-fable-5-1[1m]",
+  "model": "opus",
   "skillOverrides": {
     "difit": "user-invocable-only"
   },
@@ -494,6 +494,11 @@
   "language": "Japanese",
   "syntaxHighlightingDisabled": false,
   "effortLevel": "xhigh",
+  "modelSettings": {
+    "claude-opus-5-5": {
+      "effortLevel": "xhigh"
+    }
+  },
   "askUserQuestionTimeout": "never",
   "autoUpdatesChannel": "latest",
   "tui": "fullscreen",
