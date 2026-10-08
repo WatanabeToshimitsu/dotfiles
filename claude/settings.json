@@ -175,8 +175,6 @@
       "Bash(ncat *)",
       "Bash(netcat *)",
       "Bash(nmap *)",
-      "Bash(ssh *)",
-      "Bash(scp *)",
       "Bash(rsync --delete*)",
       "Bash(sftp *)",
       "Bash(socat *)",
@@ -338,7 +336,10 @@
       "Bash(rtk gh pr create:*)",
       "Bash(rtk proxy gh pr create:*)",
       "mcp__*create_pull_request*",
-      "mcp__*createPullRequest*"
+      "mcp__*createPullRequest*",
+      "Bash(ssh *)",
+      "Bash(scp *)",
+      "Bash(rsync *)"
     ],
     "defaultMode": "auto",
     "disableBypassPermissionsMode": "disable"
