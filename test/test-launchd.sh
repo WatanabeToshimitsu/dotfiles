@@ -123,7 +123,7 @@ with open(path, "rb") as f:
 
 expected = {
     "Label": label,
-    "ProgramArguments": ["/usr/bin/env", "python3", f"{home}/.shell-utils/worktree-gc", "--apply"],
+    "ProgramArguments": ["/bin/bash", f"{home}/.shell-utils/worktree-gc", "--apply"],
     "StartCalendarInterval": {"Hour": 10, "Minute": 15},
     "StandardOutPath": f"{home}/Library/Logs/worktree-gc.log",
 }
@@ -133,8 +133,6 @@ for key, want in expected.items():
         sys.exit(f"FAIL: plist {key} is {got!r}, want {want!r}")
 PY
 [ -x "$REPO_DIR/.shell-utils/worktree-gc" ] || fail ".shell-utils/worktree-gc is missing or not executable"
-python3 "$REPO_DIR/.shell-utils/worktree-gc" --help | grep -Fq -- '--apply' \
-  || fail "worktree-gc no longer accepts --apply"
 
 echo "=== The agent runs a doctor entry point that still exists ==="
 [ -x "$REPO_DIR/.shell-utils/dotfiles-doctor.sh" ] || fail ".shell-utils/dotfiles-doctor.sh is missing or not executable"

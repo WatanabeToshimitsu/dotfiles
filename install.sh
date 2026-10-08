@@ -267,20 +267,14 @@ install_gh_cli() {
   fi
 }
 
-# Plists are generated here (not stored in the repo) so $HOME is baked in.
-# Usage: install_launch_agent <label> <schedule> <program> [args...]
-# where <schedule> is the inner XML of StartCalendarInterval.
-install_launch_agent() {
-  local label="$1" schedule="$2"
-  shift 2
-  local plist="$HOME/Library/LaunchAgents/$label.plist"
-  local log="$HOME/Library/Logs/${label#com.kz86n.}.log"
-  local arguments="" argument
+# Weekly dotfiles-doctor drift check; notifies only when warnings are found.
+# The plist is generated here (not stored in the repo) so $HOME is baked in.
 
-  for argument in "$@"; do
-    arguments="${arguments}    <string>$argument</string>
-"
-  done
+setup_launchd() {
+  [ "$(uname -s)" = "Darwin" ] || return 0
+
+  local label="com.kz86n.dotfiles-doctor"
+  local plist="$HOME/Library/LaunchAgents/$label.plist"
 
   mkdir -p "$HOME/Library/LaunchAgents"
   cat > "$plist" << EOF
@@ -291,44 +285,75 @@ install_launch_agent() {
   <key>Label</key><string>$label</string>
   <key>ProgramArguments</key>
   <array>
-${arguments}  </array>
+    <string>/bin/bash</string>
+    <string>$HOME/.shell-utils/dotfiles-doctor.sh</string>
+    <string>--notify</string>
+  </array>
   <key>EnvironmentVariables</key>
   <dict>
     <key>PATH</key><string>$HOME/.local/bin:$HOME/.volta/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
   </dict>
   <key>StartCalendarInterval</key>
   <dict>
-$schedule
+    <key>Weekday</key><integer>1</integer>
+    <key>Hour</key><integer>10</integer>
+    <key>Minute</key><integer>0</integer>
   </dict>
-  <key>StandardOutPath</key><string>$log</string>
-  <key>StandardErrorPath</key><string>$log</string>
+  <key>StandardOutPath</key><string>$HOME/Library/Logs/dotfiles-doctor.log</string>
+  <key>StandardErrorPath</key><string>$HOME/Library/Logs/dotfiles-doctor.log</string>
 </dict>
 </plist>
 EOF
 
   launchctl bootout "gui/$(id -u)/$label" 2> /dev/null || :
   if launchctl bootstrap "gui/$(id -u)" "$plist"; then
-    echo "  loaded: $label"
+    echo "  loaded: $label (weekly Mon 10:00)"
   else
     echo "  failed: launchctl bootstrap $label"
   fi
+
+  setup_worktree_gc_agent
 }
 
-# Weekly dotfiles-doctor drift check; notifies only when warnings are found.
-# Daily worktree-gc removes merged agent worktrees, because sessions are
-# usually closed right after the PR merges.
-setup_launchd() {
-  [ "$(uname -s)" = "Darwin" ] || return 0
+# Daily worktree-gc, because agent sessions are usually closed right after
+# the PR merges and never clean up their worktrees.
+setup_worktree_gc_agent() {
+  local label="com.kz86n.worktree-gc"
+  local plist="$HOME/Library/LaunchAgents/$label.plist"
 
-  install_launch_agent com.kz86n.dotfiles-doctor \
-    "    <key>Weekday</key><integer>1</integer>
+  cat > "$plist" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>$label</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>$HOME/.shell-utils/worktree-gc</string>
+    <string>--apply</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key><string>$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+  <key>StartCalendarInterval</key>
+  <dict>
     <key>Hour</key><integer>10</integer>
-    <key>Minute</key><integer>0</integer>" \
-    /bin/bash "$HOME/.shell-utils/dotfiles-doctor.sh" --notify
-  install_launch_agent com.kz86n.worktree-gc \
-    "    <key>Hour</key><integer>10</integer>
-    <key>Minute</key><integer>15</integer>" \
-    /usr/bin/env python3 "$HOME/.shell-utils/worktree-gc" --apply
+    <key>Minute</key><integer>15</integer>
+  </dict>
+  <key>StandardOutPath</key><string>$HOME/Library/Logs/worktree-gc.log</string>
+  <key>StandardErrorPath</key><string>$HOME/Library/Logs/worktree-gc.log</string>
+</dict>
+</plist>
+EOF
+
+  launchctl bootout "gui/$(id -u)/$label" 2> /dev/null || :
+  if launchctl bootstrap "gui/$(id -u)" "$plist"; then
+    echo "  loaded: $label (daily 10:15)"
+  else
+    echo "  failed: launchctl bootstrap $label"
+  fi
 }
 
 setup_cli_tools() {
