@@ -54,11 +54,11 @@ it whenever the shared workspace happens to be connected (reference.md).
    search the shared board live only when that workspace is connected.
 2. Present plausible candidates. Link to an existing ticket only on user
    confirmation — a false match is worse than a duplicate.
-3. Propose compactly (title, type, one-line scope, granularity) and wait
-   for approval. Prior in-session agreement on a task breakdown does NOT
-   count as ticket-granularity approval: always re-confirm the granularity
-   at creation time — session decomposition and ticket granularity are
-   different decisions.
+3. Propose compactly (title, type, one-line scope, granularity) following
+   "Granularity and body" below, and wait for approval. Prior in-session
+   agreement on a task breakdown does NOT count as ticket-granularity
+   approval: always re-confirm the granularity at creation time — session
+   decomposition and ticket granularity are different decisions.
 4. Create whichever side is missing; Jira first, so the issue key can go on
    the staging row.
 5. The full description lives in Jira. The staging page body stays within a
@@ -68,6 +68,36 @@ it whenever the shared workspace happens to be connected (reference.md).
 Epics whose titles match the linking-only pattern in reference.md exist
 only to group issues: exclude them from duplicate candidates, sync,
 triage, and reports.
+
+## Granularity and body
+
+Tickets describe outcomes; pull requests describe outputs. A ticket is a
+state the project or repository will be in, never a list of
+implementation steps. If a body reads like a PR description, listing
+changes rather than resulting states, the ticket is too fine; several
+PRs usually land under one ticket.
+
+- Size: one ticket = one deliverable state a project follower would ask
+  about ("is X in place yet?"). Infrastructure for a capability is one
+  ticket, not one per component or workflow. Never split by
+  implementation phase. INVEST applies, with Valuable weighted over Small.
+- `■完了条件` lists the resulting states, each about the size of a ticket
+  title one level down. No mechanisms, file names, or commands. For test
+  work, phrase each as "a test exists that confirms ...", otherwise the
+  ticket reads like feature development.
+- Constraints are not target states. Put them under `■注意` as "when
+  doing X, ensure Y; if Y cannot hold, do not do X".
+- Self-contained: no section numbers of external documents, and no
+  shorthand that exists only in local working notes (plan files, internal
+  path IDs). Use terms the team shares: product screens, user jobs,
+  systems.
+- Merge tickets whose real work is a single small act (asking someone
+  for an account, registering it) into the ticket that consumes them.
+- Titles name the resulting thing plainly; avoid words that suggest a
+  different kind of work (e.g. "データの整備" reads as data upload).
+- Match the language of existing issues in the project (currently
+  Japanese; headings `■背景・目的` / `■完了条件` / optional `■注意`). One
+  line per bullet.
 
 ## Sync workflow (`/ticket sync` or when asked)
 
