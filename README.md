@@ -49,6 +49,7 @@
 | `y` | yaziでファイルを探し、終了時に選んだディレクトリへ移動 |
 | `gb-prune` | マージ済みブランチを整理。squash mergeにも対応 |
 | `ghq-rm` | ghqで管理するリポジトリを対話的に削除 |
+| `worktree-gc` | マージ済みで変更のないworktreeを洗い出す。`--apply`で削除 |
 
 <a id="setup"></a>
 <a id="macos--linux--wsl2"></a>

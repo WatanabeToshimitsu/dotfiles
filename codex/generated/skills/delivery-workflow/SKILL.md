@@ -72,7 +72,7 @@ authority. Resolve substantiated blocking B findings before dependent C work.
 Review the coherent artifact once per stage; revisit affected reviews when
 later changes invalidate the artifact or acceptance criteria.
 
-Give each B and D invocation a wall-clock limit before dispatch: 180 seconds
+Give each B and D invocation a wall-clock limit before dispatch: 600 seconds
 by default, or a longer finite limit justified by packet size and declared
 before the call. Measure from dispatch to the final review; progress does not
 extend the deadline. If it expires without a completed review, follow

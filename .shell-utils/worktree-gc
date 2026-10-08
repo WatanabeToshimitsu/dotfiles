@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# Remove linked git worktrees whose branch is merged, in every ghq repository.
+# Dry run unless --apply. `git worktree remove` runs without --force, so git
+# itself refuses a worktree with uncommitted, untracked, or locked state, and
+# the branch is kept, so no commit is lost.
+set -uo pipefail
+
+case "${1:-}" in
+  --apply) apply=1 ;;
+  "") apply=0 ;;
+  *) echo "usage: worktree-gc [--apply]" >&2; exit 2 ;;
+esac
+
+# Only a merged PR counts: "HEAD is in the default branch" would also match a
+# freshly created worktree that has no commits yet.
+is_merged() {
+  local repo=$1 branch=$2 head=$3
+  (cd "$repo" && gh pr list --state merged --head "$branch" --json headRefOid --jq '.[].headRefOid' 2> /dev/null) |
+    grep -qx "$head"
+}
+
+consider() {
+  local repo=$1 path=$2 branch=$3 head=$4 error
+  [ -n "$branch" ] && [ -d "$path" ] || return 0
+  is_merged "$repo" "$branch" "$head" || return 0
+  # Ignored directories such as .claude/worktrees/ are deleted with the
+  # worktree, and may hold another checkout.
+  if [ -n "$(find "$path" -mindepth 2 -name .git -print -quit 2> /dev/null)" ]; then
+    echo "keep     $path [$branch]: contains another checkout"
+  elif [ "$apply" -eq 0 ]; then
+    echo "remove   $path [$branch]"
+  elif error=$(git -C "$repo" worktree remove "$path" 2>&1); then
+    echo "removed  $path [$branch]"
+  else
+    echo "refused  $path [$branch]: $error"
+  fi
+}
+
+# ghq also lists worktrees that live under its root, so repositories are
+# deduplicated by their shared git directory.
+ghq list --full-path | while read -r repo; do
+  git -C "$repo" rev-parse --path-format=absolute --git-common-dir 2> /dev/null
+done | sort -u | while read -r common; do
+  main="" path="" branch="" head=""
+  while IFS= read -r line; do
+    case "$line" in
+      "worktree "*) path=${line#worktree } ;;
+      "HEAD "*) head=${line#HEAD } ;;
+      "branch refs/heads/"*) branch=${line#branch refs/heads/} ;;
+      "")
+        if [ -z "$main" ]; then
+          main=$path
+        elif [ -n "$path" ]; then
+          consider "$main" "$path" "$branch" "$head"
+        fi
+        path="" branch="" head=""
+        ;;
+    esac
+  done < <(git -C "$common" worktree list --porcelain)
+done

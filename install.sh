@@ -311,6 +311,49 @@ EOF
   else
     echo "  failed: launchctl bootstrap $label"
   fi
+
+  setup_worktree_gc_agent
+}
+
+# Daily worktree-gc, because agent sessions are usually closed right after
+# the PR merges and never clean up their worktrees.
+setup_worktree_gc_agent() {
+  local label="com.kz86n.worktree-gc"
+  local plist="$HOME/Library/LaunchAgents/$label.plist"
+
+  cat > "$plist" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>$label</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>$HOME/.shell-utils/worktree-gc</string>
+    <string>--apply</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key><string>$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key><integer>10</integer>
+    <key>Minute</key><integer>15</integer>
+  </dict>
+  <key>StandardOutPath</key><string>$HOME/Library/Logs/worktree-gc.log</string>
+  <key>StandardErrorPath</key><string>$HOME/Library/Logs/worktree-gc.log</string>
+</dict>
+</plist>
+EOF
+
+  launchctl bootout "gui/$(id -u)/$label" 2> /dev/null || :
+  if launchctl bootstrap "gui/$(id -u)" "$plist"; then
+    echo "  loaded: $label (daily 10:15)"
+  else
+    echo "  failed: launchctl bootstrap $label"
+  fi
 }
 
 setup_cli_tools() {
