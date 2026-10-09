@@ -1,6 +1,8 @@
 ---
 paths:
   - "**/.claude/**"
+  - "claude/hooks/**"
+  - "claude/settings.json"
 ---
 # Hooks System
 
