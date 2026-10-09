@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import os
 from pathlib import Path
 import subprocess
 import tempfile
@@ -138,21 +139,161 @@ class RemoteMutationGuardTest(unittest.TestCase):
             }, "codex")
             self.assertEqual(output["hookSpecificOutput"]["permissionDecision"], "deny")
 
-    def run_hook(self, payload, client):
+    def run_hook(self, payload, client, env=None):
+        clean_env = {key: value for key, value in os.environ.items() if key not in {"GH_HOST", "GH_REPO"}}
         result = subprocess.run(
             ["python3", str(HOOK), "--client", client],
             input=json.dumps(payload), text=True, capture_output=True, check=True,
+            env={**clean_env, **(env or {})},
         )
         self.assertEqual(result.stderr, "")
         return json.loads(result.stdout) if result.stdout else {}
 
-    def test_claude_pr_requires_human_even_in_auto_mode(self):
+    def topic_repo(self, directory, *, pushed=True, origin="https://github.com/o/r.git"):
+        def git(*args):
+            return subprocess.run(
+                ["git", "-c", "core.hooksPath=/dev/null", "-c", "commit.gpgsign=false",
+                 "-c", "user.name=Test", "-c", "user.email=test@example.invalid",
+                 "-C", directory, *args], check=True, capture_output=True, text=True,
+            ).stdout.strip()
+        git("init", "-b", "main")
+        git("commit", "--allow-empty", "-m", "base")
+        git("switch", "-c", "topic")
+        (Path(directory) / "app.txt").write_text("clean\n")
+        git("add", "app.txt")
+        git("commit", "-m", "change")
+        git("remote", "add", "origin", origin)
+        git("update-ref", "refs/remotes/origin/main", git("rev-parse", "main"))
+        if pushed:
+            git("update-ref", "refs/remotes/origin/topic", git("rev-parse", "topic"))
+        return git
+
+    def assert_claude_pr_prompts(self, directory, command, env=None):
+        output = self.run_hook({
+            "tool_name": "Bash", "cwd": directory,
+            "tool_input": {"command": command},
+        }, "claude", env)["hookSpecificOutput"]
+        self.assertEqual(output["permissionDecision"], "ask")
+        self.assertIn("未検査", output["permissionDecisionReason"])
+
+    def test_codex_pr_decisions_ignore_the_origin_target_check(self):
+        cases = [
+            ({"pushed": False}, "gh pr create --base main --head topic --title Test --body Clean", None),
+            ({"origin": "https://git.example.invalid/o/r.git"}, "gh pr create --repo o/r --base main --title Test --body Clean", None),
+            ({}, "GH_REPO=u/r gh pr create --base main --title Test --body Clean", None),
+            ({}, "gh pr create --base main --title Test --body Clean", {"GH_HOST": "git.example.invalid"}),
+        ]
+        for options, command, env in cases:
+            with self.subTest(command=command, env=env), tempfile.TemporaryDirectory() as directory:
+                self.topic_repo(directory, **options)
+                output = self.run_hook({
+                    "tool_name": "Bash", "cwd": directory,
+                    "tool_input": {"command": command},
+                }, "codex", env)["hookSpecificOutput"]
+                self.assertNotIn("permissionDecision", output)
+                self.assertIn("ユーザーの個別確認", output["additionalContext"])
+
+    def test_claude_pr_with_uninspected_range_still_prompts_in_auto_mode(self):
         output = self.run_hook({
             "tool_name": "Bash", "permission_mode": "auto", "cwd": "/tmp",
             "tool_input": {"command": "gh pr create --title Test --body Clean"},
         }, "claude")
         self.assertEqual(output["hookSpecificOutput"]["permissionDecision"], "ask")
         self.assertIn("未検査", output["hookSpecificOutput"]["permissionDecisionReason"])
+
+    def test_claude_clean_fully_inspected_pr_proceeds_without_prompt(self):
+        with tempfile.TemporaryDirectory() as directory:
+            self.topic_repo(directory)
+            for command in [
+                "gh pr create --base main --head topic --title Test --body Clean",
+                "rtk proxy gh pr create --repo o/r --base main --title Test --body Clean",
+                "gh pr create --repo github.com/o/r --base main --title Test --body Clean",
+            ]:
+                with self.subTest(command=command):
+                    output = self.run_hook({
+                        "tool_name": "Bash", "permission_mode": "auto", "cwd": directory,
+                        "tool_input": {"command": command},
+                    }, "claude")["hookSpecificOutput"]
+                    self.assertNotIn("permissionDecision", output)
+                    self.assertIn("1 コミット", output["additionalContext"])
+
+    def test_claude_pr_prompts_when_head_is_not_pushed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            self.topic_repo(directory, pushed=False)
+            self.assert_claude_pr_prompts(directory, "gh pr create --base main --head topic --title Test --body Clean")
+
+    def test_claude_pr_prompts_when_local_head_is_ahead_of_its_pushed_branch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            git = self.topic_repo(directory)
+            git("commit", "--allow-empty", "-m", "unpushed")
+            self.assert_claude_pr_prompts(directory, "gh pr create --base main --head topic --title Test --body Clean")
+
+    def test_claude_pr_prompts_when_a_same_named_tag_hides_the_branch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            git = self.topic_repo(directory)
+            git("tag", "topic")
+            git("commit", "--allow-empty", "-m", "unpushed")
+            self.assert_claude_pr_prompts(directory, "gh pr create --base main --head topic --title Test --body Clean")
+        with tempfile.TemporaryDirectory() as directory:
+            git = self.topic_repo(directory)
+            git("tag", "topic", "main")
+            self.assert_claude_pr_prompts(directory, "gh pr create --base main --head topic --title Test --body Clean")
+
+    def test_claude_pr_text_mentioning_gh_variables_does_not_prompt(self):
+        with tempfile.TemporaryDirectory() as directory:
+            self.topic_repo(directory)
+            output = self.run_hook({
+                "tool_name": "Bash", "cwd": directory,
+                "tool_input": {"command": "gh pr create --base main --title 'GH_HOST=example' --body 'GH_REPO=o/r'"},
+            }, "claude")["hookSpecificOutput"]
+            self.assertNotIn("permissionDecision", output)
+
+    def test_claude_pr_prompts_when_target_may_not_be_origin(self):
+        with tempfile.TemporaryDirectory() as directory:
+            git = self.topic_repo(directory)
+            git("remote", "add", "upstream", "https://github.com/u/r.git")
+            self.assert_claude_pr_prompts(directory, "gh pr create --base main --title Test --body Clean")
+        with tempfile.TemporaryDirectory() as directory:
+            self.topic_repo(directory, origin="https://git.example.invalid/o/r.git")
+            self.assert_claude_pr_prompts(directory, "gh pr create --repo o/r --base main --title Test --body Clean")
+        with tempfile.TemporaryDirectory() as directory:
+            self.topic_repo(directory)
+            self.assert_claude_pr_prompts(
+                directory, "gh pr create --repo https://git.example.invalid/o/r --base main --title Test --body Clean")
+        with tempfile.TemporaryDirectory() as directory:
+            self.topic_repo(directory)
+            self.assert_claude_pr_prompts(directory, "gh pr create --base main --head someone:topic --title Test --body Clean")
+            for command in [
+                "GH_HOST=git.example.invalid gh pr create --repo o/r --base main --title Test --body Clean",
+                "env GH_REPO=u/r gh pr create --base main --title Test --body Clean",
+                "GH_REPO=o/gh gh pr create --base main --head topic --title Test --body Clean",
+                "env GH_REPO=o/gh rtk proxy gh pr create --base main --head topic --title Test --body Clean",
+            ]:
+                with self.subTest(command=command):
+                    self.assert_claude_pr_prompts(directory, command)
+            for variable, value in [("GH_HOST", "git.example.invalid"), ("GH_REPO", "u/r")]:
+                with self.subTest(variable=variable):
+                    self.assert_claude_pr_prompts(
+                        directory, "gh pr create --repo o/r --base main --title Test --body Clean", {variable: value})
+
+    def test_claude_pr_prompts_when_text_is_generated_after_inspection(self):
+        with tempfile.TemporaryDirectory() as directory:
+            self.topic_repo(directory)
+            for command in [
+                "gh pr create --base main --head topic --fill",
+                "gh pr create --base main --head topic --title Test",
+                "gh pr create --base main --head topic --title Test --body Clean --web",
+                "gh pr create --base main --head topic --title Test --body Clean --editor",
+                "gh pr create --base main --head topic --title Test --template template.md",
+                "gh pr create --base main --head topic --body Clean",
+            ]:
+                with self.subTest(command=command):
+                    output = self.run_hook({
+                        "tool_name": "Bash", "cwd": directory,
+                        "tool_input": {"command": command},
+                    }, "claude")["hookSpecificOutput"]
+                    self.assertEqual(output["permissionDecision"], "ask")
+                    self.assertIn("未検査", output["permissionDecisionReason"])
 
     def test_codex_cli_preserves_review_without_a_blanket_ban(self):
         for tool, key, command in [
@@ -273,20 +414,7 @@ class RemoteMutationGuardTest(unittest.TestCase):
 
     def test_codex_cli_scans_a_complete_clean_commit_range(self):
         with tempfile.TemporaryDirectory() as directory:
-            def git(*args):
-                return subprocess.run(
-                    ["git", "-c", "core.hooksPath=/dev/null", "-c", "commit.gpgsign=false",
-                     "-c", "user.name=Test", "-c", "user.email=test@example.invalid",
-                     "-C", directory, *args], check=True, capture_output=True, text=True,
-                ).stdout.strip()
-            git("init", "-b", "main")
-            git("commit", "--allow-empty", "-m", "base")
-            git("switch", "-c", "topic")
-            (Path(directory) / "app.txt").write_text("clean\n")
-            git("add", "app.txt")
-            git("commit", "-m", "change")
-            git("remote", "add", "origin", "https://example.invalid/o/r.git")
-            git("update-ref", "refs/remotes/origin/main", git("rev-parse", "main"))
+            self.topic_repo(directory)
             output = self.run_hook({
                 "tool_name": "Bash", "cwd": directory,
                 "tool_input": {"command": "gh pr create --repo o/r --base main --head topic --title Test --body Clean"},
@@ -388,7 +516,7 @@ class RemoteMutationGuardTest(unittest.TestCase):
             (Path(directory) / "merge.txt").write_text(secret + "\n")
             git("add", "merge.txt")
             git("commit", "-m", "merge")
-            blocked, report = self.guard.inspect_pr(directory, {"base": "main", "head": "topic"})
+            blocked, report, _ = self.guard.inspect_pr(directory, {"base": "main", "head": "topic"})
             self.assertTrue(blocked)
             self.assertNotIn(secret, report)
 

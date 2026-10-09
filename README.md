@@ -126,10 +126,11 @@ npx skills update natural-japanese -g -y
 
 ### PR作成時の確認
 
-Before each PR, agents prepare its publication details and show inspection results.
-Explicit PR approval can carry over within the approved task and repository;
-missing or expanded approval still requires confirmation. Normal commits and
-pushes within the request proceed without repeated confirmation.
+Before each PR, agents prepare its publication details and inspect them.
+Claude Code creates the PR without separate confirmation when the inspection is
+complete and clean, and asks only when findings or uninspected scope remain.
+Codex keeps explicit per-PR approval. Normal commits and pushes within the
+request proceed without repeated confirmation.
 See [PR publication approval](docs/pr-approval.md).
 
 <a id="notifications"></a>

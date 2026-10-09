@@ -38,14 +38,14 @@ Scale the process to the change's uncertainty and risk.
    existing task and delivery authority.
 8. Before each PR, including a Draft, prepare its target, title, body, and full
    outgoing commit range. Inspect them for secrets, personal and confidential
-   information; report findings and uninspected parts. Verify explicit human
-   approval covers the prepared publication and latest instructions. Reuse it
-   within the approved repository, task, content, and limits; multiple PRs need
-   explicit multiple, split, or continued PR approval. Ask only for missing or
-   expanded authority. Stop on unresolved sensitive findings or runtime rejection;
-   uninspected scope needs disclosure and individual approval. Pattern scans alone
-   do not establish safety. Never save permanent approval or evade native checks.
-   Follow the [publication guidance](https://github.com/WatanabeToshimitsu/dotfiles/blob/main/docs/pr-approval.md).
+   information, and content outside the requested task; report findings and
+   uninspected parts. Pattern scans alone do not establish safety. In Claude
+   Code, create the PR without separate confirmation when the task includes
+   delivery, the inspection is complete, and it finds nothing; ask first when
+   findings, uninspected scope, or out-of-scope content remain. Codex keeps
+   explicit per-PR approval. Stop on unresolved sensitive findings or runtime
+   rejection, and never evade native checks. Follow the
+   [publication guidance](https://github.com/WatanabeToshimitsu/dotfiles/blob/main/docs/pr-approval.md).
    Create a Draft only when needed.
 9. After live confirmation that this task's PR is merged, clean up only its
    local worktree and branch when cleanup is authorized. Verify their HEAD

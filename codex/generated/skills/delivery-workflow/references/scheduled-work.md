@@ -54,8 +54,8 @@ independent review, one writer, and verification. A Loop contract does not grant
 auto-merge, production operations, secret changes, or permanent PR-creation
 approval. Follow the
 [publication guidance](https://github.com/WatanabeToshimitsu/dotfiles/blob/main/docs/pr-approval.md)
-for each PR's preparation, inspection, and explicit approval coverage. Interactive
-PR approval alone does not authorize scheduled or unattended publication: the
+for each PR's preparation, inspection, and approval rules. Interactive PR approval
+or automatic creation alone does not authorize scheduled or unattended publication: the
 approved project contract must explicitly cover that execution, publication, and
 its limits. Preserve all native permission checks.
 
