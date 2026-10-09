@@ -1,10 +1,10 @@
 {
   "executables": [],
   "files": {
-    "AGENTS.md": "sha256:9b2c175e8f6fa59532ea6e2ae7c61f8b750304794fc4ae77f34a2efc1c6ccc52",
+    "AGENTS.md": "sha256:59f11eb63621b082009891d17441a3a686434ea59fa56f14e60e72e07d294c8a",
     "rules/common/coding-style.md": "sha256:9f3badeb37672cc4331427722dc0ff84bd4520fa8e551713ccf44ab196878f55",
     "rules/common/github-actions.md": "sha256:dd83e898d6979615d69c358ea9664bb671ca70ff0e3b781ef48ee7ebf8d921a2",
-    "rules/common/hooks.md": "sha256:4ba0deefe041a662d05786a59198c96ca9d0eb919610d26223702bfa28274a91",
+    "rules/common/hooks.md": "sha256:958560e5c011273127d8088a65e73d010bfcc1a787cb3b97385663b0a8d1a57d",
     "rules/common/security.md": "sha256:169a4ca9a850852e301c28b9b5ffa8e4a3eba02dc9a99ca4d6ed08c3cb27d80e",
     "rules/common/testing.md": "sha256:c478f74a8cb2429fe5ba058833abadaa7e76aa58f7c62ac9e42d41815717f3d1",
     "rules/golang/coding-style.md": "sha256:82910f98bfd1e4fb6043f6c0bfdf896b7593bd3e42e8408b5c8fd3efd9b13f88",
@@ -42,7 +42,7 @@
     "claude/CLAUDE.md": "sha256:777640b5e2f19d9aaaf10fa61908883ea85219a5c93d80dfb4e45bf64ed7f3fe",
     "claude/rules/common/coding-style.md": "sha256:9f3badeb37672cc4331427722dc0ff84bd4520fa8e551713ccf44ab196878f55",
     "claude/rules/common/github-actions.md": "sha256:dd83e898d6979615d69c358ea9664bb671ca70ff0e3b781ef48ee7ebf8d921a2",
-    "claude/rules/common/hooks.md": "sha256:4ba0deefe041a662d05786a59198c96ca9d0eb919610d26223702bfa28274a91",
+    "claude/rules/common/hooks.md": "sha256:958560e5c011273127d8088a65e73d010bfcc1a787cb3b97385663b0a8d1a57d",
     "claude/rules/common/security.md": "sha256:169a4ca9a850852e301c28b9b5ffa8e4a3eba02dc9a99ca4d6ed08c3cb27d80e",
     "claude/rules/common/testing.md": "sha256:c478f74a8cb2429fe5ba058833abadaa7e76aa58f7c62ac9e42d41815717f3d1",
     "claude/rules/golang/coding-style.md": "sha256:82910f98bfd1e4fb6043f6c0bfdf896b7593bd3e42e8408b5c8fd3efd9b13f88",
