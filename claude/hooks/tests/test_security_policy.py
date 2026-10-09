@@ -71,7 +71,8 @@ class SecurityPolicyTest(unittest.TestCase):
     def test_standard_permissions_own_allow_ask_and_deny_decisions(self) -> None:
         permissions = self.settings["permissions"]
         self.assertIn("Bash(gh pr view:*)", permissions["allow"])
-        self.assertIn("Bash(gh pr create:*)", permissions["ask"])
+        for connector in ("mcp__*create_pull_request*", "mcp__*createPullRequest*"):
+            self.assertIn(connector, permissions["ask"])
         for routine in ("Bash(curl:*)", "Bash(gh api:*)", "Bash(git config:*)"):
             self.assertNotIn(routine, permissions["ask"])
         self.assertIn("Bash(dangerouslyDisableSandbox:true)", permissions["ask"])
@@ -106,7 +107,13 @@ class SecurityPolicyTest(unittest.TestCase):
             "Bash(git diff:*)",
         ):
             self.assertIn(rule, allow_rules)
-        self.assertNotIn("Bash(gh pr create:*)", allow_rules)
+        for rule in (
+            "Bash(gh pr create:*)",
+            "Bash(rtk gh pr create:*)",
+            "Bash(rtk proxy gh pr create:*)",
+        ):
+            self.assertIn(rule, allow_rules)
+            self.assertNotIn(rule, self.settings["permissions"]["ask"])
         self.assertIn("Bash(rtk git push:*)", allow_rules)
 
     def test_destructive_git_forms_stay_denied(self) -> None:

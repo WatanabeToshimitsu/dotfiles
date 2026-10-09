@@ -3,6 +3,7 @@
 
 import argparse
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -317,6 +318,7 @@ def classify_words(words):
             "base": values.get("--base"),
             "head": values.get("--head"),
             "repo": values.get("--repo", argument(words[1:index], "--repo", "-R")),
+            "target_env": any(re.match(r"^GH_(HOST|REPO)=", word) for word in original[:len(original) - len(words)]),
             "explicit_text": bool(values.get("--title")) and
                 ("--body" in values or bool(values.get("--body-file"))) and known_text and not positional,
         }
@@ -430,6 +432,37 @@ def commit_text(cwd, detail):
     return text, count
 
 
+def origin_is_target(cwd, detail):
+    if detail.get("target_env") or os.environ.get("GH_HOST") or os.environ.get("GH_REPO"):
+        return False
+    try:
+        if git_output(cwd, "remote").split() != ["origin"]:
+            return False
+        url = git_output(cwd, "config", "--get", "remote.origin.url")
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        return False
+    host = urlsplit(url).hostname if "://" in url else url.partition(":")[0].rpartition("@")[2]
+    requested = (detail.get("repo") or detail.get("repository") or
+                 detail.get("repo_full_name") or detail.get("repository_full_name") or "")
+    parts = requested.split("/")
+    if len(parts) == 3:
+        return parts[0].lower() == (host or "").lower()
+    return len(parts) < 2 or (host or "").lower() == "github.com"
+
+
+def head_is_pushed(cwd, detail):
+    requested = detail.get("head") or detail.get("head_branch") or "HEAD"
+    try:
+        inspected = git_output(cwd, "rev-parse", "--verify", "--end-of-options", requested + "^{commit}")
+        branch = git_output(cwd, "symbolic-ref", "--short", "HEAD") if requested == "HEAD" else requested
+        branch = branch.removeprefix("refs/heads/")
+        local = git_output(cwd, "rev-parse", "--verify", "--end-of-options", "refs/heads/" + branch + "^{commit}")
+        pushed = git_output(cwd, "rev-parse", "--verify", "--end-of-options", "refs/remotes/origin/" + branch + "^{commit}")
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        return False
+    return inspected == local == pushed
+
+
 def inspect_pr(cwd, detail, *, require_explicit_text=False):
     texts = [str(detail.get("title") or ""), str(detail.get("body") or "")]
     incomplete_text = not detail.get("explicit_text")
@@ -438,6 +471,8 @@ def inspect_pr(cwd, detail, *, require_explicit_text=False):
         warnings.append(detail["uninspected"])
     if detail.get("issue"):
         warnings.append("既存 Issue から引き継ぐ本文は未検査")
+    if detail.get("explicit_text") is False:
+        warnings.append("実行時に決まる PR のタイトル・本文は未検査")
     body_file = detail.get("body_file")
     if body_file:
         try:
@@ -459,17 +494,19 @@ def inspect_pr(cwd, detail, *, require_explicit_text=False):
         summary = f"本文とローカルの {count} コミットを既知の秘密情報パターンで検査しました。"
         if count == 0:
             warnings.append("差分が空のため公開対象との一致を要確認")
+        elif not (origin_is_target(cwd, detail) and head_is_pushed(cwd, detail)):
+            warnings.append("作成先と push 済みブランチを origin と照合できないため公開対象コミットは未検査")
     except (OSError, ValueError, subprocess.TimeoutExpired):
         summary = "PR 本文を既知の秘密情報パターンで検査しました。"
         warnings.append("公開対象コミットは未検査")
     if findings:
-        return True, "秘密情報の疑いを検出しました: " + ", ".join(sorted(findings)) + "。値は出力していません。公開を止めて内容を確認してください。"
+        return True, "秘密情報の疑いを検出しました: " + ", ".join(sorted(findings)) + "。値は出力していません。公開を止めて内容を確認してください。", False
     if require_explicit_text and incomplete_text:
-        return True, "PR のタイトル・本文を事前に検査できません。--title と --body、または読み取り可能な --body-file を明示してください。自動生成・実行時の編集は使用しないでください。"
+        return True, "PR のタイトル・本文を事前に検査できません。--title と --body、または読み取り可能な --body-file を明示してください。自動生成・実行時の編集は使用しないでください。", False
     summary += "検出なしは秘密情報がない保証ではありません。"
     if warnings:
         summary += " " + "。".join(warnings) + "。"
-    return False, summary
+    return False, summary, not warnings
 
 
 def inspect_push(cwd, push):
@@ -576,13 +613,15 @@ def main():
                 respond(reason=" ".join(dict.fromkeys(warnings)))
         elif decision == "pr":
             codex_cli = client == "codex" and tool in {"Bash", "exec_command", "shell_command"}
-            blocked, report = inspect_pr(cwd, detail, require_explicit_text=codex_cli and not detail.get("uninspected"))
+            blocked, report, complete = inspect_pr(cwd, detail, require_explicit_text=codex_cli and not detail.get("uninspected"))
             if blocked:
                 respond("deny", report)
             elif codex_cli and detail.get("uninspected"):
                 respond("deny", "GitHub API の PR 本文・対象差分を検査できません。対象を明記した gh pr create を使用してください。 " + report)
+            elif client == "claude" and not complete:
+                respond("ask", report + " 未検査の範囲を確認し、この PR の作成を承認してください。")
             elif client == "claude":
-                respond("ask", report + " 作成先・タイトル・本文・差分を確認し、この PR の作成を承認してください。")
+                respond(reason=report)
             else:
                 # Codex has no hook ask decision. User consent must precede the
                 # tool call; CLI prompt rules may route to an automatic reviewer.

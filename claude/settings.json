@@ -95,6 +95,9 @@
       "Bash(rtk proxy git worktree:*)",
       "Bash(rtk gh pr view:*)",
       "Bash(rtk proxy gh pr view:*)",
+      "Bash(gh pr create:*)",
+      "Bash(rtk gh pr create:*)",
+      "Bash(rtk proxy gh pr create:*)",
       "Bash(rtk npm test:*)",
       "Bash(rtk proxy npm test:*)",
       "Bash(rtk npm run build:*)",
@@ -175,8 +178,6 @@
       "Bash(ncat *)",
       "Bash(netcat *)",
       "Bash(nmap *)",
-      "Bash(ssh *)",
-      "Bash(scp *)",
       "Bash(rsync --delete*)",
       "Bash(sftp *)",
       "Bash(socat *)",
@@ -334,11 +335,11 @@
     ],
     "ask": [
       "Bash(dangerouslyDisableSandbox:true)",
-      "Bash(gh pr create:*)",
-      "Bash(rtk gh pr create:*)",
-      "Bash(rtk proxy gh pr create:*)",
       "mcp__*create_pull_request*",
-      "mcp__*createPullRequest*"
+      "mcp__*createPullRequest*",
+      "Bash(ssh *)",
+      "Bash(scp *)",
+      "Bash(rsync *)"
     ],
     "defaultMode": "auto",
     "disableBypassPermissionsMode": "disable"
@@ -455,7 +456,8 @@
     "codex@openai-codex": true,
     "context7@claude-plugins-official": true,
     "discernment-nudge@anthropic-agent-skills": true,
-    "typescript-lsp@claude-plugins-official": true
+    "typescript-lsp@claude-plugins-official": true,
+    "scene-tag@scene-tag-annotator": true
   },
   "extraKnownMarketplaces": {
     "claude-powerline": {
@@ -488,6 +490,12 @@
       "source": {
         "source": "github",
         "repo": "anthropics/skills"
+      }
+    },
+    "scene-tag-annotator": {
+      "source": {
+        "source": "github",
+        "repo": "hdwlab/CoMLOpsSceneTagAnnotationTool"
       }
     }
   },
