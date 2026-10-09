@@ -4,33 +4,44 @@ Normal commits and pushes within the user's request do not need repeated
 confirmation. Force pushes, including `--force-with-lease`, forced refspecs,
 mirror updates, and remote deletions remain blocked by the publication guard.
 
-For every PR, including a draft, the agent must prepare and show the exact
-repository, base/head, title, body, and complete outgoing commit range. Inspect
-them for secrets, personal data, and confidential information, report both the
-findings and any uninspected scope, then verify explicit human approval covers
-the prepared publication before calling the creation tool.
+For every PR, including a draft, the agent must prepare the exact repository,
+base/head, title, body, and complete outgoing commit range. Inspect them for
+secrets, personal data, confidential information, and content outside the
+requested task, and report both the findings and any uninspected scope.
 
-An explicit approval for multiple, split, or continued PR creation may carry over
-within its repository, task, content, and limits. A single-PR approval ends after
-that PR. Honor specified counts and conditions; an approved bounded task can
-limit multiple PRs without a fixed count. A request to implement or continue work
-alone is not publication approval and does not permit an unapproved split.
+## Claude Code: automatic creation
 
-Check the actual approval basis against the latest authoritative user instructions.
-Ask only for missing or expanded authority. Revoked approval stops creation;
-unverifiable approval cannot be recovered from an old note alone. Resuming the
-same task does not require another confirmation when current instructions and
-approval coverage can be established. Stop on unresolved sensitive findings;
-resolve them with evidence, not an annotation claiming a value is fake.
-Uninspected scope requires concrete disclosure and individual approval.
+When the task's authority includes delivery, Claude Code creates the PR with
+`gh pr create` without a separate confirmation once the inspection is complete
+and finds nothing. The agent asks before creating when findings, uninspected
+scope, or out-of-scope content remain, and reports the created PR with its
+inspection results afterwards.
 
-Keep the approval basis and scope in private handoffs; never publish conversation
-text or save permanent or repository-wide allow rules. PR approval grants no
-merge, issue closure, profile, scheduling, spending, or private-data sharing
-authority. Native rejection or cancellation stops that PR and dependent
-publication. Establish its reason and affected scope before continuing;
-a human rejection is evidence to reassess approval, not unused PR capacity.
-Never evade a denial through another route, provider, or agent.
+The `gh pr create` spellings are in the `allow` list so the Auto mode classifier
+does not gate clean PRs. The hook still decides first:
+
+- A secret pattern in the title, body, body file, or commit range is denied.
+- An incomplete inspection prompts the user. This covers text decided at run
+  time (`--fill`, `--editor`, `--web`, `--template`, or a missing title or body),
+  an unreadable body file, an unavailable or empty commit range, and a target or
+  head that cannot be matched to `origin`: another remote, another host,
+  `GH_HOST` or `GH_REPO`, a fork head, or commits not yet pushed to the head's
+  `origin` branch.
+- A complete, clean inspection proceeds and returns the report as context.
+
+Connector PR tools stay in the `ask` list, because their target usually cannot
+be matched to local commits. A hook `ask` forces a permission prompt even in
+Auto mode ([hooks](https://code.claude.com/docs/en/hooks)).
+
+## Shared limits
+
+Stop on unresolved sensitive findings; resolve them with evidence, not an
+annotation claiming a value is fake. PR creation grants no merge, issue closure,
+profile, scheduling, spending, or private-data sharing authority. Native
+rejection or cancellation stops that PR and dependent publication. Establish its
+reason and affected scope before continuing; a human rejection is evidence to
+reassess, not unused PR capacity. Never evade a denial through another route,
+provider, or agent.
 
 Report approval coverage and document checks separately from observed native
 review, hook, and permission results. Document compliance does not prove runtime
@@ -65,7 +76,10 @@ consent occurred. Under Auto-review, a CLI `prompt` can go to the automatic
 reviewer, so it does not guarantee a human dialog either. The agent must establish
 the user's explicit approval coverage **before invoking the tool**, reusing a
 covered approval or obtaining missing consent; hook context is not consent.
-The connector retains its separate native human approval setting.
+Reuse an approval only within its repository, task, content, and limits; a
+single-PR approval ends after that PR, and multiple PRs need explicit multiple,
+split, or continued PR approval. The connector retains its separate native human
+approval setting.
 
 Codex PR creation through `gh api` remains blocked because its request body and
 target diff are not fully inspected by this hook. Use `gh pr create` with an
@@ -100,8 +114,9 @@ inspect. This preserves PRs whose remote commits cannot be resolved locally.
 Body files can change between hook inspection and execution; use inline `--body`
 when that risk matters, and do not edit an approved body file before creation.
 
-Claude continues to use its supported hook `ask` decision. Secret detection and
-history-rewrite checks run before the client-specific approval behavior.
+Claude uses the hook `ask` decision only for incomplete inspections, as described
+above. Secret detection and history-rewrite checks run before the client-specific
+approval behavior.
 
 ## Verification
 
