@@ -86,12 +86,14 @@ without it, the skill is reported as unavailable. Project, admin and plugin
 skill namespaces remain under the native host's control; duplicate-name checks
 cover the two user directories, not every remote plugin catalog.
 
-Start a new Codex task after applying. The existing task's instruction snapshot
-does not refresh just because files have changed. `probe.py` checks native skill
-discovery, the instruction sources of a new ephemeral thread and untrusted hook
-status in a disposable fixture. It makes no model turns and does not prove that
-a model will obey every converted instruction. It does not apply to the real
-Mac profile or establish that a real GitHub merge has completed.
+After applying, check whether your client has reloaded the updated instructions.
+If reloading is not confirmed, start a new Codex task. A successful installer
+check verifies files on disk, not the instructions loaded by a running task.
+`probe.py` checks native skill discovery, the instruction sources of a new
+ephemeral thread and untrusted hook status in a disposable fixture. It makes
+no model turns and does not prove that a model will obey every converted
+instruction. It does not apply to the real Mac profile or establish that a real
+GitHub merge has completed.
 
 ## Restore and uninstall
 
@@ -143,9 +145,10 @@ Retry failed checks through the ordinary workflow run, and check their commit
 before merging. The preview and CI retain `contents: read`; repository token
 settings, branch protection, user Git hooks and merge policy are unchanged.
 
-After an approved merge, run the local update/apply steps and start a new Codex
-task. Applying and restoring the real profile remain separate acceptance work;
-disposable fixtures do not prove model obedience or refresh an existing task.
+After an approved merge, run the local update/apply steps and confirm instruction
+reloading as described above. Applying and restoring the real profile remain
+separate acceptance work; disposable fixtures do not prove model obedience or
+refresh an existing task.
 
 ## Deliberately native settings
 
