@@ -1,6 +1,10 @@
 import json
+import os
 from pathlib import Path
+import shutil
 import subprocess
+import sys
+import tempfile
 import unittest
 
 
@@ -66,6 +70,8 @@ class ValidateBashTests(unittest.TestCase):
             'git commit -m "`git add -A`"',
             "cat <<EOF\n$(git add -A)\nEOF\n",
             "cat <<EOF\n`git add -A`\nEOF\n",
+            'git -C fixture add -A; echo "$branch"',
+            'git add "-A"; echo "unfinished',
             "git add README.md -A", "git add '-A'", "git add \".\"",
             "rtk git add -A", "rtk proxy git add -A",
             'echo "$HOME"\ngit add .\ngit status',
@@ -75,6 +81,48 @@ class ValidateBashTests(unittest.TestCase):
         for command in cases:
             with self.subTest(command=command):
                 self.assertEqual(self.decision(command), "deny")
+
+    def test_installed_hooks_use_their_parser_and_block_when_it_is_missing(self):
+        helper = "_shell_parser.py"
+        manifest = HOOK.parents[2] / "symlink-manifest.sh"
+        self.assertIn("  hooks/" + helper + "\n", manifest.read_text())
+        with tempfile.TemporaryDirectory() as directory:
+            cwd = Path(directory)
+            (cwd / helper).write_text("raise AssertionError('untrusted helper imported')\n")
+            env = {**os.environ, "PYTHONPATH": str(cwd)}
+            env.pop("PYTHONDONTWRITEBYTECODE", None)
+            for mode in ("copy", "symlink"):
+                hooks = cwd / (mode + " hooks")
+                hooks.mkdir()
+                for name in (HOOK.name, "remote-mutation-guard.py", helper):
+                    source = HOOK.parent / name
+                    if mode == "copy":
+                        shutil.copyfile(source, hooks / name)
+                    else:
+                        (hooks / name).symlink_to(source)
+                for name, runner, command in (
+                    (HOOK.name, "bash", "git add -A"),
+                    ("remote-mutation-guard.py", sys.executable, "git push --force"),
+                ):
+                    payload = json.dumps({"tool_name": "Bash", "tool_input": {"command": command}})
+                    argv = [runner, str(hooks / name)]
+                    if name != HOOK.name:
+                        argv += ["--client", "claude"]
+                    with self.subTest(mode=mode, hook=name):
+                        result = subprocess.run(argv, input=payload,
+                                                text=True, capture_output=True, cwd=cwd, env=env, timeout=5)
+                        self.assertEqual(result.returncode, 0, result.stderr)
+                        self.assertEqual(json.loads(result.stdout)["hookSpecificOutput"]["permissionDecision"], "deny")
+                if mode == "copy":
+                    (hooks / helper).unlink()
+                    for name, runner in ((HOOK.name, "bash"), ("remote-mutation-guard.py", sys.executable)):
+                        with self.subTest(missing_helper=name):
+                            result = subprocess.run([runner, str(hooks / name)], input=payload,
+                                                    text=True, capture_output=True, cwd=cwd, env=env, timeout=5)
+                            self.assertEqual(result.returncode, 2, result.stderr)
+                            self.assertIn("Required shell parser is unavailable", result.stderr)
+                            self.assertEqual(result.stdout, "")
+            self.assertFalse(list(cwd.rglob("__pycache__")))
 
     def test_explicit_paths_and_non_bash_input_are_preserved(self):
         for command in ["git add README.md", "git add ./src/main.ts", "git add -- -A"]:
