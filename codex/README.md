@@ -71,6 +71,11 @@ cannot enter the installed snapshot. `dotfiles-update` preserves existing Git
 hooks and stops if the merge conflicts. It installs no watcher or scheduled job.
 `install.sh --symlinks-only` refreshes an existing Codex sync installation.
 
+Commits that leave the managed configuration unchanged need no reapplication:
+`check` succeeds, and `apply` leaves the installed state and backups untouched.
+The state records the last commit actually applied. Configuration changes or
+repairs still require application and record the current merged commit.
+
 The installer creates a private snapshot under `~/.codex/dotfiles-sync/`, then
 updates its stable `current` link and owned skill links in `~/.agents/skills/`.
 Switching the repository to an implementation branch cannot change the active

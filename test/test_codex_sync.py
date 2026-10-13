@@ -331,6 +331,79 @@ class SyncTest(RepositoryCase):
         self.assertEqual((codex / 'AGENTS.md').read_text(), '# Local wins\n')
         self.assertFalse((self.home / '.agents/skills/demo').exists())
 
+    def test_unrelated_commit_does_not_require_reapply_or_create_backup(self):
+        self.merged()
+        install.apply(install.plan(self.root, self.home))
+        state_path = self.home / install.STATE
+        before = state_path.read_bytes()
+        backups = sorted((self.home / install.BASE / 'backups').iterdir())
+        self.put('codex/README.md', '# Documentation only\n')
+        git(self.root, 'add', 'codex/README.md')
+        git(self.root, 'commit', '-qm', 'Update documentation')
+        git(self.root, 'update-ref', 'refs/remotes/origin/main', 'HEAD')
+
+        checked = subprocess.run([sys.executable, '-B', str(SCRIPTS / 'install.py'), 'check',
+                                  '--root', str(self.root), '--home', str(self.home)],
+                                 capture_output=True, text=True)
+        self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
+        self.assertEqual(checked.stdout, '')
+        self.assertEqual(state_path.read_bytes(), before)
+        prepared = install.plan(self.root, self.home)
+        self.assertEqual(prepared['changes'], [])
+        self.assertIsNone(install.apply(prepared))
+        self.assertEqual(state_path.read_bytes(), before)
+        self.assertEqual(sorted((self.home / install.BASE / 'backups').iterdir()), backups)
+
+    def test_real_changes_after_unrelated_commit_record_current_head(self):
+        self.merged()
+        install.apply(install.plan(self.root, self.home))
+        self.put('codex/README.md', '# Documentation only\n')
+        git(self.root, 'add', 'codex/README.md')
+        git(self.root, 'commit', '-qm', 'Update documentation')
+        git(self.root, 'update-ref', 'refs/remotes/origin/main', 'HEAD')
+
+        link = self.home / '.agents/skills/demo'
+        link.unlink()
+        prepared = install.plan(self.root, self.home)
+        self.assertIn('.agents/skills/demo', prepared['changes'])
+        self.assertIn(install.STATE, prepared['changes'])
+        install.apply(prepared)
+        self.assertTrue(link.is_symlink())
+        self.assertEqual(install.load_state(self.home.resolve())['commit'], git(self.root, 'rev-parse', 'HEAD'))
+
+        self.put('claude/CLAUDE.md', '# Updated shared instructions\n')
+        self.merged()
+        prepared = install.plan(self.root, self.home)
+        self.assertIn('.codex/AGENTS.md', prepared['changes'])
+        install.apply(prepared)
+        self.assertIn('# Updated shared instructions', (self.home / '.codex/AGENTS.md').read_text())
+        self.assertEqual(install.load_state(self.home.resolve())['commit'], git(self.root, 'rev-parse', 'HEAD'))
+
+    def test_state_repairs_after_unrelated_commit_record_current_head(self):
+        self.merged()
+        install.apply(install.plan(self.root, self.home))
+        state_path = self.home / install.STATE
+        for change in ('mode', 'format', 'missing_commit'):
+            with self.subTest(change=change):
+                self.put('codex/README.md', '# Documentation: ' + change + '\n')
+                git(self.root, 'add', 'codex/README.md')
+                git(self.root, 'commit', '-qm', 'Update documentation')
+                git(self.root, 'update-ref', 'refs/remotes/origin/main', 'HEAD')
+                state = install.load_state(self.home.resolve())
+                if change == 'mode':
+                    state_path.chmod(0o644)
+                elif change == 'format':
+                    state_path.write_text(json.dumps(state))
+                else:
+                    del state['commit']
+                    state_path.write_bytes(generate.json_bytes(state))
+
+                prepared = install.plan(self.root, self.home)
+                self.assertEqual(prepared['changes'], [install.STATE])
+                install.apply(prepared)
+                self.assertEqual(install.load_state(self.home.resolve())['commit'], git(self.root, 'rev-parse', 'HEAD'))
+                self.assertEqual(state_path.stat().st_mode & 0o777, 0o600)
+
     def test_install_conflict_is_atomic_and_uninstall_preserves_foreign_link(self):
         self.merged()
         collision = self.home / '.agents/skills/demo'

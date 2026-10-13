@@ -224,6 +224,11 @@ def plan(root, home):
                  'links': links, 'block': block, 'skills': manifest['skills'], 'skipped': skipped,
                  'dependencies': dependencies,
                  'agents_was_absent': state['agents_was_absent'] if state else prior_agents['kind'] == 'absent'}
+    # Unrelated commits do not change the installed configuration or need a backup.
+    if state and not operations and 'commit' in state:
+        unchanged = file_value(generate.json_bytes(dict(new_state, commit=state['commit'])))
+        if unchanged == state_before:
+            new_state['commit'] = state['commit']
     add(STATE, file_value(generate.json_bytes(new_state)), state_before)
     for op in operations:
         if op['before']['kind'] == 'directory':
