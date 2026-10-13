@@ -5,6 +5,8 @@ BACKUP_TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 
 # shellcheck source=symlink-manifest.sh
 source "$DOTFILES_DIR/symlink-manifest.sh"
+# shellcheck source=scripts/codex-sync/python-runtime.sh
+source "$DOTFILES_DIR/scripts/codex-sync/python-runtime.sh"
 
 echo ""
 echo " ---------------"
@@ -128,7 +130,9 @@ setup_symlinks() {
   local dotfiles_dir="${1:-$DOTFILES_DIR}"
 
   if [ -f "$HOME/.codex/dotfiles-sync/state.json" ]; then
-    python3 "$dotfiles_dir/$MANIFEST_CODEX_SYNC_INSTALLER" apply --root "$dotfiles_dir" || return 1
+    local python
+    python=$(codex_sync_python) || return 1
+    "$python" "$dotfiles_dir/$MANIFEST_CODEX_SYNC_INSTALLER" apply --root "$dotfiles_dir" || return 1
   fi
 
   echo "----------------------------------------------"
@@ -693,7 +697,8 @@ fi
 
 if [ "${1:-}" = "--codex-only" ]; then
   shift
-  python3 "$DOTFILES_DIR/$MANIFEST_CODEX_SYNC_INSTALLER" apply --root "$DOTFILES_DIR" "$@"
+  python=$(codex_sync_python) || exit $?
+  "$python" "$DOTFILES_DIR/$MANIFEST_CODEX_SYNC_INSTALLER" apply --root "$DOTFILES_DIR" "$@"
   exit $?
 fi
 

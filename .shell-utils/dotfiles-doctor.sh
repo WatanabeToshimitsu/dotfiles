@@ -6,6 +6,8 @@ set -uo pipefail
 
 # -P resolves ~/.shell-utils (a symlink) so the parent is the real repo.
 DOTFILES_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
+# shellcheck source=../scripts/codex-sync/python-runtime.sh
+source "$DOTFILES_DIR/scripts/codex-sync/python-runtime.sh"
 NOTIFY=0
 HARNESS_ONLY=0
 WARNINGS=0
@@ -525,21 +527,9 @@ check_codex_sync() {
     info "[NOT APPLICABLE] not installed; setup: bash install.sh --codex-only --dry-run"
     return 0
   fi
-  local output candidate python="" found_python=0
-  for candidate in python3 python3.13 python3.11; do
-    has_command "$candidate" || continue
-    found_python=1
-    if "$candidate" -c 'import sys; sys.exit(sys.version_info < (3, 11))' > /dev/null 2>&1; then
-      python="$candidate"
-      break
-    fi
-  done
-  if [ -z "$python" ]; then
-    if [ "$found_python" -eq 0 ]; then
-      unverified "Codex sync cannot run: Python is not installed; next: install Python 3.11+ and retry dotfiles-doctor.sh" 1
-    else
-      unverified "Codex sync cannot run: Python 3.11+ is unavailable; next: check python3 --version and install a supported Python" 1
-    fi
+  local output python
+  if ! python=$(codex_sync_python 2>&1); then
+    unverified "Codex sync cannot run: $python" 1
     return 0
   fi
   if output=$("$python" "$DOTFILES_DIR/scripts/codex-sync/install.py" check --root "$DOTFILES_DIR" 2>&1); then

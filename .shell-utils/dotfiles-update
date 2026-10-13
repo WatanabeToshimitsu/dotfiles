@@ -9,4 +9,7 @@ fi
 
 git -C "$dotfiles_update_root" fetch --prune origin main
 git -C "$dotfiles_update_root" merge --ff-only origin/main
-python3 "$dotfiles_update_root/scripts/codex-sync/install.py" apply --root "$dotfiles_update_root"
+# shellcheck source=../scripts/codex-sync/python-runtime.sh
+source "$dotfiles_update_root/scripts/codex-sync/python-runtime.sh"
+python=$(codex_sync_python) || exit $?
+"$python" "$dotfiles_update_root/scripts/codex-sync/install.py" apply --root "$dotfiles_update_root"
