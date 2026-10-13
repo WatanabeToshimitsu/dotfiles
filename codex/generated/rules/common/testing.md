@@ -19,27 +19,7 @@ For bug fixes, first add the smallest regression test that reproduces the report
 2. Check test isolation and mocks.
 3. Fix the implementation unless the test expectation is demonstrably wrong.
 
-## Test Structure (AAA Pattern)
+## Test Structure and Naming
 
-Prefer Arrange-Act-Assert structure, with blank lines between the phases:
-
-```typescript
-test('calculates similarity correctly', () => {
-  const vector1 = [1, 0, 0]
-  const vector2 = [0, 1, 0]
-
-  const similarity = calculateCosineSimilarity(vector1, vector2)
-
-  expect(similarity).toBe(0)
-})
-```
-
-### Test Naming
-
-Use descriptive names that explain the behavior under test:
-
-```typescript
-test('returns empty array when no markets match query', () => {})
-test('throws error when API key is missing', () => {})
-test('falls back to substring search when Redis is unavailable', () => {})
-```
+- Prefer Arrange-Act-Assert structure, with blank lines between the phases.
+- Use descriptive names that explain the behavior under test.
