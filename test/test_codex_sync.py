@@ -59,13 +59,18 @@ def instruction_reference_errors(root):
     paths += [path for directory in ('rules', 'skills', 'agents')
               for path in (root / 'claude' / directory).rglob('*.md')]
     skills = {path.parent.name for path in (root / 'claude/skills').glob('*/SKILL.md')}
+    try:
+        sources = (root / 'agent-skills.txt').read_text().splitlines()
+    except (OSError, UnicodeError):
+        return ['agent-skills.txt: external skill inventory is unavailable']
+    if not sources or any(not re.fullmatch(r'[^:\s]+:[a-z0-9-]+', s) for s in sources):
+        return ['agent-skills.txt: invalid external skill inventory']
+    external_skills = [s.rsplit(':', 1)[1] for s in sources]
+    if len(set(external_skills)) != len(external_skills) or skills.intersection(external_skills):
+        return ['agent-skills.txt: duplicate or repository-managed external skill name']
+    skills.update(external_skills)
     # Bundled skill names, not runtime availability: https://code.claude.com/docs/en/skills#bundled-skills
     skills.update({'batch', 'claude-api', 'code-review', 'debug', 'doctor', 'loop', 'simplify', 'verify'})
-    sources = re.search(r'\b(?:local\s+)?skill_sources=\((.*?)\)', (root / 'install.sh').read_text(), re.S)
-    external_skills = re.findall(r'^\s*"[^"\n]+:([a-z0-9-]+)"\s*$', sources[1], re.M) if sources else []
-    if not external_skills:
-        return ['install.sh: could not parse non-empty skill_sources without executing it']
-    skills.update(external_skills)
     marked_name = r'(?:`[a-z0-9-]+`|\*\*[a-z0-9-]+\*\*)'
     errors = []
     for path in paths:
@@ -80,7 +85,7 @@ def instruction_reference_errors(root):
             for group in re.findall(r'((?:' + marked_name + r'\s*(?:(?:,|and|と)\s*)?)+)\s+skills?\b', line):
                 names += [left or right for left, right in re.findall(r'`([a-z0-9-]+)`|\*\*([a-z0-9-]+)\*\*', group)]
             for name in set(names) - skills:
-                errors.append(f'{location}: unknown skill {name}; check local skills, skill_sources, or bundled allowlist')
+                errors.append(f'{location}: unknown skill {name}; check local skills, agent-skills.txt, or bundled allowlist')
             link_line = re.sub(r'(`+).*?\1', '', line)
             for link in re.findall(r'\[[^\]]*\]\(([^\s)]+)(?:\s+["\'][^"\']*["\'])?\)', link_line):
                 # External URLs, home paths, and explicit placeholder tokens are nonportable examples.
@@ -157,7 +162,7 @@ class RepositoryCase(unittest.TestCase):
 class InstructionReferenceTest(RepositoryCase):
     def setUp(self):
         super().setUp()
-        self.put('install.sh', 'local skill_sources=(\n  "fixture/skills:external-demo"\n)\n')
+        self.put('agent-skills.txt', 'fixture/skills:external-demo\n')
         self.put('claude/skills/demo/guide.md', '## Known\n')
 
     def test_missing_file_anchor_and_skill_references_are_rejected(self):
@@ -213,11 +218,160 @@ See skill: `missing-skill`
                 self.assertTrue(instruction_reference_errors(self.root))
 
     def test_unrecognized_external_skill_inventory_is_reported(self):
-        self.put('install.sh', 'local unrelated=()\n')
+        for value in ('', 'invalid\n', 'fixture/skills:demo\n',
+                      'fixture/skills:external-demo\nother/skills:external-demo\n'):
+            with self.subTest(value=value):
+                self.put('agent-skills.txt', value)
+                self.assertTrue(instruction_reference_errors(self.root))
+        (self.root / 'agent-skills.txt').unlink()
         self.assertTrue(instruction_reference_errors(self.root))
 
     def test_repository_instruction_references_are_valid(self):
         self.assertEqual(instruction_reference_errors(ROOT), [])
+
+
+class SkillDiagnosticsTest(RepositoryCase):
+    def setUp(self):
+        super().setUp()
+        self.put('agent-skills.txt', 'fixture/skills:external-demo\n')
+        shutil.copytree(SCRIPTS, self.root / 'scripts/codex-sync')
+        self.merged()
+        install.apply(install.plan(self.root, self.home))
+
+    def doctor(self, commands='check_agent_skills', prefix=''):
+        before = {p.relative_to(self.home): p.read_bytes() for p in self.home.rglob('*')
+                  if p.is_file() and not p.is_symlink()}
+        result = subprocess.run(['/bin/bash', '-c', '''
+source "$1"
+DOTFILES_DIR="$2"
+DIAGNOSTIC_PYTHON="$3"
+codex_sync_python() { printf '%s\\n' "$DIAGNOSTIC_PYTHON"; }
+''' + prefix + '\n' + commands + '''
+printf 'counts=%s/%s\\n' "$WARNINGS" "$UNVERIFIED"
+finish
+''', 'bash', str(ROOT / '.shell-utils/dotfiles-doctor.sh'), str(self.root), sys.executable],
+            env=dict(os.environ, HOME=str(self.home), PYTHONDONTWRITEBYTECODE='1'), capture_output=True, text=True)
+        self.assertEqual(before, {p.relative_to(self.home): p.read_bytes() for p in self.home.rglob('*')
+                                 if p.is_file() and not p.is_symlink()})
+        self.assertEqual(list((self.root / 'scripts').rglob('__pycache__')), [])
+        return result
+
+    def test_managed_skills_have_declared_restore_paths(self):
+        result = self.doctor('check_agent_skills; check_codex_sync')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn('skill not in setup_agent_skills', result.stdout)
+        self.assertIn('counts=0/0', result.stdout)
+
+    def test_unknown_claude_only_skill_warns(self):
+        (self.home / '.agents/skills/demo').unlink()
+        (self.home / '.claude/skills/unknown').mkdir(parents=True)
+        result = self.doctor()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn('.claude/skills/unknown', result.stdout)
+
+    def test_visible_skill_entries_use_restore_recipes_and_link_ownership(self):
+        for base in ('.agents/skills', '.claude/skills'):
+            directory = self.home / base
+            directory.mkdir(parents=True, exist_ok=True)
+            for name, shape, warnings in (('external-demo', 'directory', 0), ('unknown', 'directory', 1),
+                                          ('unknown', 'broken', 1), ('.hidden', 'directory', 0),
+                                          ('notes.txt', 'file', 0)):
+                with self.subTest(base=base, name=name, shape=shape):
+                    entry = directory / name
+                    if shape == 'directory':
+                        entry.mkdir()
+                    elif shape == 'broken':
+                        entry.symlink_to('missing')
+                    else:
+                        entry.write_text('PRIVATE_SENTINEL')
+                    result = self.doctor()
+                    self.assertEqual(result.returncode, warnings, result.stdout + result.stderr)
+                    self.assertIn(f'counts={warnings}/0', result.stdout)
+                    self.assertNotIn('PRIVATE_SENTINEL', result.stdout + result.stderr)
+                    if shape == 'directory':
+                        entry.rmdir()
+                    else:
+                        entry.unlink()
+
+    def test_claude_source_identity_accepts_relative_ancestor_links_but_not_copies(self):
+        claude = self.home / '.claude'
+        claude.symlink_to(os.path.relpath(self.root / 'claude', self.home))
+        self.assertEqual(self.doctor().returncode, 0)
+        claude.unlink()
+        entry = claude / 'skills/demo'
+        entry.mkdir(parents=True)
+        shutil.copyfile(self.root / 'claude/skills/demo/SKILL.md', entry / 'SKILL.md')
+        result = self.doctor()
+        self.assertIn('unowned same-name managed skill', result.stdout)
+        (entry / 'SKILL.md').unlink()
+        (entry / 'SKILL.md').symlink_to(os.path.relpath(self.root / 'claude/skills/demo/SKILL.md', entry))
+        self.assertEqual(self.doctor().returncode, 0)
+
+    def test_recorded_link_drift_warns_only_in_codex_integrity_check(self):
+        entry = self.home / '.agents/skills/demo'
+        for shape in ('foreign', 'broken', 'file'):
+            with self.subTest(shape=shape):
+                entry.unlink()
+                if shape == 'file':
+                    entry.write_text('PRIVATE_SENTINEL')
+                else:
+                    entry.symlink_to(self.root if shape == 'foreign' else self.home / 'missing')
+                result = self.doctor('check_agent_skills; check_codex_sync')
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertIn('counts=1/0', result.stdout)
+                self.assertIn('recorded Codex path needs its sync integrity check', result.stdout)
+                self.assertNotIn('[HEALTHY]', result.stdout)
+                self.assertNotIn('unowned same-name', result.stdout)
+                self.assertNotIn('PRIVATE_SENTINEL', result.stdout + result.stderr)
+
+    def test_disabled_names_are_excluded_even_without_installed_state(self):
+        config = self.home / '.codex/config.toml'
+        config.write_text('[[skills.config]]\npath = ' + json.dumps(str(self.home / '.agents/skills/demo')) + '\nenabled = false\n')
+        for installed in (True, False):
+            if not installed:
+                (self.home / '.agents/skills/demo').unlink()
+                (self.home / install.STATE).unlink()
+            result = self.doctor()
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn('[EXCLUDED] native settings disables name demo', result.stdout)
+            self.assertNotIn('reinstall', result.stdout)
+
+    def test_malformed_inputs_and_missing_runtime_make_the_whole_section_unverified(self):
+        for path in (self.home / install.STATE, self.home / '.codex/config.toml', self.root / 'agent-skills.txt'):
+            with self.subTest(path=path):
+                previous = path.read_bytes() if path.exists() else None
+                path.write_text('invalid')
+                result = self.doctor()
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertIn('counts=1/1', result.stdout)
+                self.assertNotIn('[HEALTHY]', result.stdout)
+                if previous is not None:
+                    path.write_bytes(previous)
+                else:
+                    path.unlink()
+        for code, message in ((127, 'Python is not installed'), (1, 'Python 3.11+ is unavailable')):
+            result = self.doctor(prefix=f'codex_sync_python() {{ echo "{message}" >&2; return {code}; }}')
+            self.assertIn('counts=1/1', result.stdout)
+            self.assertIn(message, result.stdout)
+
+    def test_external_install_reads_all_recipes_and_skips_either_existing_root(self):
+        self.put('agent-skills.txt', 'fixture/one:first\r\nfixture/two:second\nfixture/three:third\nfixture/four:last')
+        (self.home / '.agents/skills/second').mkdir()
+        (self.home / '.claude/skills/third').mkdir(parents=True)
+        function = re.search(r'(?ms)^setup_agent_skills\(\) \{.*?^\}', (ROOT / 'install.sh').read_text())[0]
+        calls = self.home / 'npx-calls'
+        result = subprocess.run(['/bin/bash', '-c', '''
+DOTFILES_DIR="$1"
+CALLS="$2"
+npx() { printf '%s\\n' "$*" >> "$CALLS"; cat > /dev/null; }
+''' + function + '\nsetup_agent_skills', 'bash', str(self.root), str(calls)],
+            env=dict(os.environ, HOME=str(self.home)), capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(calls.read_text().splitlines(), [
+            '-y skills add fixture/one -g -y -s first -a claude-code',
+            '-y skills add fixture/four -g -y -s last -a claude-code'])
+        self.assertIn('exists: second', result.stdout)
+        self.assertIn('exists: third', result.stdout)
 
 
 class SyncTest(RepositoryCase):
