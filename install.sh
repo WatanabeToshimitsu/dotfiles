@@ -541,7 +541,7 @@ setup_vscode() {
   fi
 }
 
-# Keep skill_sources in sync when adding skills with `npx skills add`.
+# Keep agent-skills.txt in sync when adding skills with `npx skills add`.
 
 setup_agent_skills() {
   if ! command -v npx > /dev/null 2>&1; then
@@ -553,30 +553,23 @@ setup_agent_skills() {
   echo "Installing agent skills..."
   echo "----------------------------------------------"
 
-  local skill_sources=(
-    "github/gh-stack:gh-stack"
-    "vercel-labs/skills:find-skills"
-    "yoshiko-pg/difit:difit"
-    "yoshiko-pg/difit:difit-review"
-    "GoogleChrome/modern-web-guidance:modern-web-guidance"
-    "vercel-labs/agent-browser:agent-browser"
-    "coji/natural-japanese:natural-japanese"
-    "tokoroten/prompt-review:prompt-review"
-    "vercel-labs/agent-skills:vercel-react-best-practices"
-  )
-
   # Newer skills CLI copies into ~/.claude/skills directly; older versions
   # symlink from ~/.agents/skills — treat either as installed.
   local entry repo skill
-  for entry in "${skill_sources[@]}"; do
+  while IFS= read -r entry || [ -n "$entry" ]; do
+    entry="${entry%$'\r'}"
+    if [[ ! "$entry" =~ ^[^:[:space:]]+:[a-z0-9-]+$ ]]; then
+      echo "  invalid agent-skills.txt entry" >&2
+      return 1
+    fi
     repo="${entry%%:*}"
     skill="${entry##*:}"
     if [ -e "$HOME/.agents/skills/$skill" ] || [ -e "$HOME/.claude/skills/$skill" ]; then
       echo "  exists: $skill"
       continue
     fi
-    npx -y skills add "$repo" -g -y -s "$skill" -a claude-code || echo "  failed: $entry"
-  done
+    npx -y skills add "$repo" -g -y -s "$skill" -a claude-code </dev/null || echo "  failed: $entry"
+  done < "$DOTFILES_DIR/agent-skills.txt"
 }
 
 setup_macos() {
