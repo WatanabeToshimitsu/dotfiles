@@ -698,5 +698,72 @@ class RegressionTest(RepositoryCase):
 
 
 
+class SkillManifestTest(RepositoryCase):
+    def manifest_errors(self, root):
+        output = subprocess.check_output(
+            ['bash', '-c', r'source "$1"; printf "%s\0" "${MANIFEST_CLAUDE_FILES[@]}"',
+             'manifest', str(root / 'symlink-manifest.sh')], text=True)
+        declared = {'claude/' + name for name in output.split('\0') if name.startswith('skills/')}
+        tracked = set(filter(None, git(root, 'ls-files', '-z', '--', 'claude/skills').split('\0')))
+        private = {name for name in declared | tracked if name.endswith('/reference.md') or
+                   re.search(r'(^|/)(\.env.*|credentials[^/]*|secrets[^/]*)$', name)}
+        return ([f'Private resource must not be tracked or distributed: {name}' for name in sorted(private)] +
+                [f'Tracked skill resource and manifest disagree: {name}' for name in sorted((declared ^ tracked) - private)])
+
+    def test_repository_public_skill_resources_are_distributed(self):
+        self.assertEqual(self.manifest_errors(ROOT), [])
+
+    def test_tracked_resource_omissions_and_private_entries_are_detected(self):
+        manifest = 'MANIFEST_CLAUDE_FILES=(CLAUDE.md skills/demo/SKILL.md%s)\n'
+        self.put('symlink-manifest.sh', manifest % '')
+        self.put('claude/skills/ticket/reference.md', 'local fixture')
+        self.assertEqual(self.manifest_errors(self.root), [])
+
+        self.put('claude/skills/demo/guide.md', 'public fixture')
+        git(self.root, 'add', 'claude/skills/demo/guide.md')
+        self.assertEqual(len(self.manifest_errors(self.root)), 1)
+        self.put('symlink-manifest.sh', manifest % ' skills/demo/guide.md')
+        self.assertEqual(self.manifest_errors(self.root), [])
+
+        git(self.root, 'add', 'claude/skills/ticket/reference.md')
+        for entry in ('', ' skills/ticket/reference.md'):
+            with self.subTest(entry=entry):
+                self.put('symlink-manifest.sh', manifest % (' skills/demo/guide.md' + entry))
+                self.assertEqual(self.manifest_errors(self.root), [
+                    'Private resource must not be tracked or distributed: claude/skills/ticket/reference.md'])
+
+    def test_public_template_install_and_uninstall_preserve_local_files(self):
+        for name in ('install.sh', 'uninstall.sh', 'symlink-manifest.sh'):
+            shutil.copyfile(ROOT / name, self.root / name)
+        self.put('claude/skills/ticket/reference.example.md', 'public template')
+        self.put('claude/skills/ticket/reference.md', 'private source fixture')
+        env = dict(os.environ, HOME=str(self.home))
+        template = self.home / '.claude/skills/ticket/reference.example.md'
+        reference = template.with_name('reference.md')
+
+        subprocess.run(['bash', str(self.root / 'install.sh'), '--symlinks-only'],
+                       env=env, check=True, capture_output=True)
+        self.assertTrue(template.is_symlink())
+        self.assertEqual(template.read_text(), 'public template')
+        self.assertFalse(reference.exists() or reference.is_symlink())
+        subprocess.run(['bash', str(self.root / 'uninstall.sh')], env=env, check=True, capture_output=True)
+        self.assertFalse(template.exists() or template.is_symlink())
+
+        reference.write_text('machine-local fixture')
+        for foreign_link in (False, True):
+            with self.subTest(foreign_link=foreign_link):
+                if foreign_link:
+                    template.symlink_to(reference)
+                else:
+                    template.write_text('machine-local fixture')
+                subprocess.run(['bash', str(self.root / 'uninstall.sh')], env=env, check=True, capture_output=True)
+                self.assertEqual(template.is_symlink(), foreign_link)
+                if foreign_link:
+                    self.assertEqual(os.readlink(template), str(reference))
+                self.assertEqual(template.read_text(), 'machine-local fixture')
+                self.assertEqual(reference.read_text(), 'machine-local fixture')
+                template.unlink()
+
+
 if __name__ == '__main__':
     unittest.main()
