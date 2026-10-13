@@ -9,7 +9,7 @@ trap 'rm -rf "$TEST_ROOT"' EXIT
 failures=0
 cases=0
 mkdir "$TEST_ROOT/bin"
-for tool in git grep sed sort wc tr; do
+for tool in git grep; do
     ln -s "$(command -v "$tool")" "$TEST_ROOT/bin/$tool"
 done
 
@@ -99,7 +99,7 @@ run_case() {
         gh() {
             [[ "$scenario" != api-failure && "$scenario" != ordinary-api-failure ]] || return 1
             [[ "$scenario" != empty-api ]] || return 0
-            [[ "$scenario" != ordinary* || "$scenario" == ordinary-pr-mismatch ]] || return 0
+            [[ "$scenario" != ordinary* || "$scenario" == ordinary-pr-* ]] || return 0
             [[ "$scenario" != ordinary-pr-mismatch ]] || reported_head="$fixture_advanced_oid"
             if [[ "$*" == *headRefOid* ]]; then
                 if [[ "$scenario" == duplicate-later-valid ]]; then
@@ -179,8 +179,13 @@ run_case() {
             "$scenario" != *deletion-failure && -e "$fixture/deletions" ]]; then
         print -u2 "FAIL: $scenario attempted deletion despite missing evidence"
         failures=$((failures + 1))
-    elif [[ ( "$scenario" == *deletion-failure || "$scenario" == duplicate-later-valid ) && $(wc -l < "$fixture/deletions") -ne 1 ]]; then
+    elif [[ -e "$fixture/deletions" ]] &&
+        [[ $(grep -Fxc -e "branch -d -- $fixture_branch" -e "branch -D -- $fixture_branch" "$fixture/deletions") -ne 1 ]]; then
         print -u2 "FAIL: $scenario repeated deletion"
+        failures=$((failures + 1))
+    elif [[ "$scenario" == ordinary* && -e "$fixture/deletions" ]] &&
+        ! grep -Fxq -- "branch -d -- $fixture_branch" "$fixture/deletions"; then
+        print -u2 "FAIL: $scenario used force deletion despite ordinary merge evidence"
         failures=$((failures + 1))
     elif [[ "$scenario" == *protected ]] &&
         { ! grep -Fxq -- "$fixture_branch" <<< "$displayed_protected" || grep -Fxq -- "$fixture_branch" <<< "$displayed_candidates"; }; then
@@ -205,6 +210,7 @@ run_case fallback-remote deleted
 run_case ordinary-merge deleted
 run_case ordinary-api-failure deleted
 run_case ordinary-pr-mismatch deleted
+run_case ordinary-pr-match deleted
 run_case advanced kept
 run_case recreated kept
 run_case duplicate-mixed kept
@@ -225,7 +231,7 @@ run_case checked-out kept
 run_case linked-worktree kept
 run_case deletion-failure kept
 run_case cancelled kept
-run_case extra-protected kept '^fea(ture|t)$'
+run_case extra-protected kept eatur
 run_case ordinary-extra-protected kept '^fea(ture|t)$'
 run_case default-protected kept '' release
 run_case ordinary-default-protected kept '' release
