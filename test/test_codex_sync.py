@@ -500,7 +500,7 @@ class SyncTest(RepositoryCase):
     def test_install_shell_entrypoint_and_uninstaller_use_owned_state(self):
         self.merged()
         (self.root / 'scripts/codex-sync').mkdir(parents=True)
-        for name in ('generate.py', 'install.py'):
+        for name in ('generate.py', 'install.py', 'python-runtime.sh'):
             shutil.copyfile(SCRIPTS / name, self.root / 'scripts/codex-sync' / name)
         for name in ('install.sh', 'uninstall.sh', 'symlink-manifest.sh'):
             shutil.copyfile(ROOT / name, self.root / name)
@@ -567,7 +567,7 @@ class RegressionTest(RepositoryCase):
         self.assertEqual(agents.read_text(), 'Later local instructions\n')
 
     def test_update_fetches_merged_snapshot_preserves_dirty_source_and_git_hooks(self):
-        for name in ('generate.py', 'install.py'):
+        for name in ('generate.py', 'install.py', 'python-runtime.sh'):
             path = self.root / 'scripts/codex-sync' / name
             path.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(SCRIPTS / name, path)
@@ -685,7 +685,7 @@ class RegressionTest(RepositoryCase):
     def test_symlinks_entrypoint_propagates_sync_failure(self):
         self.merged()
         (self.root / 'scripts/codex-sync').mkdir(parents=True)
-        for name in ('generate.py', 'install.py'):
+        for name in ('generate.py', 'install.py', 'python-runtime.sh'):
             shutil.copyfile(SCRIPTS / name, self.root / 'scripts/codex-sync' / name)
         for name in ('install.sh', 'symlink-manifest.sh'):
             shutil.copyfile(ROOT / name, self.root / name)
@@ -696,6 +696,126 @@ class RegressionTest(RepositoryCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertNotIn(b'Symlink setup complete!', result.stdout)
 
+
+
+class PythonRuntimeTest(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name).resolve() / 'repo'
+        self.home = Path(temporary.name) / 'home'
+        self.bin = Path(temporary.name) / 'bin'
+        self.bin.mkdir()
+        state = self.home / '.codex/dotfiles-sync/state.json'
+        state.parent.mkdir(parents=True)
+        state.write_text('{}\n')
+        shutil.copytree(SCRIPTS, self.root / 'scripts/codex-sync')
+        for name in ('install.sh', 'uninstall.sh', 'symlink-manifest.sh',
+                     '.shell-utils/dotfiles-doctor.sh', '.shell-utils/dotfiles-update'):
+            target = self.root / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(ROOT / name, target)
+        (self.home / '.shell-utils').symlink_to(self.root / '.shell-utils')
+        for name in ('bash', 'dirname', 'date', 'readlink', 'uname'):
+            (self.bin / name).symlink_to(shutil.which(name))
+        self.script('whoami', '#!/bin/bash\nprintf "fixture-user\\n"\n')
+        self.script('git', '#!/bin/bash\n'
+                    'printf "%s\\n" "$*" >> "$HOME/git-calls"\n'
+                    'case "$*" in *"branch --show-current") printf "main\\n" ;; esac\n')
+        (self.root / 'scripts/codex-sync/install.py').write_text(
+            'import os, sys, tomllib\n'
+            'print("sync fixture current")\n'
+            'print(" ".join(sys.argv[1:]))\n'
+            'raise SystemExit(int(os.environ.get("FIXTURE_EXIT", "0")))\n')
+        self.commands = {
+            'doctor': ['bash', '-c', 'source "$1"; check_codex_sync; finish', 'bash',
+                       str(self.home / '.shell-utils/dotfiles-doctor.sh')],
+            'install': ['bash', str(self.root / 'install.sh'), '--codex-only', '--dry-run'],
+            'uninstall': ['bash', str(self.root / 'uninstall.sh'), '--dry-run'],
+            'update': ['bash', str(self.home / '.shell-utils/dotfiles-update')],
+        }
+
+    def script(self, name, content):
+        path = self.bin / name
+        path.write_text(content)
+        path.chmod(0o755)
+
+    def supported_python(self, name):
+        self.script(name, '#!/bin/bash\n'
+                    'if [ "$1" != -c ]; then\n'
+                    f'  printf "%s\\n" {shlex.quote(name)} >> "$HOME/runtime-log"\n'
+                    'fi\n'
+                    f'exec {shlex.quote(sys.executable)} "$@"\n')
+
+    def run_entry(self, command, fixture_exit=0):
+        return subprocess.run(command, text=True, capture_output=True,
+                              env={'HOME': str(self.home), 'PATH': str(self.bin),
+                                   'FIXTURE_EXIT': str(fixture_exit)})
+
+    def test_entrypoints_select_supported_alias_or_report_unmet_requirement(self):
+        for situation in ('old-plus-alias', 'unsupported-only', 'missing'):
+            for name in ('python3', 'python3.13'):
+                (self.bin / name).unlink(missing_ok=True)
+            if situation != 'missing':
+                self.script('python3', '#!/bin/bash\n'
+                            'if [ "$1" = -c ]; then exit 1; fi\n'
+                            'printf "UNSUPPORTED_RUNTIME_EXECUTED\\n" >&2\nexit 1\n')
+            if situation == 'old-plus-alias':
+                self.supported_python('python3.13')
+
+            for entry, command in self.commands.items():
+                with self.subTest(situation=situation, entry=entry):
+                    runtime_log = self.home / 'runtime-log'
+                    runtime_log.unlink(missing_ok=True)
+
+                    result = self.run_entry(command)
+                    output = result.stdout + result.stderr
+
+                    self.assertNotIn('UNSUPPORTED_RUNTIME_EXECUTED', output)
+                    self.assertNotIn('Traceback', output)
+                    if situation == 'old-plus-alias':
+                        self.assertEqual(result.returncode, 0, output)
+                        self.assertEqual(result.stderr, '')
+                        self.assertEqual(runtime_log.read_text(), 'python3.13\n')
+                        self.assertIn('sync fixture current', output)
+                        if entry in ('install', 'uninstall'):
+                            self.assertIn('--dry-run', output)
+                    else:
+                        expected_exit = 127 if situation == 'missing' and entry != 'doctor' else 1
+                        self.assertEqual(result.returncode, expected_exit, output)
+                        self.assertFalse(runtime_log.exists())
+                        self.assertNotIn('sync fixture current', output)
+                        self.assertIn('Python 3.11+', output)
+                        message = ('Python is not installed' if situation == 'missing'
+                                   else 'Python 3.11+ is unavailable')
+                        self.assertIn(message, output)
+                    if entry == 'update':
+                        calls = (self.home / 'git-calls').read_text().splitlines()[-3:]
+                        self.assertEqual(calls, [f'-C {self.root} branch --show-current',
+                                                f'-C {self.root} fetch --prune origin main',
+                                                f'-C {self.root} merge --ff-only origin/main'])
+
+    def test_entrypoints_preserve_selected_installer_failure_status(self):
+        self.supported_python('python3')
+        commands = dict(self.commands)
+        commands['symlinks'] = ['bash', str(self.root / 'install.sh'), '--symlinks-only']
+
+        for entry, command in commands.items():
+            with self.subTest(entry=entry):
+                result = self.run_entry(command, fixture_exit=23)
+
+                expected_exit = 1 if entry in ('doctor', 'symlinks') else 23
+                self.assertEqual(result.returncode, expected_exit, result.stdout + result.stderr)
+                self.assertNotIn('Symlink setup complete!', result.stdout)
+
+    def test_uninstall_without_owned_state_does_not_require_python(self):
+        (self.home / '.codex/dotfiles-sync/state.json').unlink()
+
+        result = self.run_entry(self.commands['uninstall'])
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn('Python', result.stdout + result.stderr)
+        self.assertFalse((self.home / 'runtime-log').exists())
 
 
 class SkillManifestTest(RepositoryCase):
@@ -733,7 +853,8 @@ class SkillManifestTest(RepositoryCase):
                     'Private resource must not be tracked or distributed: claude/skills/ticket/reference.md'])
 
     def test_public_template_install_and_uninstall_preserve_local_files(self):
-        for name in ('install.sh', 'uninstall.sh', 'symlink-manifest.sh'):
+        for name in ('install.sh', 'uninstall.sh', 'symlink-manifest.sh', 'scripts/codex-sync/python-runtime.sh'):
+            (self.root / name).parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / name, self.root / name)
         self.put('claude/skills/ticket/reference.example.md', 'public template')
         self.put('claude/skills/ticket/reference.md', 'private source fixture')
