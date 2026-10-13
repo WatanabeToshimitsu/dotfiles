@@ -17,6 +17,8 @@ shell-snapshots/
 skills/*
 !skills/code-review/
 !skills/delivery-workflow/
+!skills/eli5/
+!skills/eli15/
 !skills/expand-tool-output/
 !skills/prepare-compaction/
 !skills/repository-audit/
