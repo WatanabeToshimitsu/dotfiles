@@ -4,12 +4,18 @@
 git-branch-prune() {
     local base_oid current_head current_base pr_rows pr_name pr_head pr_merge deletion_output
     local -A candidate_heads pr_merges
-    PROTECT_BRANCHES='master|develop|trunk|main|staging|production|release'
-
-    if [ -z "$1" ]; then
-        :
-    else
-        PROTECT_BRANCHES="${PROTECT_BRANCHES}|$1"
+    local extra_protection="${1-}" pattern_status=0 matching_names base_branch
+    local -A protected_branches known_branches
+    if [ "$#" -gt 1 ]; then
+        echo "Usage: git-branch-prune [protection-ERE]"
+        return 1
+    fi
+    if [ -n "$extra_protection" ]; then
+        command grep -E -e "$extra_protection" /dev/null >/dev/null 2>&1 || pattern_status=$?
+        if [ "$pattern_status" -gt 1 ]; then
+            echo "Error: Invalid protection pattern; no branches will be deleted."
+            return 1
+        fi
     fi
 
     echo "fetching..."
@@ -43,6 +49,22 @@ git-branch-prune() {
         return 1
     fi
 
+    ALL_BRANCHES=$(git for-each-ref --format='%(refname:lstrip=2)' refs/heads) || return 1
+    for branch in ${(f)ALL_BRANCHES}; do
+        known_branches[$branch]=1
+    done
+    base_branch="${MAIN_BRANCH#refs/remotes/origin/}"
+    for branch in master develop trunk main staging production release "${base_branch#refs/heads/}"; do
+        protected_branches[$branch]=1
+    done
+    if [ -n "$extra_protection" ]; then
+        matching_names=$(print -r -- "$ALL_BRANCHES" | command grep -E -e "$extra_protection") ||
+            [ "$?" -eq 1 ] || return 1
+        for branch in ${(f)matching_names}; do
+            protected_branches[$branch]=1
+        done
+    fi
+
     echo "Using main branch: $MAIN_BRANCH"
 
     # 1. 従来の方法: git branch --merged で検出（メインブランチに対して）
@@ -52,15 +74,7 @@ git-branch-prune() {
     git branch --merged "$base_oid" --format='%(refname:lstrip=2)' 2>/dev/null | while read branch; do
         branch=$(echo "$branch" | sed 's/^[[:space:]]*\*[[:space:]]*//' | sed 's/^[[:space:]]*//')
         if [ -n "$branch" ]; then
-            # 保護ブランチかチェック
-            is_protected=0
-            for protected in master develop trunk main staging production release; do
-                if [ "$branch" = "$protected" ]; then
-                    is_protected=1
-                    break
-                fi
-            done
-            if [ $is_protected -eq 0 ]; then
+            if [ -n "${known_branches[$branch]-}" ] && [ -z "${protected_branches[$branch]-}" ]; then
                 current_head=$(git rev-parse --verify "refs/heads/${branch}^{commit}" 2>/dev/null) || continue
                 candidate_heads[$branch]="$current_head"
                 MERGED_BRANCHES="${MERGED_BRANCHES}${branch}"$'\n'
@@ -91,6 +105,7 @@ git-branch-prune() {
         while IFS=$'\t' read -r branch pr_head pr_merge; do
             [ -n "$branch" ] || continue
             [ -z "${candidate_heads[$branch]-}" ] || continue
+            [ -n "${known_branches[$branch]-}" ] && [ -z "${protected_branches[$branch]-}" ] || continue
             if current_head=$(git rev-parse --verify "refs/heads/${branch}^{commit}" 2>/dev/null); then
                 if [ "$current_head" != "$pr_head" ]; then
                     echo "Skipping PR evidence for $branch: local HEAD differs from the merged PR."
@@ -100,19 +115,9 @@ git-branch-prune() {
                     echo "Skipping PR evidence for $branch: PR merge commit is not verified in $MAIN_BRANCH."
                     continue
                 fi
-                # 保護ブランチかチェック
-                is_protected=0
-                for protected in master develop trunk main staging production release; do
-                    if [ "$branch" = "$protected" ]; then
-                        is_protected=1
-                        break
-                    fi
-                done
-                if [ $is_protected -eq 0 ]; then
-                    candidate_heads[$branch]="$current_head"
-                    pr_merges[$branch]="$pr_merge"
-                    MERGED_PR_BRANCHES="${MERGED_PR_BRANCHES}${branch}"$'\n'
-                fi
+                candidate_heads[$branch]="$current_head"
+                pr_merges[$branch]="$pr_merge"
+                MERGED_PR_BRANCHES="${MERGED_PR_BRANCHES}${branch}"$'\n'
             fi
         done <<< "$pr_rows"
         echo "Found $(echo "$MERGED_PR_BRANCHES" | sed '/^$/d' | wc -l | tr -d ' ') branches from merged PRs"
@@ -125,19 +130,10 @@ git-branch-prune() {
 
     # 4. 現在進行中のブランチ（remained branches）を取得
     REMAINED_BRANCHES=""
-    ALL_BRANCHES=$(git branch 2>/dev/null | sed 's/^[[:space:]]*\*[[:space:]]*//' | sed 's/^[[:space:]]*//')
     for branch in ${(f)ALL_BRANCHES}; do
         if [ -z "$branch" ]; then
             continue
         fi
-        # 保護ブランチかチェック
-        is_protected=0
-        for protected in master develop trunk main staging production release; do
-            if [ "$branch" = "$protected" ]; then
-                is_protected=1
-                break
-            fi
-        done
         # 削除対象かチェック
         is_to_delete=0
         for del_branch in ${(f)DELETE_BRANCHES}; do
@@ -146,7 +142,7 @@ git-branch-prune() {
                 break
             fi
         done
-        if [ $is_protected -eq 0 ] && [ $is_to_delete -eq 0 ]; then
+        if [ -z "${protected_branches[$branch]-}" ] && [ $is_to_delete -eq 0 ]; then
             REMAINED_BRANCHES="${REMAINED_BRANCHES}${branch}"$'\n'
         fi
     done
@@ -162,16 +158,12 @@ git-branch-prune() {
 
     echo
     echo "=== Protected branches ==="
-    git branch 2>/dev/null | while read branch; do
-        branch=$(echo "$branch" | sed 's/^[[:space:]]*\*[[:space:]]*//' | sed 's/^[[:space:]]*//')
-        for protected in master develop trunk main staging production release; do
-            if [ "$branch" = "$protected" ]; then
-                current_marker=""
-                git branch | command grep "^\* $branch" > /dev/null 2>&1 && current_marker="* "
-                echo "${current_marker}${branch}"
-                break
-            fi
-        done
+    for branch in ${(f)ALL_BRANCHES}; do
+        if [ -n "${protected_branches[$branch]-}" ]; then
+            current_marker=""
+            git branch | command grep "^\* $branch" > /dev/null 2>&1 && current_marker="* "
+            echo "${current_marker}${branch}"
+        fi
     done
 
     echo
