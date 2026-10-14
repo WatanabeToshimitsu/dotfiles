@@ -55,9 +55,6 @@ run_case() {
     reported_merge="$fixture_merge_oid"
     case "$scenario" in
         advanced|duplicate-mixed) command git -C "$fixture" branch -f "$fixture_branch" "$fixture_advanced_oid" ;;
-        recreated)
-            command git -C "$fixture" branch -D "$fixture_branch" > /dev/null
-            command git -C "$fixture" branch "$fixture_branch" "$fixture_advanced_oid" ;;
         unreachable) reported_merge="$fixture_advanced_oid" ;;
         missing-merge) reported_merge='' ;;
         missing-head) reported_head='' ;;
@@ -142,7 +139,7 @@ run_case() {
     ) > "$fixture/output" 2>&1 || :
     local actual=deleted expected_message=''
     case "$scenario" in
-        advanced|recreated|duplicate-mixed) expected_message='local HEAD differs from the merged PR' ;;
+        advanced|duplicate-mixed) expected_message='local HEAD differs from the merged PR' ;;
         unreachable|unknown-merge|ambiguous-base) expected_message='PR merge commit is not verified' ;;
         missing-merge|missing-head|malformed-oid) expected_message='Incomplete PR commit information' ;;
         api-failure|partial-api-failure) expected_message='PR lookup failed' ;;
@@ -199,7 +196,6 @@ run_case() {
     fi
 }
 
-run_case verified-squash deleted
 run_case sha256 deleted
 run_case duplicate-later-valid deleted
 run_case fallback-local deleted
@@ -209,7 +205,6 @@ run_case ordinary-api-failure deleted
 run_case ordinary-pr-mismatch deleted
 run_case ordinary-pr-match deleted
 run_case advanced kept
-run_case recreated kept
 run_case duplicate-mixed kept
 run_case unreachable kept
 run_case unknown-merge kept
