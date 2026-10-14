@@ -158,6 +158,18 @@ class ValidateBashTests(unittest.TestCase):
                         "AGENT_BROWSER_PROFILE=ticket agent-browser get url"]:
             with self.subTest(command=command, cwd=profiles):
                 self.assertEqual(self.decision(command, cwd=profiles), "deny")
+        for command in ['cd "$HOME/.agent-browser/profiles" && agent-browser --profile ticket get url',
+                        "cd ~/.agent-browser/profiles; agent-browser --config ./x.json --profile ./ticket open https://example.com",
+                        "export AGENT_BROWSER_PROFILE=~/.agent-browser/profiles/ticket; agent-browser get url",
+                        "export AGENT_BROWSER_SESSION=ticket && agent-browser get url",
+                        "export AGENT_BROWSER_CONFIG=$HOME/.shell-utils/ticket-browser.json\nnpx agent-browser get url"]:
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "deny")
+        for command in ["cd /tmp && agent-browser --profile /tmp/other get url",
+                        "cd /tmp && agent-browser get url",
+                        "export AGENT_BROWSER_SESSION=probe && agent-browser get url"]:
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "allow")
         with tempfile.TemporaryDirectory() as directory:
             with self.subTest(command="relative profile elsewhere"):
                 self.assertEqual(
