@@ -71,20 +71,15 @@ MANIFEST_CLAUDE_FILES=(
   skills/ticket/reference.example.md
   rules/golang/coding-style.md
   rules/golang/hooks.md
-  rules/golang/patterns.md
   rules/golang/security.md
   rules/golang/testing.md
   rules/python/coding-style.md
   rules/python/fastapi.md
   rules/python/hooks.md
-  rules/python/patterns.md
   rules/python/security.md
   rules/python/testing.md
-  rules/testing/vitest.md
   rules/typescript/coding-style.md
-  rules/typescript/documentation.md
   rules/typescript/hooks.md
-  rules/typescript/patterns.md
   rules/typescript/testing.md
   rules/typescript/type-safety.md
   rules/web/security.md
@@ -102,6 +97,11 @@ MANIFEST_CLAUDE_OBSOLETE_FILES=(
   rules/common/git-workflow.md
   rules/common/patterns.md
   rules/common/performance.md
+  rules/golang/patterns.md
+  rules/python/patterns.md
+  rules/typescript/patterns.md
+  rules/typescript/documentation.md
+  rules/testing/vitest.md
   rules/typescript/security.md
 )
 
