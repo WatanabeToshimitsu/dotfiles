@@ -15,6 +15,6 @@
     "local_dependencies": {
       "reference.md": ".claude/skills/ticket/reference.md"
     },
-    "note": "Read the machine-local reference.md next to this installed skill before using connectors. Its absence makes the skill unavailable. Use the equivalent installed Jira/Notion connector only if available and authorized; do not invent server names or workspace IDs. Local Claude snapshot paths stay local and are not generated."
+    "note": "Read the machine-local reference.md next to this installed skill before the first Jira or browser call. Its absence makes the skill unavailable. Use the equivalent installed Jira connector only if available and authorized, and reach the Notion board only through `ticket-browser`; do not invent server names, URLs, or workspace IDs."
   }
 }

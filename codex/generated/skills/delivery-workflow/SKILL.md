@@ -48,7 +48,8 @@ Scale the process to the change's uncertainty and risk.
    One-PR consent never becomes continuing consent. Stop on unresolved sensitive
    findings or runtime rejection, and never evade native checks. Follow the
    [publication guidance](https://github.com/WatanabeToshimitsu/dotfiles/blob/main/docs/pr-approval.md).
-   Create a Draft only when needed.
+   Create a Draft only when needed. After creating a PR, run the `ticket`
+   skill's evidence workflow when that skill is available.
 9. After live confirmation that this task's PR is merged, clean up only its
    local worktree and branch when cleanup is authorized. Verify their HEAD
    still matches the merged PR HEAD. Keep checkouts with dirty, untracked,

@@ -1,57 +1,54 @@
 ---
 name: ticket
-description: Create and sync work tickets across a team Jira project and a personal Notion staging board. Use when the user starts a work task that should have a ticket, asks to create a ticket, or asks to sync ticket status between Jira and Notion.
+description: Create work tickets on a team Jira project and a team Notion board, and attach pull requests to them as evidence. Use when the user starts a work task that should have a ticket, asks to create a ticket, or creates a pull request for work linked to a ticket.
 ---
 
-# Ticket (Jira <-> Notion staging)
+# Ticket (Jira + team Notion board)
 
-The team duplicates tickets between Jira and a shared Notion board that
-this skill must never write to. Claude maintains the Jira issues plus a
-personal Notion staging mirror; the user copies staging rows to the shared
-board manually, about weekly.
+Tickets live in two places: a team Jira project and a team Notion board.
+Claude writes both directly. Jira goes through the `atlassian-http` MCP
+server. The Notion board goes only through `ticket-browser`, which opens
+the pages a task needs and nothing else. Never use a Notion connector for
+the team workspace: the team's concern is connectors bulk-reading every
+ticket on the board.
 
 `reference.md` sits next to this file and is machine-local: gitignored and
 absent from the symlink manifest, because this repository is public. It
-holds every concrete identifier: Jira project and board, Notion data
-source IDs, workspace names and IDs, shared-board option labels, the
-linking-only epic title pattern, and the snapshot query. Read it before
-the first Jira or Notion call of a run. If it is missing, create it from
-`reference.example.md` together with the user instead of guessing values.
+holds every concrete identifier: Jira project, board view URL, template
+names and when to use each, the evidence field, the Jira fields the team
+template asks for, status mapping, team repositories, and the
+linking-only epic title pattern. Read it before the first Jira or browser
+call of a run. If it is missing, create it from `reference.example.md`
+together with the user instead of guessing values.
 
-## Systems and workspace mode
+## Browser rules
 
-- **Jira (writable)**: the project and board named in reference.md, via
-  the `atlassian-http` MCP server.
-- **Notion shared board (read-only)**: the team board data source in
-  reference.md.
-- **Notion staging DB (writable)**: "Ticket Staging" in the user's own
-  workspace.
-
-The Notion connector binds ONE workspace at a time. Before any Notion
-operation, check `notion-fetch self` against the workspace table in
-reference.md:
-
-| Connected workspace | Mode                                                                                      |
-| ------------------- | ----------------------------------------------------------------------------------------- |
-| personal            | normal: staging read/write                                                                |
-| shared team         | read-only: search and snapshot only; queue staging writes and ask the user to switch back |
-
-Snapshot of the user's open shared-board tickets:
-`~/.claude/ticket/shared-board-snapshot-<date>.csv` (newest wins). Refresh
-it whenever the shared workspace happens to be connected (reference.md).
+- Run every browser command as `ticket-browser <agent-browser args>`.
+  Never call `agent-browser` directly for this skill.
+- Open only: the board view URL from reference.md, the board's own "New"
+  template menu, and ticket pages this skill created or the user named.
+  No workspace search, sidebar, linked pages, or other views.
+- On board views, locate the elements you need with `find role ...` or
+  `find text ...` instead of snapshotting the whole view.
+- Press only Enter, Escape, and Tab. Do not type `@`, `[[`, or a leading
+  `/` into Notion: they open page search and block menus.
+- If a page shows a login screen, ask the user to log in in the
+  `ticket-browser` window, then continue.
+- If the same browser step fails twice, stop and report.
 
 ## Entry points
 
 - **Task start (implicit)**: work that warrants a ticket — a feature, fix,
   or investigation with a deliverable — runs the create workflow. Skip
   trivial questions, throwaway experiments, and dotfiles/personal chores.
-- **Status change (implicit)**: run the status-change prompt below.
-- **Explicit**: `/ticket create`, `/ticket sync`.
+- **Pull request created (implicit)**: run the evidence workflow.
+- **Explicit**: `/ticket create`, `/ticket link <ticket URL>`,
+  `/ticket evidence`.
 
 ## Create workflow
 
-1. Search Jira, the staging DB, and the snapshot CSV for existing tickets;
-   search the shared board live only when that workspace is connected.
+1. Search Jira for existing issues. On the board view, use the board's
+   own search with the task's keywords and read result titles only.
 2. Present plausible candidates. Link to an existing ticket only on user
    confirmation — a false match is worse than a duplicate.
 3. Propose compactly (title, type, one-line scope, granularity) following
@@ -59,15 +56,51 @@ it whenever the shared workspace happens to be connected (reference.md).
    agreement on a task breakdown does NOT count as ticket-granularity
    approval: always re-confirm the granularity at creation time — session
    decomposition and ticket granularity are different decisions.
-4. Create whichever side is missing; Jira first, so the issue key can go on
-   the staging row.
-5. The full description lives in Jira. The staging page body stays within a
-   few blocks; properties carry the rest. Match the language and section
-   headings of existing issues in the project.
+4. Create the Jira issue first when reference.md says the template wants
+   one, with only the fields reference.md lists.
+5. Create the board page from the template reference.md names for this
+   kind of work, or the default template. Fill the properties and the
+   template's sections. Title: `<Jira number>. <title>` when a Jira issue
+   exists (the digits of the issue key), otherwise `X. <title>`. When a
+   Jira issue is added later, rewrite the `X.` prefix.
+6. If the board step fails after the Jira issue exists, report the issue
+   key; the next create run finds it in step 1 and finishes the pair.
+7. Record the link once work starts on a branch (below).
 
 Epics whose titles match the linking-only pattern in reference.md exist
-only to group issues: exclude them from duplicate candidates, sync,
-triage, and reports.
+only to group issues: exclude them from duplicate candidates and reports.
+
+## Links and evidence
+
+The link between work and a ticket is branch configuration in the work's
+repository, so it survives sessions and several branches may share one
+ticket:
+
+```sh
+git config branch.<branch>.ticketUrl <board page URL>
+git config branch.<branch>.ticketJiraKey <issue key>
+```
+
+Write it when work on a ticket starts on a branch, or on `/ticket link`.
+
+Evidence workflow, after a pull request is created:
+
+1. Read `ticketUrl` for the pull request's head branch. If it is unset,
+   ask once which ticket the pull request belongs to when the repository
+   is listed as a team repository in reference.md; otherwise stop.
+2. Open only that ticket URL. If the pull request URL is already in the
+   evidence field, stop.
+3. Append the pull request URL to the evidence field reference.md names.
+   This needs no approval: the user asked for it to be automatic.
+4. If the browser is unavailable, report the ticket URL and the text to
+   paste instead of skipping silently.
+
+## Status
+
+When work on a linked ticket starts, set the board status to the "in
+progress" value from reference.md without asking. Propose every other
+status change, on the board or in Jira, together with the Jira update and
+apply it on approval.
 
 ## Granularity and body
 
@@ -99,61 +132,17 @@ PRs usually land under one ticket.
   Japanese; headings `■背景・目的` / `■完了条件` / optional `■注意`). One
   line per bullet.
 
-## Sync workflow (`/ticket sync` or when asked)
-
-1. Query staging pages where `Sync State != Copied-Done`.
-2. Reconcile each with its Jira issue: Jira status changes update staging
-   automatically; staging edits by the user (title, estimate, deadline) are
-   offered as one batched Jira update, applied on approval.
-3. Cleanup: archive `Copied-Done` pages without asking — their content
-   survives in Jira and on the shared board (the snapshot covers the lost
-   search corpus; do not "fix" this by keeping them). Remind the user to
-   empty Notion trash occasionally: the API cannot hard-delete, and trashed
-   blocks may still count against the block cap.
-4. Triage stale `Not Started` rows (no update for ~6 weeks and low
-   priority): propose Not Doing / delete / keep per ticket; apply only what
-   the user picks.
-5. Report a compact diff of all changes, plus completed-but-uncopied
-   tickets as "ready to copy".
-
-## Status-change prompt (automatic)
-
-Whenever a ticket's status changes through this skill — a Jira transition,
-a staging update, or tracked work starting or finishing in-session — ask:
-「このチケットは共有ボードに提出済み？」
-
-- Yes with URL: set `Shared Board URL`; `Sync State` = Copied, or
-  Copied-Done when the ticket is done.
-- Yes without URL: `Sync State` = Copied.
-- No: leave as is; it stays on the "ready to copy" list.
-  Ask once per ticket per status change, not repeatedly in one session.
-
-## Staging schema (summary)
-
-Shared-board-compatible: `Title` (title); `Type`, `Status`, `Priority`,
-`Project`, `Section`, `Estimated workload`, `Confidence` (select);
-`Deadline` (date). Exact option labels: reference.md — they are the
-copy-paste contract with the shared board, keep them identical.
-Sync bookkeeping: `Jira Key` (text), `Jira URL` (url), `Shared Board URL`
-(url), `Sync State` (select: Draft / Created / Copied / Copied-Done),
-`Last Synced` (date).
-Status mapping: To Do=Not Started, In Progress=In Progress,
-In Review=Reviewing, Done=Complete; record extra project-specific states
-in reference.md.
-
 ## Hard rules
 
-- NEVER write in the shared team workspace.
+- The team Notion workspace is reached only through `ticket-browser` and
+  only on the pages listed under "Browser rules".
 - Ticket creation and every Jira write require explicit user approval;
-  automatic staging mirror updates and Copied-Done archiving during sync
-  are exempt.
+  the evidence append and the start-of-work status are exempt.
 - One Jira issue per approved ticket; never bulk-create speculatively.
-- Block budget: the staging workspace is on the Free plan (~1000 blocks).
-  Keep staging bodies minimal; archive what is done.
 - Keep concrete identifiers in reference.md, never in this file: it is
   published in a public repository.
 - If searches or MCP calls fail twice, stop and report.
 
 ## Codex portability
 
-Read the machine-local reference.md next to this installed skill before using connectors. Its absence makes the skill unavailable. Use the equivalent installed Jira/Notion connector only if available and authorized; do not invent server names or workspace IDs. Local Claude snapshot paths stay local and are not generated.
+Read the machine-local reference.md next to this installed skill before the first Jira or browser call. Its absence makes the skill unavailable. Use the equivalent installed Jira connector only if available and authorized, and reach the Notion board only through `ticket-browser`; do not invent server names, URLs, or workspace IDs.
