@@ -193,7 +193,7 @@ def changes(root, output):
 
 def write(root, output):
     old = existing(root)
-    validate_previous(old, output)
+    validate_previous(old)
     executables = set(json.loads(output['manifest.json']).get('executables', []))
     for name in old.keys() - output.keys():
         regular_path(root, OUTPUT + '/' + name).unlink()
@@ -205,7 +205,7 @@ def write(root, output):
         target.chmod(0o755 if name in executables else 0o644)
 
 
-def validate_previous(old, output):
+def validate_previous(old):
     if not old:
         return
     try:
@@ -249,8 +249,9 @@ def main():
             print(f'update {OUTPUT}/{path}')
         if args.check:
             return int(bool(changed))
-        validate_previous(existing(args.root), output)
-        if not args.dry_run:
+        if args.dry_run:
+            validate_previous(existing(args.root))
+        else:
             write(args.root, output)
         return 0
     except (ValueError, OSError, subprocess.CalledProcessError) as error:
