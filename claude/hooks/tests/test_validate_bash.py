@@ -12,10 +12,13 @@ HOOK = Path(__file__).resolve().parents[1] / "validate-bash.sh"
 
 
 class ValidateBashTests(unittest.TestCase):
-    def decision(self, command):
+    def decision(self, command, cwd=None):
+        payload = {"tool_name": "Bash", "tool_input": {"command": command}}
+        if cwd:
+            payload["cwd"] = cwd
         result = subprocess.run(
             ["bash", str(HOOK)],
-            input=json.dumps({"tool_name": "Bash", "tool_input": {"command": command}}),
+            input=json.dumps(payload),
             text=True,
             capture_output=True,
             timeout=5,
@@ -123,6 +126,67 @@ class ValidateBashTests(unittest.TestCase):
                             self.assertIn("Required shell parser is unavailable", result.stderr)
                             self.assertEqual(result.stdout, "")
             self.assertFalse(list(cwd.rglob("__pycache__")))
+
+    def test_ticket_browser_state_is_reachable_only_through_its_launcher(self):
+        denied = [
+            "agent-browser --profile ~/.agent-browser/profiles/ticket open https://example.com",
+            "AGENT_BROWSER_PROFILE=$HOME/.agent-browser/profiles/ticket agent-browser get url",
+            "agent-browser --session ticket get url",
+            "agent-browser --session=ticket eval 1",
+            "env AGENT_BROWSER_SESSION=ticket /opt/homebrew/bin/agent-browser cookies get",
+            "ls; npx agent-browser --session ticket snapshot",
+            "agent-browser --session ticket get url | head",
+            "AGENT_BROWSER_CONFIG=~/.shell-utils/ticket-browser.json agent-browser open https://example.com",
+            "agent-browser --config ~/.shell-utils/ticket-browser.json get url",
+            "agent-browser --profile ~/.agent-browser/profiles/./ticket get url",
+            "agent-browser --profile $HOME//.agent-browser/profiles/ticket/ get url",
+            "agent-browser --profile=${HOME}/.agent-browser/x/../profiles/ticket get url",
+            "agent-browser --config ~/.shell-utils/../.shell-utils/./ticket-browser.json get url",
+            "npx agent-browser@0.39.1 --session ticket eval 1",
+            "pnpm dlx agent-browser@latest --profile ~/.agent-browser/profiles/ticket get url",
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            link = Path(directory) / "elsewhere"
+            link.symlink_to(Path.home() / ".agent-browser" / "profiles" / "ticket")
+            denied.append(f"agent-browser --profile {link} get url")
+            for command in denied:
+                with self.subTest(command=command):
+                    self.assertEqual(self.decision(command), "deny")
+        profiles = str(Path.home() / ".agent-browser" / "profiles")
+        for command in ["agent-browser --profile ticket get url",
+                        "agent-browser --profile=./ticket get url",
+                        "AGENT_BROWSER_PROFILE=ticket agent-browser get url"]:
+            with self.subTest(command=command, cwd=profiles):
+                self.assertEqual(self.decision(command, cwd=profiles), "deny")
+        for command in ['cd "$HOME/.agent-browser/profiles" && agent-browser --profile ticket get url',
+                        "cd ~/.agent-browser/profiles; agent-browser --config ./x.json --profile ./ticket open https://example.com",
+                        "export AGENT_BROWSER_PROFILE=~/.agent-browser/profiles/ticket; agent-browser get url",
+                        "export AGENT_BROWSER_SESSION=ticket && agent-browser get url",
+                        'echo "$(date)" && agent-browser --session "ticket" get url',
+                        'cat <(echo x); agent-browser --session "ticket" get url',
+                        "f() { agent-browser --session='ticket' get url; }; f",
+                        "export AGENT_BROWSER_CONFIG=$HOME/.shell-utils/ticket-browser.json\nnpx agent-browser get url"]:
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "deny")
+        for command in ["cd /tmp && agent-browser --profile /tmp/other get url",
+                        "cd /tmp && agent-browser get url",
+                        "export AGENT_BROWSER_SESSION=probe && agent-browser get url"]:
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "allow")
+        with tempfile.TemporaryDirectory() as directory:
+            with self.subTest(command="relative profile elsewhere"):
+                self.assertEqual(
+                    self.decision("agent-browser --profile ticket get url", cwd=directory), "allow")
+        allowed = [
+            "ticket-browser open https://app.notion.com/p/abc",
+            "~/.shell-utils/ticket-browser get url",
+            "agent-browser --session probe open https://example.com",
+            "agent-browser --session tickets get url",
+            "git commit -m 'never run agent-browser --session ticket directly'",
+        ]
+        for command in allowed:
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "allow")
 
     def test_explicit_paths_and_non_bash_input_are_preserved(self):
         for command in ["git add README.md", "git add ./src/main.ts", "git add -- -A"]:

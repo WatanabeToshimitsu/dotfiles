@@ -1,0 +1,260 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+MINIMUM_VERSION="0.39.1"
+ticket_browser_dir="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="$ticket_browser_dir/ticket-browser.json"
+POLICY_FILE="$ticket_browser_dir/ticket-browser-policy.json"
+PROFILE_DIR="$HOME/.agent-browser/profiles/ticket"
+DOWNLOAD_DIR="$HOME/.agent-browser/profiles/ticket-downloads"
+PAGES_FILE="$HOME/.claude/ticket/browser-pages"
+PENDING_FILE="$PAGES_FILE.expect-new"
+export LC_ALL=C
+ID='[0-9a-f]{32}'
+NOTION_HOST='https://([a-z0-9-]+\.)*notion\.(com|so)'
+LOGIN_PAGE="^$NOTION_HOST/login(\\?[A-Za-z0-9=&%._-]*)?\$"
+NOTION_PAGE="^$NOTION_HOST/(p/)?([A-Za-z0-9_-]+/)?(([A-Za-z0-9_-]|%[0-9A-F]{2})*-)?($ID)(\\?([A-Za-z0-9=&_-]*))?(#$ID)?\$"
+
+reject() {
+  printf 'ticket-browser: %s\n' "$*" >&2
+  exit 2
+}
+
+version_ge() {
+  local actual="$1" required="$2"
+  [ "$(printf '%s\n%s\n' "$required" "$actual" | sort -V | head -n 1)" = "$required" ]
+}
+
+# Prints "<page id> <view id or -> <peeked page id or ->". With $2 = lenient,
+# query keys other than v and p are ignored instead of refused.
+parse_page() {
+  local url="$1" mode="${2:-}" id query pair view=- peek=-
+  local -a pairs=()
+  [[ $url =~ $NOTION_PAGE ]] || return 1
+  id="${BASH_REMATCH[7]}"
+  query="${BASH_REMATCH[9]}"
+  [ -z "$query" ] || IFS='&' read -r -a pairs <<< "$query"
+  for pair in ${pairs[@]+"${pairs[@]}"}; do
+    case "$pair" in
+      v=*) [ "$view" = - ] && [[ ${pair#v=} =~ ^$ID$ ]] || return 1; view="${pair#v=}" ;;
+      p=*) [ "$peek" = - ] && [[ ${pair#p=} =~ ^$ID$ ]] || return 1; peek="${pair#p=}" ;;
+      pvs=*) [[ ${pair#pvs=} =~ ^[0-9]+$ ]] || return 1 ;;
+      pm=*) [[ ${pair#pm=} =~ ^[a-z]+$ ]] || return 1 ;;
+      *) [ "$mode" = lenient ] || return 1 ;;
+    esac
+  done
+  printf '%s %s %s\n' "$id" "$view" "$peek"
+}
+
+# Entries are "<page id>" for pages and "<page id> <view id>" for board views.
+registered_entry() {
+  [ -f "$PAGES_FILE" ] && grep -Fxq "$1" "$PAGES_FILE"
+}
+
+register() {
+  mkdir -p "$(dirname "$PAGES_FILE")"
+  registered_entry "$1" || printf '%s\n' "$1" >> "$PAGES_FILE"
+}
+
+allowed_url() {
+  local url="$1" parsed id view peek
+  if [ "$url" = about:blank ] || [[ $url =~ $LOGIN_PAGE ]]; then
+    return 0
+  fi
+  parsed=$(parse_page "$url") || return 1
+  read -r id view peek <<< "$parsed"
+  if [ "$view" = - ]; then
+    registered_entry "$id" || return 1
+  else
+    registered_entry "$id $view" || return 1
+  fi
+  [ "$peek" = - ] || registered_entry "$peek"
+}
+
+# Prints the new page peeked in $1 when $2 was the registered board view itself.
+new_board_page() {
+  local parsed id view peek before_id before_view before_peek
+  parsed=$(parse_page "$2") || return 1
+  read -r before_id before_view before_peek <<< "$parsed"
+  [ "$before_view" != - ] && [ "$before_peek" = - ] && registered_entry "$before_id $before_view" || return 1
+  parsed=$(parse_page "$1") || return 1
+  read -r id view peek <<< "$parsed"
+  [ "$id" = "$before_id" ] && [ "$view" = "$before_view" ] && [ "$peek" != - ] && ! registered_entry "$peek" \
+    && printf '%s\n' "$peek"
+}
+
+[ $# -gt 0 ] || reject "usage: ticket-browser <agent-browser command> [args] | allow <notion url> | expect-new"
+
+case "$1" in
+  allow)
+    [ $# -eq 2 ] || reject "allow takes one Notion page URL"
+    parsed=$(parse_page "$2" lenient) || reject "not a Notion page URL: $2"
+    read -r id view peek <<< "$parsed"
+    [ "$peek" = - ] || reject "register the page itself, not a peek from a board: $2"
+    if [ "$view" = - ]; then register "$id"; else register "$id $view"; fi
+    exit 0
+    ;;
+  expect-new)
+    [ $# -eq 1 ] || reject "expect-new takes no arguments"
+    mkdir -p "$(dirname "$PENDING_FILE")"
+    : > "$PENDING_FILE"
+    exit 0
+    ;;
+esac
+
+expecting_new=false
+if [ -f "$PENDING_FILE" ]; then
+  expecting_new=true
+  rm -f "$PENDING_FILE"
+fi
+
+command -v agent-browser > /dev/null 2>&1 || reject "agent-browser is not installed"
+command -v jq > /dev/null 2>&1 || reject "jq is required to validate the action policy"
+version=$(agent-browser --version 2> /dev/null | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1)
+[ -n "$version" ] || reject "agent-browser version could not be parsed"
+version_ge "$version" "$MINIMUM_VERSION" \
+  || reject "agent-browser $version is too old; $MINIMUM_VERSION or later is required"
+jq -e '.default == "deny"' "$POLICY_FILE" > /dev/null 2>&1 \
+  || reject "action policy is missing or does not deny by default: $POLICY_FILE"
+jq -e 'type == "object"' "$CONFIG_FILE" > /dev/null 2>&1 \
+  || reject "configuration is missing or invalid: $CONFIG_FILE"
+
+case "$1" in
+  snapshot) allowed_options=" -i -c -d -s " ;;
+  find) allowed_options=" --name --exact " ;;
+  wait) allowed_options=" --load --url --text " ;;
+  screenshot) allowed_options=" --full " ;;
+  *) allowed_options=" " ;;
+esac
+for argument in "${@:2}"; do
+  case "$argument" in
+    -[A-Za-z0-9]* | --*) [[ $allowed_options == *" ${argument%%=*} "* && $argument != *=* ]] || reject "option is not allowed here: $argument" ;;
+  esac
+done
+
+# Why not --allowed-domains: on Notion pages agent-browser 0.39.1 fails to
+# reinstall its network controls after the first command
+# (vercel-labs/agent-browser#2031), so the launcher checks every page instead.
+case "$1" in
+  open)
+    [ $# -eq 2 ] || reject "open takes one URL"
+    allowed_url "$2" \
+      || reject "not a registered Notion page; register it with 'ticket-browser allow <url>' only if it is the board view, a ticket you created, or a ticket the user named"
+    ;;
+  get)
+    case "${2:-}" in
+      text | title | url | count | value | attr) ;;
+      *) reject "get ${2:-} is not allowed" ;;
+    esac
+    ;;
+  press)
+    case "${2:-}" in
+      Enter | Escape | Tab | Backspace | Delete | Home | End | ArrowUp | ArrowDown | ArrowLeft | ArrowRight) ;;
+      *) reject "only plain editing and navigation keys may be pressed" ;;
+    esac
+    ;;
+  find)
+    case "${2:-}" in
+      role | text | label | placeholder | title) action="${4:-}" ;;
+      nth) action="${5:-}" ;;
+      *) reject "find ${2:-} is not allowed" ;;
+    esac
+    case "$action" in
+      click | text | fill | hover | check) ;;
+      *) reject "find action is not allowed: $action" ;;
+    esac
+    ;;
+  back | reload | snapshot | screenshot | is | click | fill | type | select | \
+    check | uncheck | hover | focus | scroll | scrollintoview | wait | close) ;;
+  *) reject "command is not allowed: $1" ;;
+esac
+
+while IFS= read -r name; do
+  unset "$name"
+done < <(compgen -e | grep '^AGENT_BROWSER_' || true)
+export AGENT_BROWSER_CONFIG="$CONFIG_FILE"
+export AGENT_BROWSER_ACTION_POLICY="$POLICY_FILE"
+export AGENT_BROWSER_PROFILE="$PROFILE_DIR"
+# Why not a deny setting: agent-browser has none, and a click on a download
+# link saves files; a read-only directory makes Chrome fail those downloads.
+mkdir -p "$DOWNLOAD_DIR"
+chmod 500 "$DOWNLOAD_DIR"
+[ ! -w "$DOWNLOAD_DIR" ] || reject "the download directory must not be writable: $DOWNLOAD_DIR"
+export AGENT_BROWSER_DOWNLOAD_PATH="$DOWNLOAD_DIR"
+
+current_url() {
+  agent-browser --json get url 2> /dev/null | jq -r '.data.url // empty' 2> /dev/null || true
+}
+
+fail_closed() {
+  if agent-browser --json close > /dev/null 2>&1; then
+    reject "$1; closed the browser"
+  fi
+  reject "$1; closing the browser failed, close its window by hand"
+}
+
+list_tabs() {
+  agent-browser --json tab list 2> /dev/null | jq -ec '.data.tabs | arrays' 2> /dev/null
+}
+
+# Closes every tab except $1 and succeeds only when $1 is the one left.
+keep_only_tab() {
+  local keep="$1" tabs tab
+  tabs=$(list_tabs) || return 1
+  for tab in $(jq -r --arg k "$keep" '.[] | select(.tabId != $k) | .tabId' <<< "$tabs"); do
+    agent-browser --json tab close "$tab" > /dev/null 2>&1 || true
+  done
+  tabs=$(list_tabs) || return 1
+  jq -e --arg k "$keep" 'length == 1 and .[0].tabId == $k' <<< "$tabs" > /dev/null
+}
+
+if [ "$1" = close ] || [ "$*" = "get url" ]; then
+  exec agent-browser "$@"
+fi
+before=""
+if [ "$1" != open ]; then
+  before=$(current_url)
+  if ! allowed_url "$before"; then
+    [ -n "$before" ] || reject "could not read the current page URL; open a registered page first"
+    agent-browser --json back > /dev/null 2>&1 || true
+    returned=$(current_url)
+    [ -n "$returned" ] && allowed_url "$returned" \
+      || fail_closed "the current page is not a registered Notion page ($before) and going back failed"
+    reject "the current page was not a registered Notion page ($before); went back, run the command again"
+  fi
+fi
+
+tabs=$(list_tabs) || fail_closed "could not read the tab list before the action"
+keep=$(jq -r '(map(select(.active)) + .)[0].tabId // empty' <<< "$tabs")
+[ -n "$keep" ] || fail_closed "no browser tab to work in"
+if [ "$(jq length <<< "$tabs")" -gt 1 ]; then
+  keep_only_tab "$keep" || fail_closed "could not close leftover tabs before the action"
+fi
+
+status=0
+agent-browser "$@" || status=$?
+
+tab_note=""
+tabs=$(list_tabs) || fail_closed "could not read the tab list after the action"
+if ! jq -e --arg k "$keep" 'length == 1 and .[0].tabId == $k' <<< "$tabs" > /dev/null; then
+  keep_only_tab "$keep" || fail_closed "a new tab could not be closed"
+  tab_note="the action opened a new tab; it was closed"
+fi
+
+current=$(current_url)
+[ -n "$current" ] || fail_closed "could not read the page URL after the action${tab_note:+; $tab_note}"
+if ! allowed_url "$current"; then
+  if $expecting_new && [ -z "$tab_note" ] && new_page=$(new_board_page "$current" "$before"); then
+    register "$new_page"
+    exit "$status"
+  fi
+  undo=back
+  [ "$1" != back ] || undo=forward
+  agent-browser --json "$undo" > /dev/null 2>&1 || true
+  returned=$(current_url)
+  [ -n "$returned" ] && allowed_url "$returned" \
+    || fail_closed "the action reached an unregistered page ($current) and going $undo failed${tab_note:+; $tab_note}"
+  reject "the action reached an unregistered page ($current); went $undo${tab_note:+; $tab_note}"
+fi
+[ -z "$tab_note" ] || reject "$tab_note"
+exit "$status"

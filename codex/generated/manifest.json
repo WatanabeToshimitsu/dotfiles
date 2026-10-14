@@ -22,7 +22,7 @@
     "rules/typescript/type-safety.md": "sha256:ebba98d3029f4c576f9b94048b76ad10be64c9205e6386ed75efb997d2b2988f",
     "rules/web/security.md": "sha256:09d6d20da7db7c1e1baeac8869cb5862594ada592fde62bd0da07fd8f282f9d8",
     "skills/code-review/SKILL.md": "sha256:0c6ee3b95b025b237a61791e727a0820cb38156898d55d39969ecaa79f322567",
-    "skills/delivery-workflow/SKILL.md": "sha256:aeb81f4cbb63b32a4fb6811a4c16898611019410e8a8946651272b0600028697",
+    "skills/delivery-workflow/SKILL.md": "sha256:42023d95a8d7ce3a0a608c17c7e40e9c68d543e24f73c50b64ab1cf8fbf50e04",
     "skills/delivery-workflow/references/invocation.md": "sha256:0271138e430b7382be683e631a775f4a59c6ed99b68e3880ab62f923d2cd9874",
     "skills/delivery-workflow/references/recovery.md": "sha256:7722bc30a7779b35d4b756a02fe9f85a29b54962adc8aa20bad61a8766f0b2ee",
     "skills/delivery-workflow/references/scheduled-work.md": "sha256:5bbc3fd68d009bb613d3e8412662a8306cc13404606938f3093d74d92a0bcbad",
@@ -31,8 +31,8 @@
     "skills/expand-tool-output/SKILL.md": "sha256:dea48c29238226b273b40151a34adf4b3ec8c7997857626e4a6c38d348a4cbf8",
     "skills/prepare-compaction/SKILL.md": "sha256:d711c8901ad7c43e2dc0c240d4bd259bb920d3d14ee0399261874a0fb97d3d55",
     "skills/repository-audit/SKILL.md": "sha256:200164ed0c118c771c6ec4ed357059d03d7b96f87a807a88d05ded01cae79f9d",
-    "skills/ticket/SKILL.md": "sha256:b477f61fb53da5c07ea6f815e75175d50e4c15d74f7c7b9bf0bfa921a30ea0c3",
-    "skills/ticket/reference.example.md": "sha256:ff8b827ee6fff1441a072567b50be70d4d2c50b07f3737690732062b544c0ea3"
+    "skills/ticket/SKILL.md": "sha256:c28edafcc330b58d9b1858cf43daee0d4c9e3c5ef696ed110b4d43ee1a9f9168",
+    "skills/ticket/reference.example.md": "sha256:190ce3af8b0286f7426d76fe9e319e30d109bc8ec23ed7d96b5380ad727fd458"
   },
   "inputs": {
     "claude/CLAUDE.md": "sha256:ab4ae041ba066496b424b3eb581b21c51842268ea15999c3e606a5467d5ad346",
@@ -57,7 +57,7 @@
     "claude/rules/web/security.md": "sha256:09d6d20da7db7c1e1baeac8869cb5862594ada592fde62bd0da07fd8f282f9d8",
     "claude/settings.json": "sha256:684fd81e47e4364abde4dfea6c8fda803c6670ea91985d3799b27fe9f1f48cfb",
     "claude/skills/code-review/SKILL.md": "sha256:6a62c2904c0bca905b5a9ec45ae14fe0366f69c490ce942b7ecaac35ca858787",
-    "claude/skills/delivery-workflow/SKILL.md": "sha256:7b455f82696b92b9cc1225048cf81c3fb340cd92583c9948de02ce846a8c1551",
+    "claude/skills/delivery-workflow/SKILL.md": "sha256:73a2aafe2aa441eb22a650d97a75467ab520aa594ed132c8455eb28f4b8a7327",
     "claude/skills/delivery-workflow/references/invocation.md": "sha256:0271138e430b7382be683e631a775f4a59c6ed99b68e3880ab62f923d2cd9874",
     "claude/skills/delivery-workflow/references/recovery.md": "sha256:7722bc30a7779b35d4b756a02fe9f85a29b54962adc8aa20bad61a8766f0b2ee",
     "claude/skills/delivery-workflow/references/scheduled-work.md": "sha256:5bbc3fd68d009bb613d3e8412662a8306cc13404606938f3093d74d92a0bcbad",
@@ -66,10 +66,10 @@
     "claude/skills/expand-tool-output/SKILL.md": "sha256:2b21b700450c9e673b45da33ae848e45fafb0f251b79917a54d00f3e93ba0e08",
     "claude/skills/prepare-compaction/SKILL.md": "sha256:2e1def114180603e6ff56d22b110eaee137e327731d74e0bec8dd4d5cbe35ad0",
     "claude/skills/repository-audit/SKILL.md": "sha256:200164ed0c118c771c6ec4ed357059d03d7b96f87a807a88d05ded01cae79f9d",
-    "claude/skills/ticket/SKILL.md": "sha256:814aa7a444642aee9d4f2b741c0eb582f5026a5a2f3a65ca129e95bae88555ea",
-    "claude/skills/ticket/reference.example.md": "sha256:ff8b827ee6fff1441a072567b50be70d4d2c50b07f3737690732062b544c0ea3",
+    "claude/skills/ticket/SKILL.md": "sha256:94dfe412892fafd56a6a95240d8864942e09641a0737e9f1006de6b264fff218",
+    "claude/skills/ticket/reference.example.md": "sha256:190ce3af8b0286f7426d76fe9e319e30d109bc8ec23ed7d96b5380ad727fd458",
     "codex/adaptations.md": "sha256:4e98f51d7f26cd9a8cc48eb8bbcb35f4c932d1171df18e98b7065e50f1b0a8ba",
-    "codex/skill-adaptations.json": "sha256:5ccf59488689eb331b3e4dd093d17b4da6881b5b9a327c737b717b690e9f6cc8"
+    "codex/skill-adaptations.json": "sha256:cf5f4d2e8806f13958c455f2adebe75da560d00a09a137162d97844654f8dd77"
   },
   "local_dependencies": {
     "ticket": {
