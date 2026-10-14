@@ -64,7 +64,8 @@ together with the user instead of guessing values.
    exists (the digits of the issue key), otherwise `X. <title>`. When a
    Jira issue is added later, rewrite the `X.` prefix.
 6. If the board step fails after the Jira issue exists, report the issue
-   key; the next create run finds it in step 1 and finishes the pair.
+   key. The next create run finds that issue in step 1 and creates only
+   the board page for it; never create a second Jira issue.
 7. Record the link once work starts on a branch (below).
 
 Epics whose titles match the linking-only pattern in reference.md exist
@@ -90,17 +91,18 @@ Evidence workflow, after a pull request is created:
    is listed as a team repository in reference.md; otherwise stop.
 2. Open only that ticket URL. If the pull request URL is already in the
    evidence field, stop.
-3. Append the pull request URL to the evidence field reference.md names.
-   This needs no approval: the user asked for it to be automatic.
+3. Append the pull request URL to the evidence field, the way reference.md
+   describes. This needs no approval: the user asked for it to be
+   automatic. Read the field back to confirm the URL is there.
 4. If the browser is unavailable, report the ticket URL and the text to
    paste instead of skipping silently.
 
 ## Status
 
 When work on a linked ticket starts, set the board status to the "in
-progress" value from reference.md without asking. Propose every other
-status change, on the board or in Jira, together with the Jira update and
-apply it on approval.
+progress" value without asking. Propose every other status change, on the
+board or in Jira, together with the Jira update and apply it on approval.
+Use the status buttons reference.md lists when the template has them.
 
 ## Granularity and body
 
