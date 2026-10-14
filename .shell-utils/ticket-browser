@@ -68,4 +68,17 @@ done < <(compgen -e | grep '^AGENT_BROWSER_' || true)
 export AGENT_BROWSER_CONFIG="$CONFIG_FILE"
 export AGENT_BROWSER_ACTION_POLICY="$POLICY_FILE"
 export AGENT_BROWSER_PROFILE="$PROFILE_DIR"
-exec agent-browser "$@"
+
+case "$1" in
+  open | back | reload | find | click | press | select | check | uncheck) ;;
+  *) exec agent-browser "$@" ;;
+esac
+
+status=0
+agent-browser "$@" || status=$?
+current=$(agent-browser get url 2> /dev/null | tail -n 1)
+if [ "$current" != about:blank ] && ! [[ $current =~ $NOTION_URL ]]; then
+  agent-browser back > /dev/null 2>&1 || true
+  reject "the action left Notion ($current); went back"
+fi
+exit "$status"

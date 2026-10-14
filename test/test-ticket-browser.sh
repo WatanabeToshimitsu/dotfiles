@@ -27,6 +27,15 @@ if [ "${1:-}" = "--version" ]; then
   printf 'agent-browser %s\n' "${FAKE_AGENT_BROWSER_VERSION:?}"
   exit 0
 fi
+if [ "$*" = "get url" ] && [ -f "${FAKE_AGENT_BROWSER_LOG:?}" ]; then
+  printf '%s\n' "${FAKE_AGENT_BROWSER_URL:-https://app.notion.com/p/abc}"
+  printf 'CHECK=%s\n' "$*" >> "$FAKE_AGENT_BROWSER_LOG.checks"
+  exit 0
+fi
+if [ "$*" = back ]; then
+  printf 'BACK\n' >> "${FAKE_AGENT_BROWSER_LOG:?}.checks"
+  exit 0
+fi
 {
   env | grep '^AGENT_BROWSER_' | sort
   printf 'ARG=%s\n' "$@"
@@ -42,14 +51,14 @@ export FAKE_AGENT_BROWSER_VERSION=0.39.1
 export FAKE_AGENT_BROWSER_LOG="$TEST_OUTPUT_DIR/call.log"
 
 run_ok() {
-  rm -f "$FAKE_AGENT_BROWSER_LOG"
+  rm -f "$FAKE_AGENT_BROWSER_LOG" "$FAKE_AGENT_BROWSER_LOG.checks"
   "$LAUNCHER" "$@" > /dev/null 2> "$TEST_OUTPUT_DIR/err" \
     || fail "rejected: $* ($(cat "$TEST_OUTPUT_DIR/err"))"
   [ -f "$FAKE_AGENT_BROWSER_LOG" ] || fail "agent-browser was not called: $*"
 }
 
 run_rejected() {
-  rm -f "$FAKE_AGENT_BROWSER_LOG"
+  rm -f "$FAKE_AGENT_BROWSER_LOG" "$FAKE_AGENT_BROWSER_LOG.checks"
   if "$LAUNCHER" "$@" > /dev/null 2> "$TEST_OUTPUT_DIR/err"; then
     fail "accepted: $*"
   fi
@@ -104,6 +113,23 @@ run_rejected get html body
 run_rejected press Control+k
 run_rejected press Meta+p
 run_rejected
+
+# An action that leaves Notion is undone and reported as a failure.
+run_ok click @e1
+grep -Fxq 'CHECK=get url' "$FAKE_AGENT_BROWSER_LOG.checks" || fail "click was not followed by a URL check"
+for url in https://github.com/org/repo/pull/1 'https://notion.com.evil.example/'; do
+  rm -f "$FAKE_AGENT_BROWSER_LOG.checks"
+  rm -f "$FAKE_AGENT_BROWSER_LOG"
+  if FAKE_AGENT_BROWSER_URL="$url" "$LAUNCHER" click @e1 > /dev/null 2> "$TEST_OUTPUT_DIR/err"; then
+    fail "navigation to $url was accepted"
+  fi
+  grep -Fxq BACK "$FAKE_AGENT_BROWSER_LOG.checks" || fail "navigation to $url was not undone"
+  grep -Fq "left Notion" "$TEST_OUTPUT_DIR/err" || fail "navigation to $url gave no reason"
+done
+FAKE_AGENT_BROWSER_URL=about:blank run_ok press Enter
+rm -f "$FAKE_AGENT_BROWSER_LOG.checks"
+FAKE_AGENT_BROWSER_URL=https://github.com/ run_ok close
+[ ! -f "$FAKE_AGENT_BROWSER_LOG.checks" ] || fail "close was followed by a URL check"
 
 # Options other than the few the workflow uses are refused anywhere.
 for option in --session=x "--profile x" "--allowed-domains x" \
