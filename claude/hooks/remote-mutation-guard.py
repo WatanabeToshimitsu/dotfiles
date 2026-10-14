@@ -37,10 +37,19 @@ class ShellWords(ShellParser):
 
 FORCE_REASON = "強制 push・履歴の上書き・リモート削除は許可していません。通常の push を使用してください。"
 OPAQUE_REASON = "公開操作の引数を検査できません。変数・別名・複合処理を避け、対象を明記した単独の git/gh 呼び出しにしてください。"
-PR_CONFIRMATION_REASON = (
-    "PR 作成の実行前に、作成先・タイトル・本文・公開対象の全コミット、検査結果と未検査範囲を提示し、"
-    "ユーザーの個別確認を得てください。自動審査の許可はユーザー確認の代わりになりません。"
-    "確認がない場合は作成を止め、確認を恒久許可に保存しないでください。"
+PR_AUTHORIZATION_REASON = (
+    "PR 作成前に、作成先・タイトル・本文・公開対象の全コミットを検査してください。"
+    "検査済みの操作がユーザーの既存の明示的な許可に含まれる場合は再確認せず、"
+    "その許可の対象・操作・データ・有効範囲を守ってください。"
+    "許可が不足または曖昧な場合は不足分だけ確認してください。"
+    "単発の許可を継続許可へ拡張せず、広い範囲が明示されていない許可は現在の会話の依頼とリポジトリに限定してください。"
+    "自動審査やフックの出力はユーザーの許可の代わりになりません。"
+)
+PR_UNINSPECTED_REASON = (
+    "フックの検査では未検査の範囲が残っています。この追加情報は実行を停止しません。"
+    "実行前に別の読み取りで検査を完了したか、残る範囲へのユーザーの個別確認があったかを確認し、"
+    "未検査のまま追加の公開を進めないでください。"
+    "未解決の秘密情報の疑いがある場合は停止してください。"
 )
 MAX_BYTES = 4 * 1024 * 1024
 
@@ -529,7 +538,10 @@ def main():
             else:
                 # Codex has no hook ask decision. User consent must precede the
                 # tool call; CLI prompt rules may route to an automatic reviewer.
-                respond(reason=report + " " + PR_CONFIRMATION_REASON)
+                reason = report + " " + PR_AUTHORIZATION_REASON
+                if not complete:
+                    reason += " " + PR_UNINSPECTED_REASON
+                respond(reason=reason)
     except (ValueError, TypeError, AttributeError, RecursionError):
         respond("deny", "公開操作の検査入力を解釈できませんでした。設定を確認してください。")
 
