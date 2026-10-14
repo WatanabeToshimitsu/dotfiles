@@ -13,6 +13,8 @@ BOARD=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 VIEW=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
 TICKET=cccccccccccccccccccccccccccccccc
 OTHER=dddddddddddddddddddddddddddddddd
+NEW=eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+BOARD_URL="https://app.notion.com/p/team/$BOARD?v=$VIEW"
 TICKET_URL="https://app.notion.com/p/team/1-Title-$TICKET"
 
 fail() {
@@ -43,7 +45,18 @@ if [ "${1:-}" = "--json" ]; then
       [ -f "$log.back" ] && url="${FAKE_AGENT_BROWSER_URL_AFTER_BACK-$url}"
       jq -cn --arg u "$url" '{success: true, data: {url: $u}}'
       ;;
-    "tab list") jq -cn --argjson t "${FAKE_AGENT_BROWSER_TABS:-[]}" '{success: true, data: {tabs: $t}}' ;;
+    "tab list")
+      one_tab='[{"tabId":"t1","active":true,"url":"x"}]'
+      if [ -f "$log" ]; then
+        [ -z "${FAKE_AGENT_BROWSER_TAB_LIST_FAILS:-}" ] || exit 1
+        tabs="${FAKE_AGENT_BROWSER_TABS:-$one_tab}"
+      else
+        tabs="${FAKE_AGENT_BROWSER_TABS_BEFORE:-$one_tab}"
+      fi
+      [ -f "$log.tab-closed" ] && tabs="${FAKE_AGENT_BROWSER_TABS_AFTER_CLOSE:-$one_tab}"
+      jq -cn --argjson t "$tabs" '{success: true, data: {tabs: $t}}'
+      ;;
+    "tab close"*) touch "$log.tab-closed"; printf '{"success":true}\n' ;;
     back) touch "$log.back"; printf '{"success":true}\n' ;;
     *) printf '{"success":true}\n' ;;
   esac
@@ -67,7 +80,7 @@ export FAKE_AGENT_BROWSER_URL="$TICKET_URL"
 PAGES="$HOME/.claude/ticket/browser-pages"
 
 reset_log() {
-  rm -f "$FAKE_AGENT_BROWSER_LOG" "$FAKE_AGENT_BROWSER_LOG.internal" "$FAKE_AGENT_BROWSER_LOG.back"
+  rm -f "$FAKE_AGENT_BROWSER_LOG" "$FAKE_AGENT_BROWSER_LOG".*
 }
 
 run_ok() {
@@ -86,18 +99,31 @@ run_rejected() {
   [ -s "$TEST_OUTPUT_DIR/err" ] || fail "no reason given: $*"
 }
 
+# expect a rejected action that ran, with the given reason
+run_failed_after() {
+  local reason="$1"
+  shift
+  reset_log
+  if "$LAUNCHER" "$@" > /dev/null 2> "$TEST_OUTPUT_DIR/err"; then
+    fail "accepted: $*"
+  fi
+  grep -Fq "$reason" "$TEST_OUTPUT_DIR/err" || fail "expected '$reason' for $*, got: $(cat "$TEST_OUTPUT_DIR/err")"
+}
+
 # Pages are registered explicitly; registration never calls the browser.
 run_rejected open "$TICKET_URL"
-for url in https://example.com/p/$TICKET https://app.notion.com/login "https://app.notion.com/p/team/no-id"; do
+for url in "https://example.com/p/$TICKET" https://app.notion.com/login \
+  "https://app.notion.com/p/team/no-id" "$BOARD_URL&p=$OTHER" "https://app.notion.com/?x=$TICKET"; do
   reset_log
   if "$LAUNCHER" allow "$url" > /dev/null 2>&1; then fail "registered: $url"; fi
 done
 reset_log
-"$LAUNCHER" allow "https://app.notion.com/p/team/$BOARD?v=$VIEW" > /dev/null || fail "board was not registered"
+"$LAUNCHER" allow "$BOARD_URL" > /dev/null || fail "board was not registered"
 "$LAUNCHER" allow "$TICKET_URL" > /dev/null || fail "ticket was not registered"
 [ ! -f "$FAKE_AGENT_BROWSER_LOG.internal" ] && [ ! -f "$FAKE_AGENT_BROWSER_LOG" ] \
   || fail "registration called agent-browser"
-for id in "$BOARD" "$VIEW" "$TICKET"; do assert_contains "$id" "$PAGES"; done
+assert_contains "$BOARD $VIEW" "$PAGES"
+assert_contains "$TICKET" "$PAGES"
 
 # The launcher pins its own configuration and drops caller overrides.
 AGENT_BROWSER_ALLOWED_DOMAINS=evil.example AGENT_BROWSER_CDP=9222 \
@@ -110,13 +136,24 @@ assert_contains "AGENT_BROWSER_PROFILE=$HOME/.agent-browser/profiles/ticket" "$F
 assert_contains "ARG=open" "$FAKE_AGENT_BROWSER_LOG"
 assert_contains "ARG=$TICKET_URL" "$FAKE_AGENT_BROWSER_LOG"
 
-# Only registered Notion pages and the login page open.
-run_ok open "https://app.notion.com/p/team/$BOARD?v=$VIEW"
+# Only registered pages, with their registered view, and the login page open.
+run_ok open "$BOARD_URL"
+run_ok open "$BOARD_URL&pvs=18"
+run_ok open "$BOARD_URL&p=$TICKET&pm=s"
 run_ok open "https://www.notion.so/$TICKET"
+run_ok open "https://app.notion.com/p/$TICKET?pvs=25"
 run_ok open https://app.notion.com/login
 for url in \
   "https://app.notion.com/p/team/$OTHER" \
-  "https://app.notion.com/p/team/$BOARD?v=$VIEW&p=$OTHER" \
+  "https://app.notion.com/p/team/$BOARD" \
+  "https://app.notion.com/p/team/$BOARD?v=$OTHER" \
+  "$BOARD_URL&p=$OTHER" \
+  "$BOARD_URL&v=$VIEW" \
+  "https://app.notion.com/p/team/$VIEW" \
+  "https://app.notion.com/?x=$TICKET" \
+  "https://app.notion.com/p/team/$OTHER?p=$TICKET" \
+  "$TICKET_URL?foo=1" \
+  "https://app.notion.com/p/team/%63${TICKET:1}" \
   https://app.notion.com/ \
   https://example.com/ \
   "http://app.notion.com/p/$TICKET" \
@@ -160,6 +197,8 @@ run_rejected find alt logo click
 run_rejected find testid x click
 run_rejected find role button eval
 run_rejected find nth 2 .item download
+run_rejected find role textbox type x
+run_rejected expect-new extra
 run_rejected
 for args in "get url -s other" "click @e1 -i" "find role button click -d 2" \
   "snapshot --name x" "wait --full" "get text --load x"; do
@@ -174,9 +213,9 @@ for option in --session=x "--profile x" "--allowed-domains x" \
   run_rejected click @e1 $option
 done
 
-# Commands other than open and close run only on a registered Notion page.
-for url in "https://app.notion.com/p/team/$OTHER" "https://app.notion.com/p/team/$BOARD?v=$VIEW&p=$OTHER" \
-  https://example.com/ ''; do
+# Commands other than open, close, and get url run only on a registered page.
+for url in "https://app.notion.com/p/team/$OTHER" "$BOARD_URL&p=$OTHER" \
+  "https://app.notion.com/p/team/$BOARD" https://example.com/ ''; do
   reset_log
   if FAKE_AGENT_BROWSER_URL="$url" "$LAUNCHER" get text @e1 > /dev/null 2> "$TEST_OUTPUT_DIR/err"; then
     fail "read on unregistered page was accepted: $url"
@@ -186,44 +225,64 @@ done
 FAKE_AGENT_BROWSER_URL=about:blank run_ok snapshot -i
 FAKE_AGENT_BROWSER_URL="https://app.notion.com/p/team/$OTHER" run_ok get url
 
-# Navigation that leaves Notion is undone; new tabs are closed.
-for command in "open $TICKET_URL" back reload "find role button click" \
-  "click @e1" "press Enter" "select @e1 a" "check @e1" "uncheck @e1"; do
+# Every command that runs, other than close and get url, is checked afterwards.
+for command in "open $TICKET_URL" back reload "find role button click" "click @e1" \
+  "press Enter" "select @e1 a" "check @e1" "uncheck @e1" "type @e1 x" "fill @e1 x" \
+  "focus @e1" "hover @e1" "scroll down 10" "wait 10" "snapshot -i" "get text @e1"; do
   # shellcheck disable=SC2086
   run_ok $command
   assert_contains "get url" "$FAKE_AGENT_BROWSER_LOG.internal"
   assert_contains "tab list" "$FAKE_AGENT_BROWSER_LOG.internal"
 done
 reset_log
-if FAKE_AGENT_BROWSER_URL_BEFORE="$TICKET_URL" FAKE_AGENT_BROWSER_URL=https://github.com/org/repo/pull/1 FAKE_AGENT_BROWSER_URL_AFTER_BACK="$TICKET_URL" \
-  "$LAUNCHER" click @e1 > /dev/null 2> "$TEST_OUTPUT_DIR/err"; then
-  fail "navigation away from Notion was accepted"
-fi
-grep -Fq "went back" "$TEST_OUTPUT_DIR/err" || fail "navigation away gave no reason"
-assert_contains back "$FAKE_AGENT_BROWSER_LOG.internal"
-reset_log
-if FAKE_AGENT_BROWSER_URL_BEFORE="$TICKET_URL" FAKE_AGENT_BROWSER_URL=https://github.com/ FAKE_AGENT_BROWSER_URL_AFTER_BACK=https://github.com/ \
-  "$LAUNCHER" click @e1 > /dev/null 2> "$TEST_OUTPUT_DIR/err"; then
-  fail "a failed return was accepted"
-fi
-grep -Fq "closed the browser" "$TEST_OUTPUT_DIR/err" || fail "failed return did not close the browser"
-assert_contains close "$FAKE_AGENT_BROWSER_LOG.internal"
-reset_log
-tabs='[{"tabId":"t1","active":false,"url":"'"$TICKET_URL"'"},{"tabId":"t2","active":true,"url":"https://github.com/"}]'
-if FAKE_AGENT_BROWSER_TABS="$tabs" "$LAUNCHER" click @e1 > /dev/null 2> "$TEST_OUTPUT_DIR/err"; then
-  fail "a new tab outside Notion was accepted"
-fi
-assert_contains "tab close t2" "$FAKE_AGENT_BROWSER_LOG.internal"
-grep -Fq "new tab" "$TEST_OUTPUT_DIR/err" || fail "new tab gave no reason"
-reset_log
-if FAKE_AGENT_BROWSER_URL_BEFORE="$TICKET_URL" FAKE_AGENT_BROWSER_URL='' "$LAUNCHER" click @e1 > /dev/null 2> "$TEST_OUTPUT_DIR/err"; then
-  fail "an unknown page was accepted"
-fi
-grep -Fq "could not read the page URL" "$TEST_OUTPUT_DIR/err" || fail "unknown page gave no reason"
-FAKE_AGENT_BROWSER_URL=about:blank run_ok press Enter
-reset_log
 "$LAUNCHER" close > /dev/null
 [ ! -f "$FAKE_AGENT_BROWSER_LOG.internal" ] || fail "close was followed by checks"
+
+# Reaching an unregistered page is undone; a failed return closes the browser.
+FAKE_AGENT_BROWSER_URL_BEFORE="$TICKET_URL" FAKE_AGENT_BROWSER_URL=https://github.com/org/repo/pull/1 \
+  FAKE_AGENT_BROWSER_URL_AFTER_BACK="$TICKET_URL" run_failed_after "went back" click @e1
+assert_contains back "$FAKE_AGENT_BROWSER_LOG.internal"
+FAKE_AGENT_BROWSER_URL_BEFORE="$TICKET_URL" FAKE_AGENT_BROWSER_URL="https://app.notion.com/p/team/$OTHER" \
+  FAKE_AGENT_BROWSER_URL_AFTER_BACK="$TICKET_URL" run_failed_after "went back" click @e1
+FAKE_AGENT_BROWSER_URL_BEFORE="$TICKET_URL" FAKE_AGENT_BROWSER_URL="https://app.notion.com/p/team/$OTHER" \
+  FAKE_AGENT_BROWSER_URL_AFTER_BACK="https://app.notion.com/p/team/$OTHER" \
+  run_failed_after "closed the browser" click @e1
+assert_contains close "$FAKE_AGENT_BROWSER_LOG.internal"
+FAKE_AGENT_BROWSER_URL_BEFORE="$TICKET_URL" FAKE_AGENT_BROWSER_URL='' \
+  run_failed_after "could not read the page URL" click @e1
+assert_contains close "$FAKE_AGENT_BROWSER_LOG.internal"
+FAKE_AGENT_BROWSER_URL=about:blank run_ok press Enter
+
+# A new tab is closed and confirmed gone; unverifiable tabs close the browser.
+two_tabs='[{"tabId":"t2","active":true,"url":"https://github.com/"},{"tabId":"t1","active":false,"url":"a"}]'
+FAKE_AGENT_BROWSER_TABS="$two_tabs" run_failed_after "new tab" click @e1
+assert_contains "tab close t2" "$FAKE_AGENT_BROWSER_LOG.internal"
+grep -Fxq "tab close t1" "$FAKE_AGENT_BROWSER_LOG.internal" && fail "the working tab was closed"
+FAKE_AGENT_BROWSER_TABS_BEFORE='[{"tabId":"t1","active":false,"url":"a"},{"tabId":"t3","active":true,"url":"b"}]' \
+  FAKE_AGENT_BROWSER_TABS_AFTER_CLOSE='[{"tabId":"t3","active":true,"url":"b"}]' run_ok get title
+assert_contains "tab close t1" "$FAKE_AGENT_BROWSER_LOG.internal"
+grep -Fxq "tab close t3" "$FAKE_AGENT_BROWSER_LOG.internal" && fail "the active tab was closed before the action"
+FAKE_AGENT_BROWSER_TABS="$two_tabs" FAKE_AGENT_BROWSER_TABS_AFTER_CLOSE="$two_tabs" \
+  run_failed_after "closed the browser" click @e1
+assert_contains close "$FAKE_AGENT_BROWSER_LOG.internal"
+FAKE_AGENT_BROWSER_TAB_LIST_FAILS=1 run_failed_after "closed the browser" click @e1
+assert_contains close "$FAKE_AGENT_BROWSER_LOG.internal"
+
+# expect-new admits exactly one new page peeked from the registered board.
+FAKE_AGENT_BROWSER_URL_BEFORE="$BOARD_URL" FAKE_AGENT_BROWSER_URL="$BOARD_URL&p=$OTHER&pm=s" \
+  FAKE_AGENT_BROWSER_URL_AFTER_BACK="$BOARD_URL" run_failed_after "went back" click @e1
+grep -Fxq "$OTHER" "$PAGES" && fail "a peek without expect-new was registered"
+reset_log
+"$LAUNCHER" expect-new > /dev/null || fail "expect-new was refused"
+[ ! -f "$FAKE_AGENT_BROWSER_LOG.internal" ] || fail "expect-new called agent-browser"
+FAKE_AGENT_BROWSER_URL_BEFORE="$BOARD_URL" FAKE_AGENT_BROWSER_URL="$BOARD_URL&p=$NEW&pm=s" run_ok click @e1
+assert_contains "$NEW" "$PAGES"
+FAKE_AGENT_BROWSER_URL_BEFORE="$BOARD_URL" FAKE_AGENT_BROWSER_URL="$BOARD_URL&p=$OTHER&pm=s" \
+  FAKE_AGENT_BROWSER_URL_AFTER_BACK="$BOARD_URL" run_failed_after "went back" click @e1
+"$LAUNCHER" expect-new > /dev/null
+FAKE_AGENT_BROWSER_URL_BEFORE="$TICKET_URL" FAKE_AGENT_BROWSER_URL="https://app.notion.com/p/team/$OTHER" \
+  FAKE_AGENT_BROWSER_URL_AFTER_BACK="$TICKET_URL" run_failed_after "went back" click @e1
+grep -Fxq "$OTHER" "$PAGES" && fail "expect-new registered a page outside the board"
 
 # The exit status of the browser call reaches the caller.
 for command in "get title" "click @e1"; do
@@ -287,16 +346,18 @@ if [ "${TICKET_BROWSER_REAL:-}" = 1 ]; then
   [ "$(unrestricted eval 1+1 2>&1 | tail -n 1)" = 2 ] || fail "control: eval did not run without the policy"
 
   # data: pages are refused by the launcher; they only exercise the policy here.
-  page='data:text/html,<input id=a><input id=c type=checkbox><select id=s><option>x</option></select><button id=b>Go</button><a id=n href="data:text/html,x" target="_blank">n</a>'
+  page='data:text/html,<label for=a>Name</label><input id=a placeholder=ph title=tt><input id=c type=checkbox><select id=s><option>x</option></select><button id=b>Go</button><a id=n href="data:text/html,x" target="_blank">n</a>'
   real open "$page" > /dev/null || fail "installed agent-browser denied: open"
   env -i PATH="$REAL_PATH" HOME="$REAL_HOME" agent-browser session list 2>&1 | grep -Fq "$session" || fail "config session key was ignored"
   for command in "fill #a x" "type #a y" "click #b" "press Tab" "hover #b" "focus #a" \
     "check #c" "uncheck #c" "select #s x" "find role button click --name Go" \
-    "find text Go text" "get text #b" "get value #a" "get attr #a id" "get title" "get url" \
+    "find text Go text" "find label Name fill z" "find placeholder ph fill w" \
+    "find title tt hover" "find nth 0 input click" \
+    "get text #b" "get value #a" "get attr #a id" "get title" "get url" \
     "get count input" "is visible #a" "is enabled #a" "is checked #c" "scroll down 10" \
-    "scrollintoview #b" "wait 10" "wait --load load" "snapshot -i -c -d 3 -s body" \
-    "screenshot $TEST_OUTPUT_DIR/shot.png" "--json get url" "click #n" "--json tab list" \
-    "--json tab close t2" reload "open data:text/html,<p>2</p>" back; do
+    "scrollintoview #b" "wait 10" "wait --load load" "wait --text Go" "wait --url data:**" \
+    "snapshot -i -c -d 3 -s body" "screenshot $TEST_OUTPUT_DIR/shot.png" "--json get url" \
+    "click #n" "--json tab list" "--json tab close t2" reload "open data:text/html,<p>2</p>" back; do
     # shellcheck disable=SC2086
     real $command > "$TEST_OUTPUT_DIR/real.out" 2>&1 \
       || fail "installed agent-browser denied: $command ($(tail -n 1 "$TEST_OUTPUT_DIR/real.out"))"

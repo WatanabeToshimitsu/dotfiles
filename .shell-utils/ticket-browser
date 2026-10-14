@@ -7,9 +7,11 @@ CONFIG_FILE="$ticket_browser_dir/ticket-browser.json"
 POLICY_FILE="$ticket_browser_dir/ticket-browser-policy.json"
 PROFILE_DIR="$HOME/.agent-browser/profiles/ticket"
 PAGES_FILE="$HOME/.claude/ticket/browser-pages"
+PENDING_FILE="$PAGES_FILE.expect-new"
 LOGIN_URL="https://app.notion.com/login"
 export LC_ALL=C
-NOTION_URL='^https://([a-z0-9-]+\.)*notion\.(com|so)(/[^[:space:]]*)?$'
+ID='[0-9a-f]{32}'
+NOTION_PAGE="^https://([a-z0-9-]+\\.)*notion\\.(com|so)/(p/)?([A-Za-z0-9_-]+/)?([A-Za-z0-9-]*-)?($ID)(\\?([A-Za-z0-9=&]*))?\$"
 
 reject() {
   printf 'ticket-browser: %s\n' "$*" >&2
@@ -21,34 +23,78 @@ version_ge() {
   [ "$(printf '%s\n%s\n' "$required" "$actual" | sort -V | head -n 1)" = "$required" ]
 }
 
-page_ids() {
-  printf '%s\n' "$1" | grep -Eo '[0-9a-f]{32}' || true
-}
-
-# A Notion URL is allowed when every page or view id in it is registered.
-registered() {
-  local url="$1" ids id
-  [[ $url =~ $NOTION_URL ]] || return 1
-  ids=$(page_ids "$url")
-  [ -n "$ids" ] || return 1
-  [ -f "$PAGES_FILE" ] || return 1
-  for id in $ids; do
-    grep -Fxq "$id" "$PAGES_FILE" || return 1
+# Prints "<page id> <view id or -> <peeked page id or ->".
+parse_page() {
+  local url="$1" id query pair view=- peek=-
+  local -a pairs=()
+  [[ $url =~ $NOTION_PAGE ]] || return 1
+  id="${BASH_REMATCH[6]}"
+  query="${BASH_REMATCH[8]}"
+  [ -z "$query" ] || IFS='&' read -r -a pairs <<< "$query"
+  for pair in ${pairs[@]+"${pairs[@]}"}; do
+    case "$pair" in
+      v=*) [ "$view" = - ] && [[ ${pair#v=} =~ ^$ID$ ]] || return 1; view="${pair#v=}" ;;
+      p=*) [ "$peek" = - ] && [[ ${pair#p=} =~ ^$ID$ ]] || return 1; peek="${pair#p=}" ;;
+      pvs=*) [[ ${pair#pvs=} =~ ^[0-9]+$ ]] || return 1 ;;
+      pm=*) [[ ${pair#pm=} =~ ^[a-z]+$ ]] || return 1 ;;
+      *) return 1 ;;
+    esac
   done
+  printf '%s %s %s\n' "$id" "$view" "$peek"
 }
 
-[ $# -gt 0 ] || reject "usage: ticket-browser <agent-browser command> [args] | ticket-browser allow <notion url>"
+# Entries are "<page id>" for pages and "<page id> <view id>" for board views.
+registered_entry() {
+  [ -f "$PAGES_FILE" ] && grep -Fxq "$1" "$PAGES_FILE"
+}
 
-if [ "$1" = allow ]; then
-  [ $# -eq 2 ] && [[ $2 =~ $NOTION_URL ]] || reject "allow takes one https Notion page URL"
-  ids=$(page_ids "$2")
-  [ -n "$ids" ] || reject "no page id in: $2"
+register() {
   mkdir -p "$(dirname "$PAGES_FILE")"
-  for id in $ids; do
-    grep -Fxqs "$id" "$PAGES_FILE" || printf '%s\n' "$id" >> "$PAGES_FILE"
-  done
-  exit 0
-fi
+  registered_entry "$1" || printf '%s\n' "$1" >> "$PAGES_FILE"
+}
+
+allowed_url() {
+  local url="$1" parsed id view peek
+  if [ "$url" = about:blank ] || [ "$url" = "$LOGIN_URL" ]; then
+    return 0
+  fi
+  parsed=$(parse_page "$url") || return 1
+  read -r id view peek <<< "$parsed"
+  if [ "$view" = - ]; then
+    registered_entry "$id" || return 1
+  else
+    registered_entry "$id $view" || return 1
+  fi
+  [ "$peek" = - ] || registered_entry "$peek"
+}
+
+# A page peeked from the registered board view and not yet registered.
+new_board_page() {
+  local parsed id view peek
+  parsed=$(parse_page "$1") || return 1
+  read -r id view peek <<< "$parsed"
+  [ "$view" != - ] && [ "$peek" != - ] && registered_entry "$id $view" && ! registered_entry "$peek" \
+    && printf '%s\n' "$peek"
+}
+
+[ $# -gt 0 ] || reject "usage: ticket-browser <agent-browser command> [args] | allow <notion url> | expect-new"
+
+case "$1" in
+  allow)
+    [ $# -eq 2 ] || reject "allow takes one Notion page URL"
+    parsed=$(parse_page "$2") || reject "not a Notion page URL: $2"
+    read -r id view peek <<< "$parsed"
+    [ "$peek" = - ] || reject "register the page itself, not a peek from a board: $2"
+    if [ "$view" = - ]; then register "$id"; else register "$id $view"; fi
+    exit 0
+    ;;
+  expect-new)
+    [ $# -eq 1 ] || reject "expect-new takes no arguments"
+    mkdir -p "$(dirname "$PENDING_FILE")"
+    : > "$PENDING_FILE"
+    exit 0
+    ;;
+esac
 
 command -v agent-browser > /dev/null 2>&1 || reject "agent-browser is not installed"
 command -v jq > /dev/null 2>&1 || reject "jq is required to validate the action policy"
@@ -80,7 +126,7 @@ done
 case "$1" in
   open)
     [ $# -eq 2 ] || reject "open takes one URL"
-    [ "$2" = "$LOGIN_URL" ] || registered "$2" \
+    allowed_url "$2" \
       || reject "not a registered Notion page; register it with 'ticket-browser allow <url>' only if it is the board view, a ticket you created, or a ticket the user named"
     ;;
   get)
@@ -102,7 +148,7 @@ case "$1" in
       *) reject "find ${2:-} is not allowed" ;;
     esac
     case "$action" in
-      click | text | fill | type | hover | focus | check | uncheck) ;;
+      click | text | fill | hover | check) ;;
       *) reject "find action is not allowed: $action" ;;
     esac
     ;;
@@ -122,50 +168,70 @@ current_url() {
   agent-browser --json get url 2> /dev/null | jq -r '.data.url // empty' 2> /dev/null || true
 }
 
-case "$1" in
-  open | close) ;;
-  get)
-    [ "${2:-}" = url ] || {
-      current=$(current_url)
-      [ "$current" = about:blank ] || [ "$current" = "$LOGIN_URL" ] || registered "$current" \
-        || reject "the current page is not a registered Notion page (${current:-unknown}); open one first"
-    }
-    ;;
-  *)
-    current=$(current_url)
-    [ "$current" = about:blank ] || [ "$current" = "$LOGIN_URL" ] || registered "$current" \
-      || reject "the current page is not a registered Notion page (${current:-unknown}); open one first"
-    ;;
-esac
+fail_closed() {
+  if agent-browser --json close > /dev/null 2>&1; then
+    reject "$1; closed the browser"
+  fi
+  reject "$1; closing the browser failed, close its window by hand"
+}
 
-case "$1" in
-  open | back | reload | find | click | press | select | check | uncheck) ;;
-  *) exec agent-browser "$@" ;;
-esac
+list_tabs() {
+  agent-browser --json tab list 2> /dev/null | jq -ec '.data.tabs | arrays' 2> /dev/null
+}
+
+# Closes every tab except $1 and succeeds only when $1 is the one left.
+keep_only_tab() {
+  local keep="$1" tabs tab
+  tabs=$(list_tabs) || return 1
+  for tab in $(jq -r --arg k "$keep" '.[] | select(.tabId != $k) | .tabId' <<< "$tabs"); do
+    agent-browser --json tab close "$tab" > /dev/null 2>&1 || true
+  done
+  tabs=$(list_tabs) || return 1
+  jq -e --arg k "$keep" 'length == 1 and .[0].tabId == $k' <<< "$tabs" > /dev/null
+}
+
+if [ "$1" = close ] || [ "$*" = "get url" ]; then
+  exec agent-browser "$@"
+fi
+if [ "$1" != open ]; then
+  current=$(current_url)
+  allowed_url "$current" \
+    || reject "the current page is not a registered Notion page (${current:-unknown}); open one first"
+fi
+
+tabs=$(list_tabs) || reject "could not read the tab list before the action"
+keep=$(jq -r '(map(select(.active)) + .)[0].tabId // empty' <<< "$tabs")
+[ -n "$keep" ] || reject "no browser tab to work in"
+if [ "$(jq length <<< "$tabs")" -gt 1 ]; then
+  keep_only_tab "$keep" || reject "could not close leftover tabs before the action"
+fi
+
+expecting_new=false
+if [ -f "$PENDING_FILE" ]; then
+  expecting_new=true
+  rm -f "$PENDING_FILE"
+fi
 
 status=0
 agent-browser "$@" || status=$?
 
-closed_tabs=""
-while IFS=$'\t' read -r tab url; do
-  [ -n "$tab" ] || continue
-  if [ "$url" != about:blank ] && ! [[ $url =~ $NOTION_URL ]]; then
-    agent-browser --json tab close "$tab" > /dev/null 2>&1 || true
-    closed_tabs="$closed_tabs $url"
-  fi
-done < <(agent-browser --json tab list 2> /dev/null \
-  | jq -r 'if (.data.tabs | length) > 1 then .data.tabs[] | [.tabId, .url] | @tsv else empty end' 2> /dev/null || true)
-[ -z "$closed_tabs" ] || reject "the action opened a new tab outside Notion and it was closed:$closed_tabs"
+tabs=$(list_tabs) || fail_closed "could not read the tab list after the action"
+if ! jq -e --arg k "$keep" 'length == 1 and .[0].tabId == $k' <<< "$tabs" > /dev/null; then
+  keep_only_tab "$keep" || fail_closed "a new tab could not be closed"
+  reject "the action opened a new tab; it was closed"
+fi
 
 current=$(current_url)
-[ -n "$current" ] || reject "could not read the page URL after the action; check the window"
-if [ "$current" != about:blank ] && ! [[ $current =~ $NOTION_URL ]]; then
+[ -n "$current" ] || fail_closed "could not read the page URL after the action"
+if ! allowed_url "$current"; then
+  if $expecting_new && new_page=$(new_board_page "$current"); then
+    register "$new_page"
+    exit "$status"
+  fi
   agent-browser --json back > /dev/null 2>&1 || true
   returned=$(current_url)
-  if [ "$returned" != about:blank ] && ! [[ $returned =~ $NOTION_URL ]]; then
-    agent-browser --json close > /dev/null 2>&1 || true
-    reject "the action left Notion ($current) and going back failed; closed the browser"
-  fi
-  reject "the action left Notion ($current); went back"
+  [ -n "$returned" ] && allowed_url "$returned" \
+    || fail_closed "the action reached an unregistered page ($current) and going back failed"
+  reject "the action reached an unregistered page ($current); went back"
 fi
 exit "$status"
