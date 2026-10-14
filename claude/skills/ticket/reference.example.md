@@ -12,7 +12,8 @@ from `symlink-manifest.sh`, because this repository is public.
   `cloudId`.
 - Fields the team template asks for, and nothing else: `<fields>`.
 - Description headings, and the heading pull request URLs go under:
-  `<headings>`.
+  `<headings>`. How a pull request is written there as a link:
+  `<link form, including how ids are numbered when there are several>`.
 - When a ticket gets a Jira issue: `<rule from the team template>`.
 - Search example:
 

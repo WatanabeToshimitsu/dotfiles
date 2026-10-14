@@ -48,9 +48,11 @@ together with the user instead of guessing values.
   the board's search box. Text starting with `-` and a letter or digit is
   refused as an option. To replace text, click it, press End, and
   Backspace over it first. `Home` and `End` move within one visual line,
-  so press ArrowUp first on wrapped blocks. A leading `- ` makes a bullet.
-  Do not type `@`, `[[`, or a leading `/` into Notion: they open page
-  search and block menus.
+  so press ArrowUp before Home and ArrowDown before End on wrapped blocks.
+  A leading `- ` makes a bullet. Type a space after a URL so Notion turns
+  it into a link; Markdown link syntax stays plain text. To delete the
+  current block, press Escape then Backspace. Do not type `@`, `[[`, or a
+  leading `/` into Notion: they open page search and block menus.
 - If a page shows a login screen, ask the user to log in in the
   `ticket-browser` window, then continue.
 - If the same browser step fails twice, stop and report.
@@ -117,13 +119,20 @@ Evidence workflow, after a pull request is created:
 1. Read `ticketUrl` for the pull request's head branch. If it is unset,
    ask once which ticket the pull request belongs to when the repository
    is listed as a team repository in reference.md; otherwise stop.
-2. Board: open only that ticket URL. Unless the pull request URL is
-   already in the evidence field, append it the way reference.md
-   describes, then read the field back to confirm it.
+2. Board: open only that ticket URL. Unless the evidence field already
+   has a link whose target is the pull request URL, append it on its own
+   line as reference.md describes, typing a space after the URL so Notion
+   turns it into a link. If the URL is there as plain text, instead of
+   appending, Backspace over it and retype it the same way, or delete the
+   block when the URL is all it holds. Read the field back and confirm one
+   link whose target is exactly the pull request URL.
 3. Jira: if `ticketJiraKey` is set, read the issue. Unless the pull
-   request URL is already under the pull request heading reference.md
-   names, append it, then read the description back to confirm it.
-4. Steps 2 and 3 are independent: run both even when one finds the URL
+   request is already under the pull request heading reference.md names
+   in the link form it gives, append it in that form, or rewrite a bare
+   URL into it. A text match cannot tell the two apart, because the link
+   form contains the URL. Read the description back and confirm the link
+   form, not a bare URL.
+4. Steps 2 and 3 are independent: run both even when one finds the link
    already there, so a rerun completes a half-finished append. Neither
    needs approval: the user asked for evidence to be automatic.
 5. If either side is unavailable, report which one, the ticket URL or
