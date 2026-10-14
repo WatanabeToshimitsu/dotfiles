@@ -149,7 +149,6 @@ Before editing a file, read every matching rule below, in the listed order. Patt
 - rules/typescript/documentation.md: `**/*.ts`, `**/*.tsx`
 - rules/typescript/hooks.md: `**/*.ts`, `**/*.tsx`, `**/*.js`, `**/*.jsx`
 - rules/typescript/patterns.md: `**/*.ts`, `**/*.tsx`, `**/*.js`, `**/*.jsx`
-- rules/typescript/security.md: `**/*.ts`, `**/*.tsx`, `**/*.js`, `**/*.jsx`
 - rules/typescript/testing.md: `**/*.ts`, `**/*.tsx`, `**/*.js`, `**/*.jsx`
 - rules/typescript/type-safety.md: `**/*.ts`, `**/*.tsx`
 - rules/web/security.md: `**/{app,pages,routes,controllers,views,handlers}/**`, `**/{schema,migrations}/**`, `**/*.{sql,tsx,vue,svelte}`
