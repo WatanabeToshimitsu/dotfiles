@@ -9,7 +9,7 @@ import sys
 
 
 LEGACY_PATTERN = re.compile(r"\bgit add (-A|--all|\.($|[ ;|&]))", re.MULTILINE)
-TICKET_STATE = re.compile(r"profiles/ticket\b|ticket-browser\.json|(^|[ =])(--session|AGENT_BROWSER_SESSION)[ =]ticket\b")
+TICKET_STATE = re.compile(r"profiles/ticket\b|ticket-browser\.json|(^|[ =])(--session|AGENT_BROWSER_SESSION)[ =][\"']?ticket\b")
 HOME = os.path.expanduser("~")
 TICKET_PROFILE = os.path.realpath(os.path.join(HOME, ".agent-browser", "profiles", "ticket"))
 AGENT_BROWSER = re.compile(r"^agent-browser(@[^/]*)?$")

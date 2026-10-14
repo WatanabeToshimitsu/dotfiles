@@ -162,6 +162,9 @@ class ValidateBashTests(unittest.TestCase):
                         "cd ~/.agent-browser/profiles; agent-browser --config ./x.json --profile ./ticket open https://example.com",
                         "export AGENT_BROWSER_PROFILE=~/.agent-browser/profiles/ticket; agent-browser get url",
                         "export AGENT_BROWSER_SESSION=ticket && agent-browser get url",
+                        'echo "$(date)" && agent-browser --session "ticket" get url',
+                        'cat <(echo x); agent-browser --session "ticket" get url',
+                        "f() { agent-browser --session='ticket' get url; }; f",
                         "export AGENT_BROWSER_CONFIG=$HOME/.shell-utils/ticket-browser.json\nnpx agent-browser get url"]:
             with self.subTest(command=command):
                 self.assertEqual(self.decision(command), "deny")
