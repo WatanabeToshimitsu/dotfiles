@@ -6,6 +6,8 @@ ticket_browser_dir="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="$ticket_browser_dir/ticket-browser.json"
 POLICY_FILE="$ticket_browser_dir/ticket-browser-policy.json"
 PROFILE_DIR="$HOME/.agent-browser/profiles/ticket"
+PAGES_FILE="$HOME/.claude/ticket/browser-pages"
+LOGIN_URL="https://app.notion.com/login"
 export LC_ALL=C
 NOTION_URL='^https://([a-z0-9-]+\.)*notion\.(com|so)(/[^[:space:]]*)?$'
 
@@ -19,6 +21,35 @@ version_ge() {
   [ "$(printf '%s\n%s\n' "$required" "$actual" | sort -V | head -n 1)" = "$required" ]
 }
 
+page_ids() {
+  printf '%s\n' "$1" | grep -Eo '[0-9a-f]{32}' || true
+}
+
+# A Notion URL is allowed when every page or view id in it is registered.
+registered() {
+  local url="$1" ids id
+  [[ $url =~ $NOTION_URL ]] || return 1
+  ids=$(page_ids "$url")
+  [ -n "$ids" ] || return 1
+  [ -f "$PAGES_FILE" ] || return 1
+  for id in $ids; do
+    grep -Fxq "$id" "$PAGES_FILE" || return 1
+  done
+}
+
+[ $# -gt 0 ] || reject "usage: ticket-browser <agent-browser command> [args] | ticket-browser allow <notion url>"
+
+if [ "$1" = allow ]; then
+  [ $# -eq 2 ] && [[ $2 =~ $NOTION_URL ]] || reject "allow takes one https Notion page URL"
+  ids=$(page_ids "$2")
+  [ -n "$ids" ] || reject "no page id in: $2"
+  mkdir -p "$(dirname "$PAGES_FILE")"
+  for id in $ids; do
+    grep -Fxqs "$id" "$PAGES_FILE" || printf '%s\n' "$id" >> "$PAGES_FILE"
+  done
+  exit 0
+fi
+
 command -v agent-browser > /dev/null 2>&1 || reject "agent-browser is not installed"
 command -v jq > /dev/null 2>&1 || reject "jq is required to validate the action policy"
 version=$(agent-browser --version 2> /dev/null | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1)
@@ -30,8 +61,6 @@ jq -e '.default == "deny"' "$POLICY_FILE" > /dev/null 2>&1 \
 jq -e 'type == "object"' "$CONFIG_FILE" > /dev/null 2>&1 \
   || reject "configuration is missing or invalid: $CONFIG_FILE"
 
-[ $# -gt 0 ] || reject "usage: ticket-browser <agent-browser command> [args]"
-
 case "$1" in
   snapshot) allowed_options=" -i -c -d -s " ;;
   find) allowed_options=" --name --exact " ;;
@@ -41,16 +70,18 @@ case "$1" in
 esac
 for argument in "${@:2}"; do
   case "$argument" in
-    -*) [[ $allowed_options == *" $argument "* ]] || reject "option is not allowed here: $argument" ;;
+    -[A-Za-z0-9]* | --*) [[ $allowed_options == *" ${argument%%=*} "* && $argument != *=* ]] || reject "option is not allowed here: $argument" ;;
   esac
 done
 
 # Why not --allowed-domains: on Notion pages agent-browser 0.39.1 fails to
 # reinstall its network controls after the first command
-# (vercel-labs/agent-browser#2031), so the launcher checks every URL instead.
+# (vercel-labs/agent-browser#2031), so the launcher checks every page instead.
 case "$1" in
   open)
-    [ $# -eq 2 ] && [[ $2 =~ $NOTION_URL ]] || reject "only https Notion pages may be opened"
+    [ $# -eq 2 ] || reject "open takes one URL"
+    [ "$2" = "$LOGIN_URL" ] || registered "$2" \
+      || reject "not a registered Notion page; register it with 'ticket-browser allow <url>' only if it is the board view, a ticket you created, or a ticket the user named"
     ;;
   get)
     case "${2:-}" in
@@ -60,14 +91,19 @@ case "$1" in
     ;;
   press)
     case "${2:-}" in
-      Enter | Escape | Tab | Backspace | ArrowUp | ArrowDown) ;;
-      *) reject "only plain Enter, Escape, Tab, Backspace, and arrow keys may be pressed" ;;
+      Enter | Escape | Tab | Backspace | Delete | Home | End | ArrowUp | ArrowDown | ArrowLeft | ArrowRight) ;;
+      *) reject "only plain editing and navigation keys may be pressed" ;;
     esac
     ;;
   find)
     case "${2:-}" in
-      role | text | label | placeholder | title | nth) ;;
+      role | text | label | placeholder | title) action="${4:-}" ;;
+      nth) action="${5:-}" ;;
       *) reject "find ${2:-} is not allowed" ;;
+    esac
+    case "$action" in
+      click | text | fill | type | hover | focus | check | uncheck) ;;
+      *) reject "find action is not allowed: $action" ;;
     esac
     ;;
   back | reload | snapshot | screenshot | is | click | fill | type | select | \
@@ -82,6 +118,26 @@ export AGENT_BROWSER_CONFIG="$CONFIG_FILE"
 export AGENT_BROWSER_ACTION_POLICY="$POLICY_FILE"
 export AGENT_BROWSER_PROFILE="$PROFILE_DIR"
 
+current_url() {
+  agent-browser --json get url 2> /dev/null | jq -r '.data.url // empty' 2> /dev/null || true
+}
+
+case "$1" in
+  open | close) ;;
+  get)
+    [ "${2:-}" = url ] || {
+      current=$(current_url)
+      [ "$current" = about:blank ] || [ "$current" = "$LOGIN_URL" ] || registered "$current" \
+        || reject "the current page is not a registered Notion page (${current:-unknown}); open one first"
+    }
+    ;;
+  *)
+    current=$(current_url)
+    [ "$current" = about:blank ] || [ "$current" = "$LOGIN_URL" ] || registered "$current" \
+      || reject "the current page is not a registered Notion page (${current:-unknown}); open one first"
+    ;;
+esac
+
 case "$1" in
   open | back | reload | find | click | press | select | check | uncheck) ;;
   *) exec agent-browser "$@" ;;
@@ -89,10 +145,27 @@ esac
 
 status=0
 agent-browser "$@" || status=$?
-current=$(agent-browser get url 2> /dev/null | tail -n 1) || true
+
+closed_tabs=""
+while IFS=$'\t' read -r tab url; do
+  [ -n "$tab" ] || continue
+  if [ "$url" != about:blank ] && ! [[ $url =~ $NOTION_URL ]]; then
+    agent-browser --json tab close "$tab" > /dev/null 2>&1 || true
+    closed_tabs="$closed_tabs $url"
+  fi
+done < <(agent-browser --json tab list 2> /dev/null \
+  | jq -r 'if (.data.tabs | length) > 1 then .data.tabs[] | [.tabId, .url] | @tsv else empty end' 2> /dev/null || true)
+[ -z "$closed_tabs" ] || reject "the action opened a new tab outside Notion and it was closed:$closed_tabs"
+
+current=$(current_url)
 [ -n "$current" ] || reject "could not read the page URL after the action; check the window"
 if [ "$current" != about:blank ] && ! [[ $current =~ $NOTION_URL ]]; then
-  agent-browser back > /dev/null 2>&1 || true
+  agent-browser --json back > /dev/null 2>&1 || true
+  returned=$(current_url)
+  if [ "$returned" != about:blank ] && ! [[ $returned =~ $NOTION_URL ]]; then
+    agent-browser --json close > /dev/null 2>&1 || true
+    reject "the action left Notion ($current) and going back failed; closed the browser"
+  fi
   reject "the action left Notion ($current); went back"
 fi
 exit "$status"

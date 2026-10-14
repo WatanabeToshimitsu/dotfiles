@@ -36,6 +36,8 @@
     "scrollintoview",
     "wait",
     "waitforurl",
-    "waitforloadstate"
+    "waitforloadstate",
+    "tab_list",
+    "tab_close"
   ]
 }
