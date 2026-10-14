@@ -49,7 +49,9 @@ together with the user instead of guessing values.
 ## Create workflow
 
 1. Search Jira for existing issues. On the board view, use the board's
-   own search with the task's keywords and read result titles only.
+   own search with the task's keywords and the Jira number, and keep only
+   result titles that contain the keyword; the search also matches page
+   bodies, so the raw result lists unrelated tickets.
 2. Present plausible candidates. Link to an existing ticket only on user
    confirmation — a false match is worse than a duplicate.
 3. Propose compactly (title, type, one-line scope, granularity) following
