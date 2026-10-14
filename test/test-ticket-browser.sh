@@ -243,6 +243,11 @@ FAKE_AGENT_BROWSER_URL_BEFORE="https://app.notion.com/p/team/$OTHER" FAKE_AGENT_
   run_failed_after "went back" get text @e1
 [ ! -f "$FAKE_AGENT_BROWSER_LOG" ] || fail "the command ran on an unregistered page"
 assert_contains back "$FAKE_AGENT_BROWSER_LOG.internal"
+FAKE_AGENT_BROWSER_URL_BEFORE="https://app.notion.com/p/team/$OTHER" \
+  FAKE_AGENT_BROWSER_URL_AFTER_BACK="https://app.notion.com/p/team/$OTHER" \
+  run_failed_after "closed the browser" get text @e1
+[ ! -f "$FAKE_AGENT_BROWSER_LOG" ] || fail "the command ran on an unregistered page"
+assert_contains close "$FAKE_AGENT_BROWSER_LOG.internal"
 FAKE_AGENT_BROWSER_URL_BEFORE="$TICKET_URL" FAKE_AGENT_BROWSER_URL="https://app.notion.com/p/team/$OTHER" \
   FAKE_AGENT_BROWSER_URL_AFTER_BACK="$TICKET_URL" run_failed_after "went forward" back
 assert_contains forward "$FAKE_AGENT_BROWSER_LOG.internal"
@@ -403,7 +408,7 @@ if [ "${TICKET_BROWSER_REAL:-}" = 1 ]; then
     "get count input" "is visible #a" "is enabled #a" "is checked #c" "scroll down 10" \
     "scrollintoview #b" "wait 10" "wait --load load" "wait --text Go" "wait --url data:**" \
     "snapshot -i -c -d 3 -s body" "screenshot $TEST_OUTPUT_DIR/shot.png" "--json get url" \
-    "click #n" "--json tab list" "--json tab close t2" reload "open data:text/html,<p>2</p>" back; do
+    "click #n" "--json tab list" "--json tab close t2" reload "open data:text/html,<p>2</p>" back forward; do
     # shellcheck disable=SC2086
     real $command > "$TEST_OUTPUT_DIR/real.out" 2>&1 \
       || fail "installed agent-browser denied: $command ($(tail -n 1 "$TEST_OUTPUT_DIR/real.out"))"
