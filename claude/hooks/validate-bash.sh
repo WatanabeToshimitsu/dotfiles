@@ -8,6 +8,7 @@ import sys
 
 
 LEGACY_PATTERN = re.compile(r"\bgit add (-A|--all|\.($|[ ;|&]))", re.MULTILINE)
+TICKET_STATE = re.compile(r"profiles/ticket\b|(^|[ =])(--session|AGENT_BROWSER_SESSION)[ =]ticket\b")
 
 
 sys.dont_write_bytecode = True
@@ -28,10 +29,15 @@ class Commands(ShellParser):
     def __init__(self, source):
         super().__init__(source)
         self.forbidden = False
+        self.ticket_state = False
         self.unknown = False
 
     def finish(self, arguments):
         if not arguments:
+            return
+        if any(Path(word).name == "agent-browser" for word in arguments) and \
+                TICKET_STATE.search(" ".join(arguments)):
+            self.ticket_state = True
             return
         if arguments[0] == "rtk":
             arguments = arguments[1:]
@@ -87,10 +93,16 @@ try:
 except (UnsupportedShell, RecursionError):
     commands.unknown = True
 
-if commands.forbidden or (commands.unknown and LEGACY_PATTERN.search(command)):
+reason = None
+if commands.ticket_state or (
+        commands.unknown and "agent-browser" in command and TICKET_STATE.search(command)):
+    reason = "Use ticket-browser for the ticket browser session and profile."
+elif commands.forbidden or (commands.unknown and LEGACY_PATTERN.search(command)):
+    reason = "Do not git-add all files. Specify the file name(s) to add."
+if reason:
     print(json.dumps({"hookSpecificOutput": {
         "hookEventName": "PreToolUse",
         "permissionDecision": "deny",
-        "permissionDecisionReason": "Do not git-add all files. Specify the file name(s) to add.",
+        "permissionDecisionReason": reason,
     }}))
 PY

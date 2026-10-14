@@ -124,6 +124,30 @@ class ValidateBashTests(unittest.TestCase):
                             self.assertEqual(result.stdout, "")
             self.assertFalse(list(cwd.rglob("__pycache__")))
 
+    def test_ticket_browser_state_is_reachable_only_through_its_launcher(self):
+        denied = [
+            "agent-browser --profile ~/.agent-browser/profiles/ticket open https://example.com",
+            "AGENT_BROWSER_PROFILE=$HOME/.agent-browser/profiles/ticket agent-browser get url",
+            "agent-browser --session ticket get url",
+            "agent-browser --session=ticket eval 1",
+            "env AGENT_BROWSER_SESSION=ticket /opt/homebrew/bin/agent-browser cookies get",
+            "ls; npx agent-browser --session ticket snapshot",
+            "agent-browser --session ticket get url | head",
+        ]
+        for command in denied:
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "deny")
+        allowed = [
+            "ticket-browser open https://app.notion.com/p/abc",
+            "~/.shell-utils/ticket-browser get url",
+            "agent-browser --session probe open https://example.com",
+            "agent-browser --session tickets get url",
+            "git commit -m 'never run agent-browser --session ticket directly'",
+        ]
+        for command in allowed:
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "allow")
+
     def test_explicit_paths_and_non_bash_input_are_preserved(self):
         for command in ["git add README.md", "git add ./src/main.ts", "git add -- -A"]:
             with self.subTest(command=command):
