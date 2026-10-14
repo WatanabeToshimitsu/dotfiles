@@ -28,20 +28,25 @@ together with the user instead of guessing values.
 - Run every browser command as `ticket-browser <agent-browser args>`.
   Never call `agent-browser` directly for this skill.
 - `ticket-browser` opens only registered pages, runs every other command
-  only on one, and after each command goes back from any unregistered
-  page. It cannot stop a page from loading; it undoes the visit. Register
-  with `ticket-browser allow <url>` only the board view URL from
-  reference.md or a ticket the user named. A ticket this skill creates is
-  registered by `ticket-browser expect-new` (create step 5). No workspace
-  search, sidebar, linked pages, or other views.
+  except `get url` and `close` only on one, and after each command goes
+  back from any unregistered page. It cannot stop a page from loading; it
+  undoes the visit. Register with `ticket-browser allow <url>` only the
+  board view URL from reference.md, a ticket the user named, or a
+  `ticketUrl` from branch configuration (the user recorded it). A ticket
+  this skill creates is registered by `ticket-browser expect-new` (create
+  step 5). No workspace search, sidebar, linked pages, or other views.
+- Before each command the launcher closes every tab but the one it works
+  in; do not keep other pages open in the ticket window.
 - Screenshots also capture the sidebar's recent pages; prefer
   `snapshot -s <selector>` and screenshot only to check layout.
 - On board views, locate the elements you need with `find role ...` or
   `find text ...` instead of snapshotting the whole view.
 - Press only plain editing and navigation keys: Enter, Escape, Tab,
   Backspace, Delete, Home, End, and the arrows.
-- Write Notion text with `click` then `type`: `fill` changes the screen
-  but Notion does not save it. To replace text, click it, press End, and
+- Write Notion page text with `click` then `type`: `fill` changes the
+  screen but Notion does not save it; keep `fill` for plain inputs such as
+  the board's search box. Text starting with `-` and a letter or digit is
+  refused as an option. To replace text, click it, press End, and
   Backspace over it first. `Home` and `End` move within one visual line,
   so press ArrowUp first on wrapped blocks. A leading `- ` makes a bullet.
   Do not type `@`, `[[`, or a leading `/` into Notion: they open page
@@ -78,9 +83,12 @@ together with the user instead of guessing values.
 5. Create the board page from the template reference.md names for this
    kind of work, or the default template. Picking a template creates the
    page at once, so run `ticket-browser expect-new` right before clicking
-   the template: it registers the one new page the click opens. Then read
-   the URL with `get url`, open the page by itself, set the title first,
-   and fill the properties and the template's sections. Title: `<Jira number>. <title>`
+   the template: it registers the one new page the click opens. If the
+   board opens new pages in full instead of as a peek, the launcher goes
+   back and names the URL; confirm it with the user, `allow` it, and
+   continue with that page instead of creating another. Then read the URL
+   with `get url`, open the page by itself, set the title first, and fill
+   the properties and the template's sections. Title: `<Jira number>. <title>`
    when a Jira issue exists (the digits of the issue key), otherwise
    `X. <title>`. When a Jira issue is added later, rewrite the `X.` prefix.
 6. If a step fails, report what already exists: the Jira issue key, the
