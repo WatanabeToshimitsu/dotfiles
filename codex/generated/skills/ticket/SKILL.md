@@ -7,10 +7,12 @@ description: Create work tickets on a team Jira project and a team Notion board,
 
 Tickets live in two places: a team Jira project and a team Notion board.
 Claude writes both directly. Jira goes through the `atlassian-http` MCP
-server. The Notion board goes only through `ticket-browser`, which opens
-the pages a task needs and nothing else. Never use a Notion connector for
-the team workspace: the team's concern is connectors bulk-reading every
-ticket on the board.
+server. The Notion board goes only through `ticket-browser`, which works
+only on the pages a task needs and undoes any other page it reaches. It
+cannot stop such a page from loading; the user accepted that until the
+browser's own domain limit works on Notion. Never use a Notion connector
+for the team workspace: the team's concern is connectors bulk-reading
+every ticket on the board.
 
 `reference.md` sits next to this file and is machine-local: gitignored and
 absent from the symlink manifest, because this repository is public. It
