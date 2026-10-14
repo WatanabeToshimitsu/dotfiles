@@ -135,10 +135,18 @@ class ValidateBashTests(unittest.TestCase):
             "agent-browser --session ticket get url | head",
             "AGENT_BROWSER_CONFIG=~/.shell-utils/ticket-browser.json agent-browser open https://example.com",
             "agent-browser --config ~/.shell-utils/ticket-browser.json get url",
+            "agent-browser --profile ~/.agent-browser/profiles/./ticket get url",
+            "agent-browser --profile $HOME//.agent-browser/profiles/ticket/ get url",
+            "agent-browser --profile=${HOME}/.agent-browser/x/../profiles/ticket get url",
+            "agent-browser --config ~/.shell-utils/../.shell-utils/./ticket-browser.json get url",
         ]
-        for command in denied:
-            with self.subTest(command=command):
-                self.assertEqual(self.decision(command), "deny")
+        with tempfile.TemporaryDirectory() as directory:
+            link = Path(directory) / "elsewhere"
+            link.symlink_to(Path.home() / ".agent-browser" / "profiles" / "ticket")
+            denied.append(f"agent-browser --profile {link} get url")
+            for command in denied:
+                with self.subTest(command=command):
+                    self.assertEqual(self.decision(command), "deny")
         allowed = [
             "ticket-browser open https://app.notion.com/p/abc",
             "~/.shell-utils/ticket-browser get url",

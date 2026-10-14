@@ -2,6 +2,7 @@
 # Keep stdin for the hook payload; never evaluate the supplied shell command.
 exec python3 /dev/fd/3 "${BASH_SOURCE[0]}" 3<<'PY'
 import json
+import os
 from pathlib import Path
 import re
 import sys
@@ -9,6 +10,20 @@ import sys
 
 LEGACY_PATTERN = re.compile(r"\bgit add (-A|--all|\.($|[ ;|&]))", re.MULTILINE)
 TICKET_STATE = re.compile(r"profiles/ticket\b|ticket-browser\.json|(^|[ =])(--session|AGENT_BROWSER_SESSION)[ =]ticket\b")
+HOME = os.path.expanduser("~")
+TICKET_PROFILE = os.path.realpath(os.path.join(HOME, ".agent-browser", "profiles", "ticket"))
+
+
+def names_ticket_path(word):
+    for value in (word, word.split("=", 1)[-1]):
+        value = re.sub(r"^~(?=/|$)|\$\{HOME\}|\$HOME\b", lambda _: HOME, value)
+        if "/" not in value:
+            continue
+        resolved = os.path.realpath(os.path.normpath(value))
+        if resolved == TICKET_PROFILE or resolved.startswith(TICKET_PROFILE + os.sep) or \
+                os.path.basename(resolved) == "ticket-browser.json":
+            return True
+    return False
 
 
 sys.dont_write_bytecode = True
@@ -35,8 +50,9 @@ class Commands(ShellParser):
     def finish(self, arguments):
         if not arguments:
             return
-        if any(Path(word).name == "agent-browser" for word in arguments) and \
-                TICKET_STATE.search(" ".join(arguments)):
+        if any(Path(word).name == "agent-browser" for word in arguments) and (
+                TICKET_STATE.search(" ".join(arguments)) or
+                any(names_ticket_path(word) for word in arguments)):
             self.ticket_state = True
             return
         if arguments[0] == "rtk":
