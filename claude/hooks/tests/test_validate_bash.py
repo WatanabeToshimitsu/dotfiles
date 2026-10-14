@@ -12,10 +12,13 @@ HOOK = Path(__file__).resolve().parents[1] / "validate-bash.sh"
 
 
 class ValidateBashTests(unittest.TestCase):
-    def decision(self, command):
+    def decision(self, command, cwd=None):
+        payload = {"tool_name": "Bash", "tool_input": {"command": command}}
+        if cwd:
+            payload["cwd"] = cwd
         result = subprocess.run(
             ["bash", str(HOOK)],
-            input=json.dumps({"tool_name": "Bash", "tool_input": {"command": command}}),
+            input=json.dumps(payload),
             text=True,
             capture_output=True,
             timeout=5,
@@ -139,6 +142,8 @@ class ValidateBashTests(unittest.TestCase):
             "agent-browser --profile $HOME//.agent-browser/profiles/ticket/ get url",
             "agent-browser --profile=${HOME}/.agent-browser/x/../profiles/ticket get url",
             "agent-browser --config ~/.shell-utils/../.shell-utils/./ticket-browser.json get url",
+            "npx agent-browser@0.39.1 --session ticket eval 1",
+            "pnpm dlx agent-browser@latest --profile ~/.agent-browser/profiles/ticket get url",
         ]
         with tempfile.TemporaryDirectory() as directory:
             link = Path(directory) / "elsewhere"
@@ -147,6 +152,16 @@ class ValidateBashTests(unittest.TestCase):
             for command in denied:
                 with self.subTest(command=command):
                     self.assertEqual(self.decision(command), "deny")
+        profiles = str(Path.home() / ".agent-browser" / "profiles")
+        for command in ["agent-browser --profile ticket get url",
+                        "agent-browser --profile=./ticket get url",
+                        "AGENT_BROWSER_PROFILE=ticket agent-browser get url"]:
+            with self.subTest(command=command, cwd=profiles):
+                self.assertEqual(self.decision(command, cwd=profiles), "deny")
+        with tempfile.TemporaryDirectory() as directory:
+            with self.subTest(command="relative profile elsewhere"):
+                self.assertEqual(
+                    self.decision("agent-browser --profile ticket get url", cwd=directory), "allow")
         allowed = [
             "ticket-browser open https://app.notion.com/p/abc",
             "~/.shell-utils/ticket-browser get url",

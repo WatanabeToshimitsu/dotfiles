@@ -12,14 +12,17 @@ LEGACY_PATTERN = re.compile(r"\bgit add (-A|--all|\.($|[ ;|&]))", re.MULTILINE)
 TICKET_STATE = re.compile(r"profiles/ticket\b|ticket-browser\.json|(^|[ =])(--session|AGENT_BROWSER_SESSION)[ =]ticket\b")
 HOME = os.path.expanduser("~")
 TICKET_PROFILE = os.path.realpath(os.path.join(HOME, ".agent-browser", "profiles", "ticket"))
+AGENT_BROWSER = re.compile(r"^agent-browser(@[^/]*)?$")
+PATH_OPTIONS = {"--profile", "--config", "AGENT_BROWSER_PROFILE", "AGENT_BROWSER_CONFIG"}
+working_directory = os.getcwd()
 
 
-def names_ticket_path(word):
+def names_ticket_path(word, bare=False):
     for value in (word, word.split("=", 1)[-1]):
         value = re.sub(r"^~(?=/|$)|\$\{HOME\}|\$HOME\b", lambda _: HOME, value)
-        if "/" not in value:
+        if not value or ("/" not in value and not bare):
             continue
-        resolved = os.path.realpath(os.path.normpath(value))
+        resolved = os.path.realpath(os.path.join(working_directory, os.path.normpath(value)))
         if resolved == TICKET_PROFILE or resolved.startswith(TICKET_PROFILE + os.sep) or \
                 os.path.basename(resolved) == "ticket-browser.json":
             return True
@@ -50,9 +53,13 @@ class Commands(ShellParser):
     def finish(self, arguments):
         if not arguments:
             return
-        if any(Path(word).name == "agent-browser" for word in arguments) and (
+        bare = [value for option, value in zip(arguments, arguments[1:]) if option in PATH_OPTIONS]
+        bare += [word.split("=", 1)[1] for word in arguments
+                 if "=" in word and word.split("=", 1)[0] in PATH_OPTIONS]
+        if any(AGENT_BROWSER.match(Path(word).name) for word in arguments) and (
                 TICKET_STATE.search(" ".join(arguments)) or
-                any(names_ticket_path(word) for word in arguments)):
+                any(names_ticket_path(word) for word in arguments) or
+                any(names_ticket_path(value, bare=True) for value in bare)):
             self.ticket_state = True
             return
         if arguments[0] == "rtk":
@@ -98,6 +105,8 @@ try:
     if payload.get("tool_name") != "Bash":
         sys.exit(0)
     command = payload.get("tool_input", {}).get("command", "")
+    if isinstance(payload.get("cwd"), str) and os.path.isabs(payload["cwd"]):
+        working_directory = payload["cwd"]
     if not isinstance(command, str):
         sys.exit(0)
 except (ValueError, AttributeError):
