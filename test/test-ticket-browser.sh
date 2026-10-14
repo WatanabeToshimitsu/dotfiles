@@ -51,6 +51,7 @@ if [ "${1:-}" = "--json" ]; then
         [ -z "${FAKE_AGENT_BROWSER_TAB_LIST_FAILS:-}" ] || exit 1
         tabs="${FAKE_AGENT_BROWSER_TABS:-$one_tab}"
       else
+        [ -z "${FAKE_AGENT_BROWSER_TAB_LIST_FAILS_BEFORE:-}" ] || exit 1
         tabs="${FAKE_AGENT_BROWSER_TABS_BEFORE:-$one_tab}"
       fi
       [ -f "$log.tab-closed" ] && tabs="${FAKE_AGENT_BROWSER_TABS_AFTER_CLOSE:-$one_tab}"
@@ -58,6 +59,7 @@ if [ "${1:-}" = "--json" ]; then
       ;;
     "tab close"*) touch "$log.tab-closed"; printf '{"success":true}\n' ;;
     back) touch "$log.back"; printf '{"success":true}\n' ;;
+    close) [ -z "${FAKE_AGENT_BROWSER_CLOSE_FAILS:-}" ] || exit 1; printf '{"success":true}\n' ;;
     *) printf '{"success":true}\n' ;;
   esac
   exit 0
@@ -131,7 +133,10 @@ AGENT_BROWSER_ALLOWED_DOMAINS=evil.example AGENT_BROWSER_CDP=9222 \
 assert_contains "AGENT_BROWSER_CONFIG=$CONFIG" "$FAKE_AGENT_BROWSER_LOG"
 assert_contains "AGENT_BROWSER_ACTION_POLICY=$POLICY" "$FAKE_AGENT_BROWSER_LOG"
 assert_contains "AGENT_BROWSER_PROFILE=$HOME/.agent-browser/profiles/ticket" "$FAKE_AGENT_BROWSER_LOG"
-[ "$(grep -c '^AGENT_BROWSER_' "$FAKE_AGENT_BROWSER_LOG")" = 3 ] \
+assert_contains "AGENT_BROWSER_DOWNLOAD_PATH=$HOME/.agent-browser/profiles/ticket-downloads" "$FAKE_AGENT_BROWSER_LOG"
+[ -d "$HOME/.agent-browser/profiles/ticket-downloads" ] && [ ! -w "$HOME/.agent-browser/profiles/ticket-downloads" ] \
+  || fail "the download directory is missing or writable"
+[ "$(grep -c '^AGENT_BROWSER_' "$FAKE_AGENT_BROWSER_LOG")" = 4 ] \
   || fail "caller AGENT_BROWSER_* variables leaked through"
 assert_contains "ARG=open" "$FAKE_AGENT_BROWSER_LOG"
 assert_contains "ARG=$TICKET_URL" "$FAKE_AGENT_BROWSER_LOG"
@@ -267,6 +272,17 @@ FAKE_AGENT_BROWSER_TABS="$two_tabs" FAKE_AGENT_BROWSER_TABS_AFTER_CLOSE="$two_ta
 assert_contains close "$FAKE_AGENT_BROWSER_LOG.internal"
 FAKE_AGENT_BROWSER_TAB_LIST_FAILS=1 run_failed_after "closed the browser" click @e1
 assert_contains close "$FAKE_AGENT_BROWSER_LOG.internal"
+FAKE_AGENT_BROWSER_TABS="$two_tabs" FAKE_AGENT_BROWSER_URL_BEFORE="$TICKET_URL" \
+  FAKE_AGENT_BROWSER_URL="https://app.notion.com/p/team/$OTHER" FAKE_AGENT_BROWSER_URL_AFTER_BACK="$TICKET_URL" \
+  run_failed_after "went back" click @e1
+grep -Fq "new tab" "$TEST_OUTPUT_DIR/err" || fail "a closed new tab was not reported with the return"
+FAKE_AGENT_BROWSER_TAB_LIST_FAILS_BEFORE=1 run_failed_after "closed the browser" click @e1
+[ ! -f "$FAKE_AGENT_BROWSER_LOG" ] || fail "the action ran without a readable tab list"
+FAKE_AGENT_BROWSER_TABS_BEFORE="$two_tabs" FAKE_AGENT_BROWSER_TABS_AFTER_CLOSE="$two_tabs" \
+  run_failed_after "closed the browser" click @e1
+[ ! -f "$FAKE_AGENT_BROWSER_LOG" ] || fail "the action ran with leftover tabs"
+FAKE_AGENT_BROWSER_TAB_LIST_FAILS=1 FAKE_AGENT_BROWSER_CLOSE_FAILS=1 \
+  run_failed_after "closing the browser failed" click @e1
 
 # expect-new admits exactly one new page peeked from the registered board.
 FAKE_AGENT_BROWSER_URL_BEFORE="$BOARD_URL" FAKE_AGENT_BROWSER_URL="$BOARD_URL&p=$OTHER&pm=s" \
@@ -283,6 +299,18 @@ FAKE_AGENT_BROWSER_URL_BEFORE="$BOARD_URL" FAKE_AGENT_BROWSER_URL="$BOARD_URL&p=
 FAKE_AGENT_BROWSER_URL_BEFORE="$TICKET_URL" FAKE_AGENT_BROWSER_URL="https://app.notion.com/p/team/$OTHER" \
   FAKE_AGENT_BROWSER_URL_AFTER_BACK="$TICKET_URL" run_failed_after "went back" click @e1
 grep -Fxq "$OTHER" "$PAGES" && fail "expect-new registered a page outside the board"
+"$LAUNCHER" expect-new > /dev/null
+FAKE_AGENT_BROWSER_URL_BEFORE="$TICKET_URL" FAKE_AGENT_BROWSER_URL="$BOARD_URL&p=$OTHER&pm=s" \
+  FAKE_AGENT_BROWSER_URL_AFTER_BACK="$TICKET_URL" run_failed_after "went back" click @e1
+grep -Fxq "$OTHER" "$PAGES" && fail "expect-new registered a page not reached from the board"
+for between in "get url" close "eval 1" "open https://example.com/"; do
+  "$LAUNCHER" expect-new > /dev/null
+  # shellcheck disable=SC2086
+  "$LAUNCHER" $between > /dev/null 2>&1 || true
+  FAKE_AGENT_BROWSER_URL_BEFORE="$BOARD_URL" FAKE_AGENT_BROWSER_URL="$BOARD_URL&p=$OTHER&pm=s" \
+    FAKE_AGENT_BROWSER_URL_AFTER_BACK="$BOARD_URL" run_failed_after "went back" click @e1
+  grep -Fxq "$OTHER" "$PAGES" && fail "expect-new outlived: $between"
+done
 
 # The exit status of the browser call reaches the caller.
 for command in "get title" "click @e1"; do
@@ -352,7 +380,7 @@ if [ "${TICKET_BROWSER_REAL:-}" = 1 ]; then
   for command in "fill #a x" "type #a y" "click #b" "press Tab" "hover #b" "focus #a" \
     "check #c" "uncheck #c" "select #s x" "find role button click --name Go" \
     "find text Go text" "find label Name fill z" "find placeholder ph fill w" \
-    "find title tt hover" "find nth 0 input click" \
+    "find title tt hover" "find nth 0 input click" "find role checkbox check" \
     "get text #b" "get value #a" "get attr #a id" "get title" "get url" \
     "get count input" "is visible #a" "is enabled #a" "is checked #c" "scroll down 10" \
     "scrollintoview #b" "wait 10" "wait --load load" "wait --text Go" "wait --url data:**" \
@@ -362,6 +390,32 @@ if [ "${TICKET_BROWSER_REAL:-}" = 1 ]; then
     real $command > "$TEST_OUTPUT_DIR/real.out" 2>&1 \
       || fail "installed agent-browser denied: $command ($(tail -n 1 "$TEST_OUTPUT_DIR/real.out"))"
   done
+  # A click on a download link saves nothing when the download directory is read-only.
+  blocked="$TEST_OUTPUT_DIR/blocked-downloads"
+  mkdir -p "$blocked" && chmod 500 "$blocked"
+  probe="tb-download-probe-$$.txt"
+  touch "$TEST_OUTPUT_DIR/download-marker"
+  download_into() {
+    local directory="$1"
+    downloading() {
+      env -i PATH="$REAL_PATH" HOME="$REAL_HOME" AGENT_BROWSER_CONFIG="$TEST_OUTPUT_DIR/real-config.json" \
+        AGENT_BROWSER_ACTION_POLICY="$POLICY" AGENT_BROWSER_DOWNLOAD_PATH="$directory" \
+        AGENT_BROWSER_SESSION="$session-dl" agent-browser "$@"
+    }
+    downloading open "data:text/html,<a id=d href='data:text/plain,x' download=$probe>d</a>" > /dev/null
+    downloading click '#d' > /dev/null || fail "the download link could not be clicked"
+    downloading wait 2000 > /dev/null
+    downloading close > /dev/null
+  }
+  mkdir -p "$TEST_OUTPUT_DIR/writable-downloads"
+  download_into "$TEST_OUTPUT_DIR/writable-downloads"
+  [ -n "$(find "$TEST_OUTPUT_DIR/writable-downloads" -name "$probe*")" ] \
+    || fail "control: the download link saved nothing into a writable directory"
+  download_into "$blocked"
+  [ -z "$(find "$blocked" "$REAL_HOME/Downloads" -name "$probe*" -newer "$TEST_OUTPUT_DIR/download-marker" 2> /dev/null)" ] \
+    || fail "a click-triggered download was saved"
+  chmod 700 "$blocked"
+
   for command in "eval 1" "cookies get" "storage local" "state save $TEST_OUTPUT_DIR/s.json" \
     "network requests" "get cdp-url" "tab new" "find alt x click"; do
     # shellcheck disable=SC2086

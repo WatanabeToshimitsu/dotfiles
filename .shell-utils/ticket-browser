@@ -6,6 +6,7 @@ ticket_browser_dir="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="$ticket_browser_dir/ticket-browser.json"
 POLICY_FILE="$ticket_browser_dir/ticket-browser-policy.json"
 PROFILE_DIR="$HOME/.agent-browser/profiles/ticket"
+DOWNLOAD_DIR="$HOME/.agent-browser/profiles/ticket-downloads"
 PAGES_FILE="$HOME/.claude/ticket/browser-pages"
 PENDING_FILE="$PAGES_FILE.expect-new"
 LOGIN_URL="https://app.notion.com/login"
@@ -68,12 +69,15 @@ allowed_url() {
   [ "$peek" = - ] || registered_entry "$peek"
 }
 
-# A page peeked from the registered board view and not yet registered.
+# Prints the new page peeked in $1 when $2 was the registered board view itself.
 new_board_page() {
-  local parsed id view peek
+  local parsed id view peek before_id before_view before_peek
+  parsed=$(parse_page "$2") || return 1
+  read -r before_id before_view before_peek <<< "$parsed"
+  [ "$before_view" != - ] && [ "$before_peek" = - ] && registered_entry "$before_id $before_view" || return 1
   parsed=$(parse_page "$1") || return 1
   read -r id view peek <<< "$parsed"
-  [ "$view" != - ] && [ "$peek" != - ] && registered_entry "$id $view" && ! registered_entry "$peek" \
+  [ "$id" = "$before_id" ] && [ "$view" = "$before_view" ] && [ "$peek" != - ] && ! registered_entry "$peek" \
     && printf '%s\n' "$peek"
 }
 
@@ -95,6 +99,12 @@ case "$1" in
     exit 0
     ;;
 esac
+
+expecting_new=false
+if [ -f "$PENDING_FILE" ]; then
+  expecting_new=true
+  rm -f "$PENDING_FILE"
+fi
 
 command -v agent-browser > /dev/null 2>&1 || reject "agent-browser is not installed"
 command -v jq > /dev/null 2>&1 || reject "jq is required to validate the action policy"
@@ -163,6 +173,12 @@ done < <(compgen -e | grep '^AGENT_BROWSER_' || true)
 export AGENT_BROWSER_CONFIG="$CONFIG_FILE"
 export AGENT_BROWSER_ACTION_POLICY="$POLICY_FILE"
 export AGENT_BROWSER_PROFILE="$PROFILE_DIR"
+# Why not a deny setting: agent-browser has none, and a click on a download
+# link saves files; a read-only directory makes Chrome fail those downloads.
+mkdir -p "$DOWNLOAD_DIR"
+chmod 500 "$DOWNLOAD_DIR"
+[ ! -w "$DOWNLOAD_DIR" ] || reject "the download directory must not be writable: $DOWNLOAD_DIR"
+export AGENT_BROWSER_DOWNLOAD_PATH="$DOWNLOAD_DIR"
 
 current_url() {
   agent-browser --json get url 2> /dev/null | jq -r '.data.url // empty' 2> /dev/null || true
@@ -193,45 +209,42 @@ keep_only_tab() {
 if [ "$1" = close ] || [ "$*" = "get url" ]; then
   exec agent-browser "$@"
 fi
+before=""
 if [ "$1" != open ]; then
-  current=$(current_url)
-  allowed_url "$current" \
-    || reject "the current page is not a registered Notion page (${current:-unknown}); open one first"
+  before=$(current_url)
+  allowed_url "$before" \
+    || reject "the current page is not a registered Notion page (${before:-unknown}); open one first"
 fi
 
-tabs=$(list_tabs) || reject "could not read the tab list before the action"
+tabs=$(list_tabs) || fail_closed "could not read the tab list before the action"
 keep=$(jq -r '(map(select(.active)) + .)[0].tabId // empty' <<< "$tabs")
-[ -n "$keep" ] || reject "no browser tab to work in"
+[ -n "$keep" ] || fail_closed "no browser tab to work in"
 if [ "$(jq length <<< "$tabs")" -gt 1 ]; then
-  keep_only_tab "$keep" || reject "could not close leftover tabs before the action"
-fi
-
-expecting_new=false
-if [ -f "$PENDING_FILE" ]; then
-  expecting_new=true
-  rm -f "$PENDING_FILE"
+  keep_only_tab "$keep" || fail_closed "could not close leftover tabs before the action"
 fi
 
 status=0
 agent-browser "$@" || status=$?
 
+tab_note=""
 tabs=$(list_tabs) || fail_closed "could not read the tab list after the action"
 if ! jq -e --arg k "$keep" 'length == 1 and .[0].tabId == $k' <<< "$tabs" > /dev/null; then
   keep_only_tab "$keep" || fail_closed "a new tab could not be closed"
-  reject "the action opened a new tab; it was closed"
+  tab_note="the action opened a new tab; it was closed"
 fi
 
 current=$(current_url)
-[ -n "$current" ] || fail_closed "could not read the page URL after the action"
+[ -n "$current" ] || fail_closed "could not read the page URL after the action${tab_note:+; $tab_note}"
 if ! allowed_url "$current"; then
-  if $expecting_new && new_page=$(new_board_page "$current"); then
+  if $expecting_new && [ -z "$tab_note" ] && new_page=$(new_board_page "$current" "$before"); then
     register "$new_page"
     exit "$status"
   fi
   agent-browser --json back > /dev/null 2>&1 || true
   returned=$(current_url)
   [ -n "$returned" ] && allowed_url "$returned" \
-    || fail_closed "the action reached an unregistered page ($current) and going back failed"
-  reject "the action reached an unregistered page ($current); went back"
+    || fail_closed "the action reached an unregistered page ($current) and going back failed${tab_note:+; $tab_note}"
+  reject "the action reached an unregistered page ($current); went back${tab_note:+; $tab_note}"
 fi
+[ -z "$tab_note" ] || reject "$tab_note"
 exit "$status"
