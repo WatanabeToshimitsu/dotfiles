@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+MINIMUM_VERSION="0.39.1"
+ticket_browser_dir="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="$ticket_browser_dir/ticket-browser.json"
+POLICY_FILE="$ticket_browser_dir/ticket-browser-policy.json"
+PROFILE_DIR="$HOME/.agent-browser/profiles/ticket"
+NOTION_URL='^https://([a-z0-9-]+\.)*notion\.(com|so)(/[^[:space:]]*)?$'
+
+reject() {
+  printf 'ticket-browser: %s\n' "$*" >&2
+  exit 2
+}
+
+version_ge() {
+  local actual="$1" required="$2"
+  [ "$(printf '%s\n%s\n' "$required" "$actual" | sort -V | head -n 1)" = "$required" ]
+}
+
+command -v agent-browser > /dev/null 2>&1 || reject "agent-browser is not installed"
+command -v jq > /dev/null 2>&1 || reject "jq is required to validate the action policy"
+version=$(agent-browser --version 2> /dev/null | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1)
+[ -n "$version" ] || reject "agent-browser version could not be parsed"
+version_ge "$version" "$MINIMUM_VERSION" \
+  || reject "agent-browser $version is too old; $MINIMUM_VERSION or later is required"
+jq -e '.default == "deny"' "$POLICY_FILE" > /dev/null 2>&1 \
+  || reject "action policy is missing or does not deny by default: $POLICY_FILE"
+jq -e 'type == "object"' "$CONFIG_FILE" > /dev/null 2>&1 \
+  || reject "configuration is missing or invalid: $CONFIG_FILE"
+
+[ $# -gt 0 ] || reject "usage: ticket-browser <agent-browser command> [args]"
+
+for argument in "$@"; do
+  case "$argument" in
+    -i | -c | -d | -s | --name | --exact | --load | --url | --text | --full) ;;
+    -*) reject "option is not allowed: $argument" ;;
+  esac
+done
+
+# Why not --allowed-domains: on Notion pages agent-browser 0.39.1 fails to
+# reinstall its network controls after the first command
+# (vercel-labs/agent-browser#2031), so the launcher checks every URL instead.
+case "$1" in
+  open)
+    [ $# -eq 2 ] && [[ $2 =~ $NOTION_URL ]] || reject "only https Notion pages may be opened"
+    ;;
+  get)
+    case "${2:-}" in
+      text | title | url | count | value | attr) ;;
+      *) reject "get ${2:-} is not allowed" ;;
+    esac
+    ;;
+  press)
+    case "${2:-}" in
+      Enter | Escape | Tab | Backspace | ArrowUp | ArrowDown) ;;
+      *) reject "only plain Enter, Escape, Tab, Backspace, and arrow keys may be pressed" ;;
+    esac
+    ;;
+  back | reload | snapshot | screenshot | is | find | click | fill | type | select | \
+    check | uncheck | hover | focus | scroll | scrollintoview | wait | close) ;;
+  *) reject "command is not allowed: $1" ;;
+esac
+
+while IFS= read -r name; do
+  unset "$name"
+done < <(compgen -e | grep '^AGENT_BROWSER_' || true)
+export AGENT_BROWSER_CONFIG="$CONFIG_FILE"
+export AGENT_BROWSER_ACTION_POLICY="$POLICY_FILE"
+export AGENT_BROWSER_PROFILE="$PROFILE_DIR"
+exec agent-browser "$@"

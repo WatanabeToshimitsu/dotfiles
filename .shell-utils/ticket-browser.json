@@ -1,0 +1,7 @@
+{
+  "session": "ticket",
+  "headed": true,
+  "contentBoundaries": true,
+  "maxOutput": 6000,
+  "idleTimeout": "8h"
+}
