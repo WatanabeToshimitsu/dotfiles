@@ -85,7 +85,6 @@ MANIFEST_CLAUDE_FILES=(
   rules/typescript/documentation.md
   rules/typescript/hooks.md
   rules/typescript/patterns.md
-  rules/typescript/security.md
   rules/typescript/testing.md
   rules/typescript/type-safety.md
   rules/web/security.md
@@ -103,6 +102,7 @@ MANIFEST_CLAUDE_OBSOLETE_FILES=(
   rules/common/git-workflow.md
   rules/common/patterns.md
   rules/common/performance.md
+  rules/typescript/security.md
 )
 
 # Codex has dynamic skill ownership and an AGENTS.md managed block. The installer
