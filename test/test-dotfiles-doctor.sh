@@ -297,6 +297,38 @@ check_memory_promotion > "$absent_output"
 [ "$WARNINGS" -eq 0 ] || fail "absent memory directory produced $WARNINGS warning(s), expected 0"
 assert_contains "no agent memory directory for this repository" "$absent_output"
 
+DRIFT_HOME="$TEST_OUTPUT_DIR/drift-home"
+mkdir -p "$DRIFT_HOME/.agents/skills/local" "$DRIFT_HOME/.claude/skills/local"
+printf 'Local skill fixture\n' > "$DRIFT_HOME/.agents/skills/local/SKILL.md"
+printf 'Local skill fixture\n' > "$DRIFT_HOME/.claude/skills/local/SKILL.md"
+for state in clean broken; do
+  expected_exit=0
+  if [ "$state" = broken ]; then
+    ln -s missing "$DRIFT_HOME/.agents/skills/broken"
+    ln -s missing "$DRIFT_HOME/.claude/skills/broken"
+    expected_exit=1
+  fi
+  drift_before=$(find "$DRIFT_HOME" -print -type f -exec cksum {} \;)
+  fixture_exit=0
+  env -i HOME="$DRIFT_HOME" PATH=/usr/bin:/bin /bin/bash -c '
+    source "$1"
+    git() { :; }
+    check_brew_drift() { :; }
+    check_memory_promotion() { :; }
+    check_local_drift
+    finish
+  ' bash "$REPO_DIR/.shell-utils/dotfiles-doctor.sh" \
+    > "$TEST_OUTPUT_DIR/drift-$state" 2>&1 || fixture_exit=$?
+  [ "$fixture_exit" -eq "$expected_exit" ] \
+    || fail "drift-$state returned $fixture_exit, expected $expected_exit"
+  [ "$drift_before" = "$(find "$DRIFT_HOME" -print -type f -exec cksum {} \;)" ] \
+    || fail "drift-$state changed the fixture HOME"
+done
+assert_contains 'all clear within the checked scope' "$TEST_OUTPUT_DIR/drift-clean"
+assert_contains 'doctor: 2 warning(s)' "$TEST_OUTPUT_DIR/drift-broken"
+assert_contains "broken symlink: $DRIFT_HOME/.agents/skills/broken" "$TEST_OUTPUT_DIR/drift-broken"
+assert_contains "broken symlink: $DRIFT_HOME/.claude/skills/broken" "$TEST_OUTPUT_DIR/drift-broken"
+
 SYNC_HOME="$TEST_OUTPUT_DIR/sync-home"
 SYNC_REPO="$TEST_OUTPUT_DIR/sync-repo"
 SYNC_BIN="$TEST_OUTPUT_DIR/sync-bin"
