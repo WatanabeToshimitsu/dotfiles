@@ -9,10 +9,11 @@ PROFILE_DIR="$HOME/.agent-browser/profiles/ticket"
 DOWNLOAD_DIR="$HOME/.agent-browser/profiles/ticket-downloads"
 PAGES_FILE="$HOME/.claude/ticket/browser-pages"
 PENDING_FILE="$PAGES_FILE.expect-new"
-LOGIN_URL="https://app.notion.com/login"
 export LC_ALL=C
 ID='[0-9a-f]{32}'
-NOTION_PAGE="^https://([a-z0-9-]+\\.)*notion\\.(com|so)/(p/)?([A-Za-z0-9_-]+/)?([A-Za-z0-9-]*-)?($ID)(\\?([A-Za-z0-9=&]*))?\$"
+NOTION_HOST='https://([a-z0-9-]+\.)*notion\.(com|so)'
+LOGIN_PAGE="^$NOTION_HOST/login(\\?[A-Za-z0-9=&%._-]*)?\$"
+NOTION_PAGE="^$NOTION_HOST/(p/)?([A-Za-z0-9_-]+/)?(([A-Za-z0-9_-]|%[0-9A-F]{2})*-)?($ID)(\\?([A-Za-z0-9=&_-]*))?(#$ID)?\$"
 
 reject() {
   printf 'ticket-browser: %s\n' "$*" >&2
@@ -24,13 +25,14 @@ version_ge() {
   [ "$(printf '%s\n%s\n' "$required" "$actual" | sort -V | head -n 1)" = "$required" ]
 }
 
-# Prints "<page id> <view id or -> <peeked page id or ->".
+# Prints "<page id> <view id or -> <peeked page id or ->". With $2 = lenient,
+# query keys other than v and p are ignored instead of refused.
 parse_page() {
-  local url="$1" id query pair view=- peek=-
+  local url="$1" mode="${2:-}" id query pair view=- peek=-
   local -a pairs=()
   [[ $url =~ $NOTION_PAGE ]] || return 1
-  id="${BASH_REMATCH[6]}"
-  query="${BASH_REMATCH[8]}"
+  id="${BASH_REMATCH[7]}"
+  query="${BASH_REMATCH[9]}"
   [ -z "$query" ] || IFS='&' read -r -a pairs <<< "$query"
   for pair in ${pairs[@]+"${pairs[@]}"}; do
     case "$pair" in
@@ -38,7 +40,7 @@ parse_page() {
       p=*) [ "$peek" = - ] && [[ ${pair#p=} =~ ^$ID$ ]] || return 1; peek="${pair#p=}" ;;
       pvs=*) [[ ${pair#pvs=} =~ ^[0-9]+$ ]] || return 1 ;;
       pm=*) [[ ${pair#pm=} =~ ^[a-z]+$ ]] || return 1 ;;
-      *) return 1 ;;
+      *) [ "$mode" = lenient ] || return 1 ;;
     esac
   done
   printf '%s %s %s\n' "$id" "$view" "$peek"
@@ -56,7 +58,7 @@ register() {
 
 allowed_url() {
   local url="$1" parsed id view peek
-  if [ "$url" = about:blank ] || [ "$url" = "$LOGIN_URL" ]; then
+  if [ "$url" = about:blank ] || [[ $url =~ $LOGIN_PAGE ]]; then
     return 0
   fi
   parsed=$(parse_page "$url") || return 1
@@ -86,7 +88,7 @@ new_board_page() {
 case "$1" in
   allow)
     [ $# -eq 2 ] || reject "allow takes one Notion page URL"
-    parsed=$(parse_page "$2") || reject "not a Notion page URL: $2"
+    parsed=$(parse_page "$2" lenient) || reject "not a Notion page URL: $2"
     read -r id view peek <<< "$parsed"
     [ "$peek" = - ] || reject "register the page itself, not a peek from a board: $2"
     if [ "$view" = - ]; then register "$id"; else register "$id $view"; fi
@@ -212,8 +214,14 @@ fi
 before=""
 if [ "$1" != open ]; then
   before=$(current_url)
-  allowed_url "$before" \
-    || reject "the current page is not a registered Notion page (${before:-unknown}); open one first"
+  if ! allowed_url "$before"; then
+    [ -n "$before" ] || reject "could not read the current page URL; open a registered page first"
+    agent-browser --json back > /dev/null 2>&1 || true
+    returned=$(current_url)
+    [ -n "$returned" ] && allowed_url "$returned" \
+      || fail_closed "the current page is not a registered Notion page ($before) and going back failed"
+    reject "the current page was not a registered Notion page ($before); went back, run the command again"
+  fi
 fi
 
 tabs=$(list_tabs) || fail_closed "could not read the tab list before the action"
@@ -240,11 +248,13 @@ if ! allowed_url "$current"; then
     register "$new_page"
     exit "$status"
   fi
-  agent-browser --json back > /dev/null 2>&1 || true
+  undo=back
+  [ "$1" != back ] || undo=forward
+  agent-browser --json "$undo" > /dev/null 2>&1 || true
   returned=$(current_url)
   [ -n "$returned" ] && allowed_url "$returned" \
-    || fail_closed "the action reached an unregistered page ($current) and going back failed${tab_note:+; $tab_note}"
-  reject "the action reached an unregistered page ($current); went back${tab_note:+; $tab_note}"
+    || fail_closed "the action reached an unregistered page ($current) and going $undo failed${tab_note:+; $tab_note}"
+  reject "the action reached an unregistered page ($current); went $undo${tab_note:+; $tab_note}"
 fi
 [ -z "$tab_note" ] || reject "$tab_note"
 exit "$status"

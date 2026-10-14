@@ -58,7 +58,7 @@ if [ "${1:-}" = "--json" ]; then
       jq -cn --argjson t "$tabs" '{success: true, data: {tabs: $t}}'
       ;;
     "tab close"*) touch "$log.tab-closed"; printf '{"success":true}\n' ;;
-    back) touch "$log.back"; printf '{"success":true}\n' ;;
+    back | forward) touch "$log.back"; printf '{"success":true}\n' ;;
     close) [ -z "${FAKE_AGENT_BROWSER_CLOSE_FAILS:-}" ] || exit 1; printf '{"success":true}\n' ;;
     *) printf '{"success":true}\n' ;;
   esac
@@ -126,6 +126,10 @@ reset_log
   || fail "registration called agent-browser"
 assert_contains "$BOARD $VIEW" "$PAGES"
 assert_contains "$TICKET" "$PAGES"
+"$LAUNCHER" allow "https://app.notion.com/p/team/2-Copied-$NEW?pvs=4&source=copy_link" > /dev/null \
+  || fail "a copied link was not registered"
+assert_contains "$NEW" "$PAGES"
+grep -v -Fx "$NEW" "$PAGES" > "$PAGES.tmp" && mv "$PAGES.tmp" "$PAGES"
 
 # The launcher pins its own configuration and drops caller overrides.
 AGENT_BROWSER_ALLOWED_DOMAINS=evil.example AGENT_BROWSER_CDP=9222 \
@@ -148,6 +152,10 @@ run_ok open "$BOARD_URL&p=$TICKET&pm=s"
 run_ok open "https://www.notion.so/$TICKET"
 run_ok open "https://app.notion.com/p/$TICKET?pvs=25"
 run_ok open https://app.notion.com/login
+run_ok open "https://www.notion.so/login?redirectURL=%2Fp%2Fx"
+run_ok open "$TICKET_URL#$OTHER"
+FAKE_AGENT_BROWSER_URL="https://app.notion.com/p/team/1-%E3%83%86%E3%82%B9-$TICKET" run_ok open "https://app.notion.com/p/$TICKET"
+FAKE_AGENT_BROWSER_URL="https://app.notion.com/p/team/1062-Web-Auto-$TICKET" run_ok open "https://app.notion.com/p/$TICKET"
 for url in \
   "https://app.notion.com/p/team/$OTHER" \
   "https://app.notion.com/p/team/$BOARD" \
@@ -158,6 +166,9 @@ for url in \
   "https://app.notion.com/?x=$TICKET" \
   "https://app.notion.com/p/team/$OTHER?p=$TICKET" \
   "$TICKET_URL?foo=1" \
+  "$TICKET_URL#notahexanchor" \
+  "https://app.notion.com/login/../p/team/$OTHER" \
+  "https://www.notion.so/login#x" \
   "https://app.notion.com/p/team/%63${TICKET:1}" \
   https://app.notion.com/ \
   https://example.com/ \
@@ -228,6 +239,13 @@ for url in "https://app.notion.com/p/team/$OTHER" "$BOARD_URL&p=$OTHER" \
   [ ! -f "$FAKE_AGENT_BROWSER_LOG" ] || fail "read ran on unregistered page: $url"
 done
 FAKE_AGENT_BROWSER_URL=about:blank run_ok snapshot -i
+FAKE_AGENT_BROWSER_URL_BEFORE="https://app.notion.com/p/team/$OTHER" FAKE_AGENT_BROWSER_URL_AFTER_BACK="$TICKET_URL" \
+  run_failed_after "went back" get text @e1
+[ ! -f "$FAKE_AGENT_BROWSER_LOG" ] || fail "the command ran on an unregistered page"
+assert_contains back "$FAKE_AGENT_BROWSER_LOG.internal"
+FAKE_AGENT_BROWSER_URL_BEFORE="$TICKET_URL" FAKE_AGENT_BROWSER_URL="https://app.notion.com/p/team/$OTHER" \
+  FAKE_AGENT_BROWSER_URL_AFTER_BACK="$TICKET_URL" run_failed_after "went forward" back
+assert_contains forward "$FAKE_AGENT_BROWSER_LOG.internal"
 FAKE_AGENT_BROWSER_URL="https://app.notion.com/p/team/$OTHER" run_ok get url
 
 # Every command that runs, other than close and get url, is checked afterwards.
