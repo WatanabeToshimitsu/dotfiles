@@ -25,12 +25,21 @@ together with the user instead of guessing values.
 
 - Run every browser command as `ticket-browser <agent-browser args>`.
   Never call `agent-browser` directly for this skill.
-- Open only: the board view URL from reference.md, the board's own "New"
-  template menu, and ticket pages this skill created or the user named.
-  No workspace search, sidebar, linked pages, or other views.
+- `ticket-browser` opens only registered pages and refuses every other
+  command on unregistered ones. Register with `ticket-browser allow <url>`
+  only the board view URL from reference.md, a ticket page this skill just
+  created (read its URL with `ticket-browser get url`), or a ticket the
+  user named. No workspace search, sidebar, linked pages, or other views.
+- Screenshots also capture the sidebar's recent pages; prefer
+  `snapshot -s <selector>` and screenshot only to check layout.
 - On board views, locate the elements you need with `find role ...` or
   `find text ...` instead of snapshotting the whole view.
-- Press only Enter, Escape, Tab, Backspace, and the up and down arrows.
+- Press only plain editing and navigation keys: Enter, Escape, Tab,
+  Backspace, Delete, Home, End, and the arrows.
+- Write Notion text with `click` then `type`: `fill` changes the screen
+  but Notion does not save it. To replace text, click it, press End, and
+  Backspace over it first. `Home` and `End` move within one visual line,
+  so press ArrowUp first on wrapped blocks. A leading `- ` makes a bullet.
   Do not type `@`, `[[`, or a leading `/` into Notion: they open page
   search and block menus.
 - If a page shows a login screen, ask the user to log in in the
@@ -59,8 +68,9 @@ together with the user instead of guessing values.
    agreement on a task breakdown does NOT count as ticket-granularity
    approval: always re-confirm the granularity at creation time — session
    decomposition and ticket granularity are different decisions.
-4. Create the Jira issue first when reference.md says the template wants
-   one, with only the fields reference.md lists.
+4. Reuse whichever side step 2 confirmed and create only what is
+   missing. Create the Jira issue first when reference.md says the
+   template wants one, with only the fields reference.md lists.
 5. Create the board page from the template reference.md names for this
    kind of work, or the default template. Picking a template creates the
    page at once: set the title first and note the page URL, then fill the
@@ -147,8 +157,9 @@ PRs usually land under one ticket.
 
 - The team Notion workspace is reached only through `ticket-browser` and
   only on the pages listed under "Browser rules".
-- Ticket creation and every Jira write require explicit user approval;
-  the evidence append and the start-of-work status are exempt.
+- Ticket creation and every Jira write require explicit user approval,
+  including Jira transitions at the start of work. Exempt: the evidence
+  append on the board and in Jira, and the board's start-of-work status.
 - One Jira issue per approved ticket; never bulk-create speculatively.
 - Keep concrete identifiers in reference.md, never in this file: it is
   published in a public repository.

@@ -36,7 +36,7 @@
     "skills/expand-tool-output/SKILL.md": "sha256:dea48c29238226b273b40151a34adf4b3ec8c7997857626e4a6c38d348a4cbf8",
     "skills/prepare-compaction/SKILL.md": "sha256:d711c8901ad7c43e2dc0c240d4bd259bb920d3d14ee0399261874a0fb97d3d55",
     "skills/repository-audit/SKILL.md": "sha256:200164ed0c118c771c6ec4ed357059d03d7b96f87a807a88d05ded01cae79f9d",
-    "skills/ticket/SKILL.md": "sha256:cd9e63e6beac1446d41de5f6164d7c385c1d292eafd808748ece16f659efdb0a",
+    "skills/ticket/SKILL.md": "sha256:fdf8000b346a408dec63cdfb2d64f3f6f689962e5801861cc85a2195460d2111",
     "skills/ticket/reference.example.md": "sha256:190ce3af8b0286f7426d76fe9e319e30d109bc8ec23ed7d96b5380ad727fd458"
   },
   "inputs": {
@@ -76,7 +76,7 @@
     "claude/skills/expand-tool-output/SKILL.md": "sha256:2b21b700450c9e673b45da33ae848e45fafb0f251b79917a54d00f3e93ba0e08",
     "claude/skills/prepare-compaction/SKILL.md": "sha256:2e1def114180603e6ff56d22b110eaee137e327731d74e0bec8dd4d5cbe35ad0",
     "claude/skills/repository-audit/SKILL.md": "sha256:200164ed0c118c771c6ec4ed357059d03d7b96f87a807a88d05ded01cae79f9d",
-    "claude/skills/ticket/SKILL.md": "sha256:f1e85a6983ebf7acf04968da7b8f531f8f49f8dada5b0b59d5bf22de6d828a7a",
+    "claude/skills/ticket/SKILL.md": "sha256:e40bee73d123969dba16ac33bccc847ec7724dffc5c586398432b5bf3a6f8c71",
     "claude/skills/ticket/reference.example.md": "sha256:190ce3af8b0286f7426d76fe9e319e30d109bc8ec23ed7d96b5380ad727fd458",
     "codex/adaptations.md": "sha256:4e98f51d7f26cd9a8cc48eb8bbcb35f4c932d1171df18e98b7065e50f1b0a8ba",
     "codex/skill-adaptations.json": "sha256:cf5f4d2e8806f13958c455f2adebe75da560d00a09a137162d97844654f8dd77"
