@@ -319,22 +319,23 @@ def expand_archive(args: argparse.Namespace) -> int:
 
 def show_stats() -> int:
     root = cache_dir()
-    archives: list[dict[str, Any]] = []
+    count = original = compacted = 0
     if root.exists():
         for path in root.glob("*.json"):
             if path.is_symlink():
                 continue
             try:
                 with path.open(encoding="utf-8") as stream:
-                    archives.append(json.load(stream))
+                    archive = json.load(stream)
             except (OSError, json.JSONDecodeError):
                 continue
+            count += 1
+            original += int(archive.get("original_chars", 0))
+            compacted += int(archive.get("compacted_chars", 0))
 
-    original = sum(int(item.get("original_chars", 0)) for item in archives)
-    compacted = sum(int(item.get("compacted_chars", 0)) for item in archives)
     saved = max(original - compacted, 0)
     percent = saved * 100 / original if original else 0
-    print(f"archives: {len(archives)}")
+    print(f"archives: {count}")
     print(f"original chars: {original:,}")
     print(f"compacted chars: {compacted:,}")
     print(f"saved: {saved:,} chars ({percent:.1f}%)")
