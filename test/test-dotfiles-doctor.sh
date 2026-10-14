@@ -424,7 +424,7 @@ printf 'raise RuntimeError("doctor must not execute the hook")\n' > "$COMPACT_HO
 
 write_compaction_settings() {
   cat > "$COMPACT_HOME/.claude/settings.json" <<'JSON'
-{"env":{"SECRET_TOKEN":"credential-do-not-log"},"hooks":{"PostToolUse":[{"matcher":"Read|Grep|Glob|WebFetch|WebSearch|mcp__.*","hooks":[{"type":"command","command":"python3 \"$HOME/.claude/hooks/compact-tool-output.py\"","timeout":10}]}]}}
+{"env":{"SECRET_TOKEN":"credential-do-not-log"},"hooks":{"PostToolUse":[{"matcher":"Read|Grep|WebFetch|mcp__.*","hooks":[{"type":"command","command":"python3 \"$HOME/.claude/hooks/compact-tool-output.py\"","timeout":10}]}]}}
 JSON
 }
 

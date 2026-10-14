@@ -101,21 +101,18 @@ run_case() {
             [[ "$scenario" != empty-api ]] || return 0
             [[ "$scenario" != ordinary* || "$scenario" == ordinary-pr-* ]] || return 0
             [[ "$scenario" != ordinary-pr-mismatch ]] || reported_head="$fixture_advanced_oid"
-            if [[ "$*" == *headRefOid* ]]; then
-                if [[ "$scenario" == duplicate-later-valid ]]; then
-                    printf '%s\t%s\t%s\n' "$fixture_branch" "$fixture_advanced_oid" "$fixture_advanced_oid"
-                fi
-                if [[ "$scenario" == malformed-oid ]]; then
-                    printf '%s\t%s\t%s\n' "$fixture_branch" "$fixture_feature_oid" "$fixture_merge_oid"
-                fi
-                printf '%s\t%s\t%s\n' "$fixture_branch" "$reported_head" "$reported_merge"
-                if [[ "$scenario" == duplicate-mixed ]]; then
-                    printf '%s\t%s\t%s\n' "$fixture_branch" "$fixture_advanced_oid" "$fixture_advanced_oid"
-                fi
-                [[ "$scenario" != partial-api-failure ]] || return 1
-            else
-                print -r -- "$fixture_branch"
+            [[ "$*" == *headRefOid* ]] || return 1
+            if [[ "$scenario" == duplicate-later-valid ]]; then
+                printf '%s\t%s\t%s\n' "$fixture_branch" "$fixture_advanced_oid" "$fixture_advanced_oid"
             fi
+            if [[ "$scenario" == malformed-oid ]]; then
+                printf '%s\t%s\t%s\n' "$fixture_branch" "$fixture_feature_oid" "$fixture_merge_oid"
+            fi
+            printf '%s\t%s\t%s\n' "$fixture_branch" "$reported_head" "$reported_merge"
+            if [[ "$scenario" == duplicate-mixed ]]; then
+                printf '%s\t%s\t%s\n' "$fixture_branch" "$fixture_advanced_oid" "$fixture_advanced_oid"
+            fi
+            [[ "$scenario" != partial-api-failure ]] || return 1
         }
         read() {
             if [[ "${1:-}" == -q ]]; then
