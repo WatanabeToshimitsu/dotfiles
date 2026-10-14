@@ -51,16 +51,26 @@ and pushes, including later PR updates, retain their existing scope and guards.
 ## Codex: connector and CLI
 
 Prefer the GitHub connector when available. Keep its PR-creation tool set to
-`approval_mode = "prompt"` with the app's `approvals_reviewer = "user"`.
+`approval_mode = "prompt"`. To follow the reviewer selected for the session, remove
+an app-specific `approvals_reviewer = "user"` override instead of forcing a human
+prompt. An omitted app reviewer inherits `apps._default.approvals_reviewer`, then
+the session's `approvals_reviewer`. Check those settings before changing the
+local profile. This inheritance applies to all GitHub tool approval prompts;
+preserve their individual approval modes and unrelated settings. Manual review
+still asks the user, while Auto-review can approve, deny, or escalate according
+to the action and its authorization. Reviewer selection grants no new authority
+for merge, deletion, or other operations. Do not use unconditional `approve` or
+disable native review to suppress repeated prompts.
+
 GitHub CLI is also supported after the same publication review and explicit
-approval coverage. In the user's Codex rules, replace the previous connector-only
+authorization coverage. In the user's Codex rules, replace the previous connector-only
 `forbidden` entries for these commands with `prompt` entries; adding new rules
 without removing the old entries leaves the stronger prohibition active:
 
 ```python
-prefix_rule(pattern=["gh", "pr", "create"], decision="prompt", justification="Review the publication details and obtain explicit user confirmation before creating this PR. Never save permanent PR-creation approval.")
-prefix_rule(pattern=["rtk", "gh", "pr", "create"], decision="prompt", justification="Review the publication details and obtain explicit user confirmation before creating this PR. Never save permanent PR-creation approval.")
-prefix_rule(pattern=["rtk", "proxy", "gh", "pr", "create"], decision="prompt", justification="Review the publication details and obtain explicit user confirmation before creating this PR. Never save permanent PR-creation approval.")
+prefix_rule(pattern=["gh", "pr", "create"], decision="prompt", justification="Verify the human user's message covers this repository, task, and operation, with inspection complete or individual approval for remaining scope. Reuse covered authorization; deny or escalate if evidence is missing. Never persist an allow rule from one-time consent.")
+prefix_rule(pattern=["rtk", "gh", "pr", "create"], decision="prompt", justification="Verify the human user's message covers this repository, task, and operation, with inspection complete or individual approval for remaining scope. Reuse covered authorization; deny or escalate if evidence is missing. Never persist an allow rule from one-time consent.")
+prefix_rule(pattern=["rtk", "proxy", "gh", "pr", "create"], decision="prompt", justification="Verify the human user's message covers this repository, task, and operation, with inspection complete or individual approval for remaining scope. Reuse covered authorization; deny or escalate if evidence is missing. Never persist an allow rule from one-time consent.")
 ```
 
 Keep the existing force-push protections and unrelated rules. These entries
@@ -71,15 +81,54 @@ updated file. Finish active work before restarting the app.
 
 Codex does not support a hook `permissionDecision: "ask"`. The hook therefore
 blocks detected risks and returns inspection context for other PR attempts,
-including CLI attempts. It does not open a human approval dialog or verify that
-consent occurred. Under Auto-review, a CLI `prompt` can go to the automatic
-reviewer, so it does not guarantee a human dialog either. The agent must establish
-the user's explicit approval coverage **before invoking the tool**, reusing a
-covered approval or obtaining missing consent; hook context is not consent.
-Reuse an approval only within its repository, task, content, and limits; a
-single-PR approval ends after that PR, and multiple PRs need explicit multiple,
-split, or continued PR approval. The connector retains its separate native human
-approval setting.
+including CLI attempts. Context-only warnings do not pause execution and cannot
+obtain consent for a late finding. The hook does not verify that consent occurred.
+Under Auto-review, a CLI `prompt` can go to the automatic reviewer, which sees
+the approval request and a compact transcript, not just the rule justification.
+The agent must complete inspection and establish the user's explicit
+authorization **before invoking the tool**; hook context and
+automatic review are not user consent. Reuse explicit continuing, split, or
+multi-PR authorization for inspected operations within its stated targets,
+actions, data scope, duration, and limits. Without a stated wider scope, limit
+approval to the current task and repository in the current conversation. Do not
+reconstruct permission from memory or a public issue. A single-PR approval ends
+after that PR and never creates a persisted allow rule.
+
+Conversation consent does not automatically become a profile setting. To carry
+continuing permission into a new conversation, the user must restate its scope
+or explicitly authorize a persistent scoped instruction. Include that source
+in the new approval context; do not infer permission when its basis is missing.
+
+Ask only for missing or ambiguous authorization, expanded scope, or unresolved
+inspection concerns. A user's explicit requirement for per-action confirmation
+still applies; generic hook reminders or older document defaults do not revoke
+an explicit continuing authorization. If the hook cannot inspect a range, obtain
+authorized read-only evidence or individual approval covering that remaining
+scope before invocation. If a late warning reveals a missed check, report the
+gap and stop further publication until it is resolved. Inspection and consent
+remain agent prerequisites assessed by native review, not facts mechanically
+verified by this hook. Unresolved sensitive findings and native denials always
+stop the action.
+
+PR creation does not itself authorize image uploads. When the user explicitly
+includes attachments, view each image and check that its content and GitHub
+destination are covered before reusing that authorization. Browser site access,
+upload approval, and connector approval are separate controls; changing PR
+instructions or the connector reviewer does not establish that upload prompts
+will disappear. Diagnose the actual upload route before changing its settings.
+
+Update the shared source and regenerate Codex instructions through the normal
+sync workflow. Apply the installer only after integration, from the canonical
+`main` checkout matching the last fetched `origin/main`; it rejects unmerged
+branches. Until then, both managed instructions and the live canonical hook keep
+their old wording. The installer preserves local text after its managed block, so
+check that suffix for old unconditional confirmation rules separately. Change
+only the authorized local policy with a private backup; do not hand-edit the
+managed block or native hook trust. If the live hook points at the canonical
+checkout, it retains its old wording until that checkout receives the change.
+A current local policy may clarify that explicit user authorization takes
+precedence over that reminder, but never over a native denial. Report which
+parts are applied, require integration or restart, or remain unverified in the GUI.
 
 Codex PR creation through `gh api` remains blocked because its request body and
 target diff are not fully inspected by this hook. Use `gh pr create` with an

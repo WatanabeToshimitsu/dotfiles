@@ -191,7 +191,8 @@ class RemoteMutationGuardTest(unittest.TestCase):
                     "tool_input": {"command": command},
                 }, "codex", env)["hookSpecificOutput"]
                 self.assertNotIn("permissionDecision", output)
-                self.assertIn("ユーザーの個別確認", output["additionalContext"])
+                self.assertIn("既存の明示的な許可", output["additionalContext"])
+                self.assertIn("未検査の範囲が残っています", output["additionalContext"])
 
     def test_claude_pr_with_uninspected_range_still_prompts_in_auto_mode(self):
         output = self.run_hook({
@@ -295,7 +296,7 @@ class RemoteMutationGuardTest(unittest.TestCase):
                     self.assertEqual(output["permissionDecision"], "ask")
                     self.assertIn("未検査", output["permissionDecisionReason"])
 
-    def test_codex_cli_preserves_review_without_a_blanket_ban(self):
+    def test_codex_cli_preserves_scoped_authorization_and_inspection(self):
         for tool, key, command in [
             ("Bash", "command", "gh pr create --title Test --body Clean"),
             ("exec_command", "cmd", "rtk gh pr create --draft --title Test --body Clean"),
@@ -308,8 +309,11 @@ class RemoteMutationGuardTest(unittest.TestCase):
                 }, "codex")["hookSpecificOutput"]
                 self.assertNotIn("permissionDecision", output)
                 self.assertIn("未検査", output["additionalContext"])
+                self.assertIn("既存の明示的な許可", output["additionalContext"])
+                self.assertIn("未検査の範囲が残っています", output["additionalContext"])
                 self.assertIn("ユーザーの個別確認", output["additionalContext"])
                 self.assertIn("自動審査", output["additionalContext"])
+                self.assertNotIn("確認を恒久許可に保存しない", output["additionalContext"])
 
     def test_codex_cli_secret_scan_still_blocks_before_review(self):
         secret = "gh" + "p_" + "aB7cD9" * 6
@@ -422,6 +426,9 @@ class RemoteMutationGuardTest(unittest.TestCase):
             self.assertNotIn("permissionDecision", output)
             self.assertIn("1 コミット", output["additionalContext"])
             self.assertNotIn("未検査。", output["additionalContext"])
+            self.assertIn("既存の明示的な許可", output["additionalContext"])
+            self.assertIn("再確認せず", output["additionalContext"])
+            self.assertNotIn("未検査の範囲が残っています", output["additionalContext"])
 
     def test_secret_in_mcp_pr_body_blocks_without_echoing_it(self):
         secret = "gh" + "p_" + "aB7cD9" * 6
@@ -484,7 +491,7 @@ class RemoteMutationGuardTest(unittest.TestCase):
                 self.assertEqual(output["hookSpecificOutput"]["permissionDecision"], "deny")
                 self.assertIn("push 前", output["hookSpecificOutput"]["permissionDecisionReason"])
 
-    def test_real_codex_connector_argument_names_are_used(self):
+    def test_codex_connector_preserves_scoped_authorization_and_inspection(self):
         with tempfile.TemporaryDirectory() as directory:
             output = self.run_hook({
                 "tool_name": "mcp__codex_apps__github_create_pull_request", "cwd": directory,
@@ -493,8 +500,11 @@ class RemoteMutationGuardTest(unittest.TestCase):
             }, "codex")
             self.assertNotIn("permissionDecision", output["hookSpecificOutput"])
             self.assertIn("未検査", output["hookSpecificOutput"]["additionalContext"])
+            self.assertIn("既存の明示的な許可", output["hookSpecificOutput"]["additionalContext"])
+            self.assertIn("未検査の範囲が残っています", output["hookSpecificOutput"]["additionalContext"])
             self.assertIn("ユーザーの個別確認", output["hookSpecificOutput"]["additionalContext"])
             self.assertIn("自動審査", output["hookSpecificOutput"]["additionalContext"])
+            self.assertNotIn("確認を恒久許可に保存しない", output["hookSpecificOutput"]["additionalContext"])
 
     def test_secrets_introduced_only_by_a_merge_are_scanned(self):
         with tempfile.TemporaryDirectory() as directory:

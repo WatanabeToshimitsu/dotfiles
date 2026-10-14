@@ -42,9 +42,11 @@ Scale the process to the change's uncertainty and risk.
    uninspected parts. Pattern scans alone do not establish safety. In Claude
    Code, create the PR without separate confirmation when the task includes
    delivery, the inspection is complete, and it finds nothing; ask first when
-   findings, uninspected scope, or out-of-scope content remain. Codex keeps
-   explicit per-PR approval. Stop on unresolved sensitive findings or runtime
-   rejection, and never evade native checks. Follow the
+   findings, uninspected scope, or out-of-scope content remain. In Codex, reuse
+   explicit continuing authorization within its stated scope and limits after
+   inspection; ask only for missing authorization or remaining inspection concerns.
+   One-PR consent never becomes continuing consent. Stop on unresolved sensitive
+   findings or runtime rejection, and never evade native checks. Follow the
    [publication guidance](https://github.com/WatanabeToshimitsu/dotfiles/blob/main/docs/pr-approval.md).
    Create a Draft only when needed.
 9. After live confirmation that this task's PR is merged, clean up only its

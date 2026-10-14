@@ -46,10 +46,19 @@ The user-facing frontier model leads the task and may design, implement, refacto
   authority includes delivery, the inspection is complete, and it finds nothing.
   Ask before creating when findings, uninspected scope, or out-of-scope content
   remain. Report the created PR with its inspection results.
-- In Codex, show the prepared details and obtain explicit approval before each PR,
-  because its hook cannot pause a PR for a late finding. Reuse that approval only
-  within its repository, task, content, and limits; a single-PR approval ends
-  after that PR.
+- In Codex, complete inspection and establish user authorization before invoking
+  a PR tool; its context-only hook warnings cannot pause a PR for late findings.
+  Reuse explicit continuing or multi-PR authorization for inspected operations
+  within its stated targets, actions, data scope, and limits; do not ask again
+  for covered actions.
+  Without a stated wider scope, limit approval to the current task and repository
+  in the current conversation. Ask only for missing or ambiguous authorization,
+  expanded scope, or unresolved inspection concerns. A user's explicit per-action
+  confirmation requirement still applies; generic reminders do not revoke a
+  continuing authorization. Never turn one-PR consent into a persisted allow rule.
+- For Codex, PR authorization alone does not authorize image uploads. When
+  attachments are explicitly authorized, view each image and check its content
+  and destination against that authorization; preserve native upload checks.
 - Stop on unresolved sensitive findings or runtime rejection. Never evade a denial
   through another route. PR creation grants no merge, profile, scheduling,
   spending, or private-data sharing authority. Keep native checks and report
