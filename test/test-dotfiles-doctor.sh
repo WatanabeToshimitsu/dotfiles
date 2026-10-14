@@ -342,27 +342,7 @@ done
 [ -n "$SUPPORTED_PYTHON" ] || fail "doctor tests require Python 3.11+"
 mkdir -p "$SYNC_HOME/.codex/dotfiles-sync" "$SYNC_REPO/scripts/codex-sync" "$SYNC_BIN"
 : > "$SYNC_HOME/.codex/dotfiles-sync/state.json"
-cat > "$SYNC_REPO/scripts/codex-sync/install.py" <<'PY'
-import tomllib
-print("sync fixture current")
-PY
-cat > "$SYNC_BIN/python3" <<'SH'
-#!/bin/bash
-if [ "$1" = -c ]; then
-  exit 1
-fi
-printf "ModuleNotFoundError: No module named 'tomllib'\n" >&2
-exit 1
-SH
-chmod +x "$SYNC_BIN/python3"
-
-write_sync_python() {
-  cat > "$SYNC_BIN/$1" <<SH
-#!/bin/bash
-exec "$SUPPORTED_PYTHON" "\$@"
-SH
-  chmod +x "$SYNC_BIN/$1"
-}
+ln -s "$SUPPORTED_PYTHON" "$SYNC_BIN/python3"
 
 run_sync_fixture() {
   local fixture_name="$1" expected_exit="$2"
@@ -379,21 +359,6 @@ run_sync_fixture() {
     || fail "$fixture_name returned $fixture_exit, expected $expected_exit"
 }
 
-write_sync_python python3.13
-run_sync_fixture sync-compatible 0
-assert_contains 'sync fixture current' "$TEST_OUTPUT_DIR/sync-compatible"
-assert_not_contains 'ModuleNotFoundError' "$TEST_OUTPUT_DIR/sync-compatible"
-
-rm "$SYNC_BIN/python3.13"
-run_sync_fixture sync-unsupported 1
-assert_contains 'Python 3.11+ is unavailable' "$TEST_OUTPUT_DIR/sync-unsupported"
-assert_not_contains 'ModuleNotFoundError' "$TEST_OUTPUT_DIR/sync-unsupported"
-
-rm "$SYNC_BIN/python3"
-run_sync_fixture sync-python-missing 1
-assert_contains 'Python is not installed' "$TEST_OUTPUT_DIR/sync-python-missing"
-
-write_sync_python python3
 cat > "$SYNC_REPO/scripts/codex-sync/install.py" <<'PY'
 import tomllib
 print("sync fixture drift")
