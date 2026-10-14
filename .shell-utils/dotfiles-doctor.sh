@@ -446,93 +446,21 @@ check_memory_promotion() {
   section_ok "$before"
 }
 
-check_agent_skills() {
-  echo "== agent skill restore paths =="
-  local before=$WARNINGS output python kind message
-  if ! python=$(codex_sync_python 2>&1); then
-    unverified "Skill restore paths cannot be checked: $python" 1
-    return 0
-  fi
-  if ! output=$("$python" -I -B - "$HOME" "$DOTFILES_DIR" 2>&1 <<'PY'
-import json
-from pathlib import Path
-import re
-import sys
-
-home, root = (Path(p).resolve() for p in sys.argv[1:])
-sys.path.insert(0, str(root / 'scripts/codex-sync'))
-try:
-    import install
-    entries = (root / 'agent-skills.txt').read_text().splitlines()
-    if not entries or any(not re.fullmatch(r'[^:\s]+:[a-z0-9-]+', s) for s in entries):
-        raise ValueError('invalid agent-skills.txt inventory')
-    external = {s.rsplit(':', 1)[1] for s in entries}
-    managed = set(json.loads((root / 'codex/generated/manifest.json').read_text())['skills'])
-    state = install.load_state(home)
-    owned = state['links'] if state else {}
-    disabled = install.disabled_skills(home)
-    rows = [('info', f'[EXCLUDED] native settings disables name {s}')
-            for s in sorted(disabled & (managed | external))]
-    for base in ('.agents/skills', '.claude/skills'):
-        directory = home / base
-        if not directory.is_dir():
-            continue
-        for entry in sorted(directory.iterdir()):
-            name = entry.name
-            relative = f'{base}/{name}'
-            if name.startswith('.') or not (entry.is_dir() or entry.is_symlink() or relative in owned):
-                continue
-            source = root / 'claude/skills' / name / 'SKILL.md'
-            if relative in owned:
-                matches = entry.is_symlink() and str(entry.readlink()) == owned[relative]
-                message = 'recorded Codex link' if matches else 'recorded Codex path needs its sync integrity check'
-                kind = 'info'
-            elif base == '.claude/skills' and source.is_file() and (entry / 'SKILL.md').resolve() == source.resolve():
-                kind, message = 'info', 'repository-managed Claude skill'
-            elif name in managed:
-                kind, message = 'warn', 'unowned same-name managed skill'
-            elif name in external:
-                kind = 'info'
-                message = '[EXCLUDED] native-disabled external skill' if name in disabled else 'external restore recipe; provenance unverified'
-            else:
-                kind, message = 'warn', 'skill has no declared restore path'
-            rows.append((kind, f'{relative}: {message}'))
-except (OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError) as error:
-    print(f'skill restore paths: {error}', file=sys.stderr)
-    raise SystemExit(1)
-for kind, message in rows:
-    print(kind + '\t' + message)
-PY
-  ); then
-    unverified "$output" 1
-    return 0
-  fi
-  while IFS=$'\t' read -r kind message; do
-    [ -n "$kind" ] || continue
-    if [ "$kind" = warn ]; then warn "$message"; else info "$message"; fi
-  done <<< "$output"
-  if [ "$WARNINGS" -eq "$before" ]; then
-    info "Restore paths classified; Codex integrity is checked separately"
-  fi
-}
-
 check_local_drift() {
-  echo "== broken symlinks (~/, ~/.config, ~/.claude, VS Code) =="
+  echo "== broken symlinks (~/, ~/.config, ~/.claude, ~/.agents/skills, VS Code) =="
   local before=$WARNINGS
   local link
   while IFS= read -r link; do
     warn "broken symlink: $link"
   done < <(
     find "$HOME" -maxdepth 1 -name ".*" -type l ! -exec test -e {} \; -print 2> /dev/null
-    find "$HOME/.config" "$HOME/.claude" "$HOME/Library/Application Support/Code/User" \
+    find "$HOME/.config" "$HOME/.claude" "$HOME/.agents/skills" "$HOME/Library/Application Support/Code/User" \
       -maxdepth 3 -type l ! -exec test -e {} \; -print 2> /dev/null
   )
   section_ok "$before"
 
   check_brew_drift
   check_memory_promotion
-
-  check_agent_skills
 
   echo "== dotfiles repo state =="
   before=$WARNINGS
@@ -608,7 +536,7 @@ main() {
   info "scope: Headroom deployment/flags/savings; MCP connectivity; Claude versions; Codex managed snapshot; output compaction"
   unverified "roles, skills and other hook behavior are not exercised; next: inspect their repository tests and /hooks"
   if [ "$HARNESS_ONLY" -eq 0 ]; then
-    info "additional scope: managed links, Homebrew, memory promotion, restored skills and repository drift"
+    info "additional scope: broken symlinks, Homebrew, memory promotion and repository drift"
     check_local_drift
   fi
   check_agent_harness
