@@ -371,7 +371,7 @@
         ]
       },
       {
-        "matcher": "Read|Grep|Glob|WebFetch|WebSearch|mcp__.*",
+        "matcher": "Read|Grep|WebFetch|mcp__.*",
         "hooks": [
           {
             "type": "command",

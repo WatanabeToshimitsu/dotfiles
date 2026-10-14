@@ -18,12 +18,13 @@ it remains ambiguous, cannot be determined, or no current-branch PR exists.
 
 ## Reviewer by author
 
-- Review both designs and implementations independently of their author. Either Claude or Codex may have produced either artifact.
-- Prefer a frontier reviewer from the other family. Automatically follow the delivery contract's fallback order when unavailable: a fresh same-family frontier, a non-frontier adviser, then bounded lightweight evidence gathering. Do not ask the user to choose again for an authorized fallback.
-- Use a fresh context that did not produce the artifact. The coordinator's family does not determine the reviewer. Model names and agent labels alone do not establish a different provider or frontier capability.
-- Scale depth by risk; high-risk changes receive adversarial focus and a specialist only when the domain requires one. Self-checks never replace independent approval.
+For every review task, first read and follow the
+[delivery stage contract](../delivery-workflow/SKILL.md#stage-contract).
+It defines independent design and implementation review, reviewer selection,
+fallback, invocation, handoffs, findings disposition, and review outcomes.
 
-The [delivery stage contract](../delivery-workflow/SKILL.md#stage-contract) defines models, fallback, tiny-task precedence, invocation, and handoff records. Read it before dispatch. Pass purpose, acceptance criteria, relevant guidance, the artifact, and actual verification results; exclude author verdicts, prior review outcomes, and unrelated user changes.
+Scale depth by risk; high-risk changes receive adversarial focus and a specialist
+only when the domain requires one. Self-checks never replace independent approval.
 
 Do not start a separate review after every edit unless the user explicitly
 requests one. Do not repeat the same exploration in multiple agents.
@@ -38,19 +39,12 @@ requests one. Do not repeat the same exploration in multiple agents.
 6. Report findings in severity order with precise file locations and consequences.
 
 Each finding needs a violated requirement and reproduction, a counterexample,
-or other checkable evidence. Label hypotheses and missing evidence. The frontier
-lead verifies findings before accepting changes, records the reason for rejecting
-unsupported claims, and checks for regressions after fixes. Preserve existing
-behavior when a proposed correction cannot be substantiated; keep material
-uncertainty visible rather than treating the claim as resolved.
+or other checkable evidence. Label hypotheses and missing evidence.
 
 Treat authentication, authorization, payments, privacy, destructive migrations, cryptography, and externally visible compatibility as high risk.
 
 Do not report style preferences as defects. If no actionable issue remains, say
-so and state what was verified and what was not. Record the actual review level
-and requested/observed model. Non-frontier advice, unknown model identity, or an
-unrun review cannot receive frontier `PASS`; use the delivery contract's outcome
-and continuation rules.
+so and state what was verified and what was not.
 
 ## Codex portability
 
