@@ -103,11 +103,8 @@ The user-facing frontier model leads the task and may design, implement, refacto
 - Carry the actual approval basis and its task, providers, purpose, and permitted data scope in each private handoff and invocation. Share only the necessary artifact, acceptance criteria, and verification; remove secrets, personal information, and unrelated material.
 - Check changed tasks, providers, purposes, or expanded data against the existing approval, and obtain only the missing authorization before dependent sharing. Identify the rejecting authority, action, and reason for a runtime permission denial; never evade it through another route, provider, or agent.
 - Approval reuse grants no new tool, authentication, spending, publication, or permission authority. Preserve the PR publication rules and unsolicited-post restrictions, and record document checks, actual model calls, and approval-runtime results separately.
-- Review designs and implementations in fresh contexts that did not produce the artifact. Select reviewers by the artifact author's family, not the coordinator's family.
-- Automatically prefer another-family frontier, then a same-family frontier, then the strongest available non-frontier adviser, then lightweight evidence gathering. Keep final decisions with a frontier lead; verify findings against specifications and actual checks. Advisory or missing review is never frontier approval.
-- Record quota scope and retry/reset evidence; avoid repeated failed calls and confirmation questions. Do not silently downgrade the user-facing model, enable spending, or change permissions. If no frontier can continue as lead, save a handoff and pause dependent work.
-- `fable-deep` is a read-only analysis and independent-review helper. `sonnet-worker` gathers bounded evidence and candidate findings without editing or issuing approval. Implementation uses a lead or delegate with the necessary tools.
-- Follow [delivery-workflow](skills/delivery-workflow/SKILL.md#stage-contract) for role selection, review outcomes, automatic fallback, invocation, and handoff. Small size waives neither design nor implementation review. Fable and Astra are current examples, not permanent role assignments.
+- Follow [delivery-workflow](skills/delivery-workflow/SKILL.md#stage-contract) for independent design and implementation reviews, reviewer selection, automatic fallback, actual model and review-level reporting, and writer handoff. Small changes waive neither review.
+- Keep the configured frontier lead; never silently downgrade it, enable spending, or change permissions. If no frontier can continue as lead, save a handoff and pause dependent work.
 - Agent 呼び出しでは常に非 `inherit` の model を明示し、同じ探索を重複させない。
 - サブエージェントからは結論、関連箇所、リスク、検証結果だけを受け取る。
 - 大量ログは要約またはファイルへ退避し、main conversation に戻さない。
@@ -144,20 +141,15 @@ Before editing a file, read every matching rule below, in the listed order. Patt
 - rules/common/testing.md: `**/{test,tests,__tests__,spec,specs}/**`, `**/*.{test,spec}.{js,jsx,ts,tsx}`, `**/test_*.py`, `**/*_test.{go,py,rb,rs}`
 - rules/golang/coding-style.md: `**/*.go`, `**/go.mod`, `**/go.sum`
 - rules/golang/hooks.md: `**/*.go`, `**/go.mod`, `**/go.sum`
-- rules/golang/patterns.md: `**/*.go`, `**/go.mod`, `**/go.sum`
 - rules/golang/security.md: `**/*.go`, `**/go.mod`, `**/go.sum`
 - rules/golang/testing.md: `**/*.go`, `**/go.mod`, `**/go.sum`
 - rules/python/coding-style.md: `**/*.py`, `**/*.pyi`
 - rules/python/fastapi.md: `**/app/**/*.py`, `**/fastapi/**/*.py`, `**/*_api.py`
 - rules/python/hooks.md: `**/*.py`, `**/*.pyi`
-- rules/python/patterns.md: `**/*.py`, `**/*.pyi`
 - rules/python/security.md: `**/*.py`, `**/*.pyi`
 - rules/python/testing.md: `**/*.py`, `**/*.pyi`
-- rules/testing/vitest.md: `**/*.test.ts`, `**/*.test.tsx`
 - rules/typescript/coding-style.md: `**/*.ts`, `**/*.tsx`, `**/*.js`, `**/*.jsx`
-- rules/typescript/documentation.md: `**/*.ts`, `**/*.tsx`
 - rules/typescript/hooks.md: `**/*.ts`, `**/*.tsx`, `**/*.js`, `**/*.jsx`
-- rules/typescript/patterns.md: `**/*.ts`, `**/*.tsx`, `**/*.js`, `**/*.jsx`
 - rules/typescript/testing.md: `**/*.ts`, `**/*.tsx`, `**/*.js`, `**/*.jsx`
 - rules/typescript/type-safety.md: `**/*.ts`, `**/*.tsx`
 - rules/web/security.md: `**/{app,pages,routes,controllers,views,handlers}/**`, `**/{schema,migrations}/**`, `**/*.{sql,tsx,vue,svelte}`
