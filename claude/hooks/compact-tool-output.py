@@ -120,7 +120,11 @@ def compaction_notice(archive_id: str, original_chars: int) -> str:
 
 
 def compact_response(
-    tool_name: str, response: Any, archive_id: str, preview_chars: int
+    tool_name: str,
+    response: Any,
+    archive_id: str,
+    preview_chars: int,
+    original_chars: int,
 ) -> Any | None:
     candidate = deepcopy(response)
     fields = [
@@ -136,7 +140,7 @@ def compact_response(
     strings = [container[key] for container, key in fields]
     for container, key in fields:
         container[key] = ""
-    notice = compaction_notice(archive_id, len(encode(response)))
+    notice = compaction_notice(archive_id, original_chars)
     text_budget = preview_chars - len(encode(candidate)) - len(notice)
     if text_budget <= 0:
         return None
@@ -220,7 +224,9 @@ def run_hook() -> int:
             max_chars - 1,
         )
         archive_id = make_archive_id(payload)
-        compacted = compact_response(tool_name, response, archive_id, preview_chars)
+        compacted = compact_response(
+            tool_name, response, archive_id, preview_chars, original_chars
+        )
         if compacted is None:
             return 0
         compacted_chars = len(encode(compacted))
