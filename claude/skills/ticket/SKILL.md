@@ -30,8 +30,9 @@ together with the user instead of guessing values.
   No workspace search, sidebar, linked pages, or other views.
 - On board views, locate the elements you need with `find role ...` or
   `find text ...` instead of snapshotting the whole view.
-- Press only Enter, Escape, and Tab. Do not type `@`, `[[`, or a leading
-  `/` into Notion: they open page search and block menus.
+- Press only Enter, Escape, Tab, Backspace, and the up and down arrows.
+  Do not type `@`, `[[`, or a leading `/` into Notion: they open page
+  search and block menus.
 - If a page shows a login screen, ask the user to log in in the
   `ticket-browser` window, then continue.
 - If the same browser step fails twice, stop and report.
@@ -59,13 +60,14 @@ together with the user instead of guessing values.
 4. Create the Jira issue first when reference.md says the template wants
    one, with only the fields reference.md lists.
 5. Create the board page from the template reference.md names for this
-   kind of work, or the default template. Fill the properties and the
-   template's sections. Title: `<Jira number>. <title>` when a Jira issue
-   exists (the digits of the issue key), otherwise `X. <title>`. When a
-   Jira issue is added later, rewrite the `X.` prefix.
-6. If the board step fails after the Jira issue exists, report the issue
-   key. The next create run finds that issue in step 1 and creates only
-   the board page for it; never create a second Jira issue.
+   kind of work, or the default template. Picking a template creates the
+   page at once: set the title first and note the page URL, then fill the
+   properties and the template's sections. Title: `<Jira number>. <title>`
+   when a Jira issue exists (the digits of the issue key), otherwise
+   `X. <title>`. When a Jira issue is added later, rewrite the `X.` prefix.
+6. If a step fails, report what already exists: the Jira issue key, the
+   board page URL, or both. The next create run reuses them and creates
+   only what is missing; never create a second Jira issue or board page.
 7. Record the link once work starts on a branch (below).
 
 Epics whose titles match the linking-only pattern in reference.md exist
@@ -94,14 +96,18 @@ Evidence workflow, after a pull request is created:
 3. Append the pull request URL to the evidence field, the way reference.md
    describes. This needs no approval: the user asked for it to be
    automatic. Read the field back to confirm the URL is there.
-4. If the browser is unavailable, report the ticket URL and the text to
+4. If `ticketJiraKey` is set, append the pull request URL to the Jira
+   section reference.md names for pull requests, unless it is there
+   already. This is part of the same automatic evidence.
+5. If the browser is unavailable, report the ticket URL and the text to
    paste instead of skipping silently.
 
 ## Status
 
 When work on a linked ticket starts, set the board status to the "in
-progress" value without asking. Propose every other status change, on the
-board or in Jira, together with the Jira update and apply it on approval.
+progress" value without asking, and propose the matching Jira transition
+in the same message. Propose every other status change, on the board or
+in Jira, together with the Jira update and apply it on approval.
 Use the status buttons reference.md lists when the template has them.
 
 ## Granularity and body
@@ -116,12 +122,13 @@ PRs usually land under one ticket.
   about ("is X in place yet?"). Infrastructure for a capability is one
   ticket, not one per component or workflow. Never split by
   implementation phase. INVEST applies, with Valuable weighted over Small.
-- `■完了条件` lists the resulting states, each about the size of a ticket
-  title one level down. No mechanisms, file names, or commands. For test
+- The acceptance section (`完了条件` / `受入条件`) lists the resulting
+  states, each about the size of a ticket title one level down. No mechanisms, file names, or commands. For test
   work, phrase each as "a test exists that confirms ...", otherwise the
   ticket reads like feature development.
-- Constraints are not target states. Put them under `■注意` as "when
-  doing X, ensure Y; if Y cannot hold, do not do X".
+- Constraints are not target states. Write them as "when doing X, ensure
+  Y; if Y cannot hold, do not do X" in the section the template provides
+  for notes.
 - Self-contained: no section numbers of external documents, and no
   shorthand that exists only in local working notes (plan files, internal
   path IDs). Use terms the team shares: product screens, user jobs,
@@ -130,9 +137,9 @@ PRs usually land under one ticket.
   for an account, registering it) into the ticket that consumes them.
 - Titles name the resulting thing plainly; avoid words that suggest a
   different kind of work (e.g. "データの整備" reads as data upload).
-- Match the language of existing issues in the project (currently
-  Japanese; headings `■背景・目的` / `■完了条件` / optional `■注意`). One
-  line per bullet.
+- Write in the language of existing tickets (currently Japanese) and use
+  the headings of the template and of the Jira description in
+  reference.md, nothing else. One line per bullet.
 
 ## Hard rules
 

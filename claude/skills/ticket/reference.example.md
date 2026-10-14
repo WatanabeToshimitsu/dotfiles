@@ -11,6 +11,8 @@ from `symlink-manifest.sh`, because this repository is public.
   via the `atlassian-http` MCP server. Pass `<site>.atlassian.net` as
   `cloudId`.
 - Fields the team template asks for, and nothing else: `<fields>`.
+- Description headings, and the heading pull request URLs go under:
+  `<headings>`.
 - When a ticket gets a Jira issue: `<rule from the team template>`.
 - Search example:
 
@@ -25,6 +27,8 @@ from `symlink-manifest.sh`, because this repository is public.
 - Templates: `<team template name>` for `<kind of work>`; the default
   template otherwise.
 - Evidence field: `<property name or body heading>` and how to append.
+- Status buttons in the template body, if any: `<start>` / `<review>` /
+  `<finish>`.
 - Status values: `<not started>` / `<in progress>` / `<reviewing>` /
   `<complete>`, and their Jira counterparts and transition ids.
 - Property option labels the skill sets: `<labels>`.
