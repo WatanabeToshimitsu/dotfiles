@@ -25,11 +25,13 @@ together with the user instead of guessing values.
 
 - Run every browser command as `ticket-browser <agent-browser args>`.
   Never call `agent-browser` directly for this skill.
-- `ticket-browser` opens only registered pages and refuses every other
-  command on unregistered ones. Register with `ticket-browser allow <url>`
-  only the board view URL from reference.md, a ticket page this skill just
-  created (read its URL with `ticket-browser get url`), or a ticket the
-  user named. No workspace search, sidebar, linked pages, or other views.
+- `ticket-browser` opens only registered pages, runs every other command
+  only on one, and after each command goes back from any unregistered
+  page. It cannot stop a page from loading; it undoes the visit. Register
+  with `ticket-browser allow <url>` only the board view URL from
+  reference.md or a ticket the user named. A ticket this skill creates is
+  registered by `ticket-browser expect-new` (create step 5). No workspace
+  search, sidebar, linked pages, or other views.
 - Screenshots also capture the sidebar's recent pages; prefer
   `snapshot -s <selector>` and screenshot only to check layout.
 - On board views, locate the elements you need with `find role ...` or
@@ -73,8 +75,10 @@ together with the user instead of guessing values.
    template wants one, with only the fields reference.md lists.
 5. Create the board page from the template reference.md names for this
    kind of work, or the default template. Picking a template creates the
-   page at once: set the title first and note the page URL, then fill the
-   properties and the template's sections. Title: `<Jira number>. <title>`
+   page at once, so run `ticket-browser expect-new` right before clicking
+   the template: it registers the one new page the click opens. Then read
+   the URL with `get url`, open the page by itself, set the title first,
+   and fill the properties and the template's sections. Title: `<Jira number>. <title>`
    when a Jira issue exists (the digits of the issue key), otherwise
    `X. <title>`. When a Jira issue is added later, rewrite the `X.` prefix.
 6. If a step fails, report what already exists: the Jira issue key, the
@@ -103,16 +107,17 @@ Evidence workflow, after a pull request is created:
 1. Read `ticketUrl` for the pull request's head branch. If it is unset,
    ask once which ticket the pull request belongs to when the repository
    is listed as a team repository in reference.md; otherwise stop.
-2. Open only that ticket URL. If the pull request URL is already in the
-   evidence field, stop.
-3. Append the pull request URL to the evidence field, the way reference.md
-   describes. This needs no approval: the user asked for it to be
-   automatic. Read the field back to confirm the URL is there.
-4. If `ticketJiraKey` is set, append the pull request URL to the Jira
-   section reference.md names for pull requests, unless it is there
-   already. This is part of the same automatic evidence.
-5. If the browser is unavailable, report the ticket URL and the text to
-   paste instead of skipping silently.
+2. Board: open only that ticket URL. Unless the pull request URL is
+   already in the evidence field, append it the way reference.md
+   describes, then read the field back to confirm it.
+3. Jira: if `ticketJiraKey` is set, read the issue. Unless the pull
+   request URL is already under the pull request heading reference.md
+   names, append it, then read the description back to confirm it.
+4. Steps 2 and 3 are independent: run both even when one finds the URL
+   already there, so a rerun completes a half-finished append. Neither
+   needs approval: the user asked for evidence to be automatic.
+5. If either side is unavailable, report which one, the ticket URL or
+   issue key, and the text to paste instead of skipping silently.
 
 ## Status
 
