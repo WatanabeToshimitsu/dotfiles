@@ -18,9 +18,8 @@ class Rpc:
     def __init__(self, state, cwd):
         env = {k: os.environ[k] for k in ('PATH', 'LANG', 'TMPDIR') if k in os.environ}
         env['CODEX_HOME'] = str(state)
-        self.errors = tempfile.TemporaryFile(mode='w+')
         self.proc = subprocess.Popen(['codex', 'app-server', '--listen', 'stdio://'], cwd=cwd, env=env,
-                                     stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=self.errors,
+                                     stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                                      text=True, bufsize=1)
         self.messages = queue.Queue()
         self.sequence = 0
@@ -58,7 +57,6 @@ class Rpc:
             self.proc.terminate()
             self.proc.wait(timeout=5)
         self.proc.stdout.close()
-        self.errors.close()
 
 
 def run():

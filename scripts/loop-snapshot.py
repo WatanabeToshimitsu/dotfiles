@@ -41,7 +41,7 @@ def execute(command: list[str], directory: Path) -> str:
             env=env,
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
             start_new_session=True,
         )
     except FileNotFoundError as error:
@@ -57,7 +57,6 @@ def execute(command: list[str], directory: Path) -> str:
             pass
         process.wait()
         process.stdout.close()
-        process.stderr.close()
         raise CollectionError("timeout") from error
     if process.returncode:
         raise CollectionError("command_failed")
