@@ -28,11 +28,11 @@ if [ "${1:-}" = "--version" ]; then
   exit 0
 fi
 if [ "$*" = "get url" ] && [ -f "${FAKE_AGENT_BROWSER_LOG:?}" ]; then
-  printf '%s\n' "${FAKE_AGENT_BROWSER_URL:-https://app.notion.com/p/abc}"
+  printf '%s\n' "${FAKE_AGENT_BROWSER_URL-https://app.notion.com/p/abc}"
   printf 'CHECK=%s\n' "$*" >> "$FAKE_AGENT_BROWSER_LOG.checks"
   exit 0
 fi
-if [ "$*" = back ]; then
+if [ "$*" = back ] && [ -f "${FAKE_AGENT_BROWSER_LOG:?}" ]; then
   printf 'BACK\n' >> "${FAKE_AGENT_BROWSER_LOG:?}.checks"
   exit 0
 fi
@@ -112,11 +112,59 @@ run_rejected get cdp-url
 run_rejected get html body
 run_rejected press Control+k
 run_rejected press Meta+p
+run_rejected open https://app.notion.com/p/abc https://example.com/
+run_rejected find alt logo click
+run_rejected find testid x click
 run_rejected
+run_ok snapshot -i -c -d 3 -s main
+run_ok screenshot --full shot.png
+run_ok find text Done click --exact
+run_ok wait --url "**/p/*"
+for args in "get url -s other" "click @e1 -i" "find role button click -d 2" \
+  "snapshot --name x" "wait --full" "get text --load x"; do
+  # shellcheck disable=SC2086
+  run_rejected $args
+done
+
+# The exit status of the browser call reaches the caller.
+cat > "$TEST_OUTPUT_DIR/bin/agent-browser-failing" <<'FAILING'
+#!/usr/bin/env bash
+[ "${1:-}" = "--version" ] && { echo "agent-browser 0.39.1"; exit 0; }
+[ "$*" = "get url" ] && { echo "https://app.notion.com/p/abc"; exit 0; }
+exit 7
+FAILING
+chmod +x "$TEST_OUTPUT_DIR/bin/agent-browser-failing"
+mkdir -p "$TEST_OUTPUT_DIR/failing-bin"
+ln -s "$TEST_OUTPUT_DIR/bin/agent-browser-failing" "$TEST_OUTPUT_DIR/failing-bin/agent-browser"
+for command in "get title" "click @e1"; do
+  status=0
+  # shellcheck disable=SC2086
+  PATH="$TEST_OUTPUT_DIR/failing-bin:$PATH" "$LAUNCHER" $command > /dev/null 2>&1 || status=$?
+  [ "$status" = 7 ] || fail "exit status $status instead of 7 for: $command"
+done
+
+# The launcher works when installed through a symlinked directory.
+mkdir -p "$TEST_OUTPUT_DIR/linked-home"
+ln -s "$REPO_DIR/.shell-utils" "$TEST_OUTPUT_DIR/linked-home/.shell-utils"
+rm -f "$FAKE_AGENT_BROWSER_LOG"
+"$TEST_OUTPUT_DIR/linked-home/.shell-utils/ticket-browser" get url > /dev/null \
+  || fail "launcher failed through a symlinked directory"
+assert_contains "AGENT_BROWSER_ACTION_POLICY=$POLICY" "$FAKE_AGENT_BROWSER_LOG"
 
 # An action that leaves Notion is undone and reported as a failure.
-run_ok click @e1
-grep -Fxq 'CHECK=get url' "$FAKE_AGENT_BROWSER_LOG.checks" || fail "click was not followed by a URL check"
+for command in "open https://app.notion.com/p/abc" back reload "find role button click" \
+  "click @e1" "press Enter" "select @e1 a" "check @e1" "uncheck @e1"; do
+  # shellcheck disable=SC2086
+  run_ok $command
+  grep -Fxq 'CHECK=get url' "$FAKE_AGENT_BROWSER_LOG.checks" \
+    || fail "$command was not followed by a URL check"
+done
+rm -f "$FAKE_AGENT_BROWSER_LOG" "$FAKE_AGENT_BROWSER_LOG.checks"
+if FAKE_AGENT_BROWSER_URL='' "$LAUNCHER" click @e1 > /dev/null 2> "$TEST_OUTPUT_DIR/err"; then
+  fail "an unknown page was accepted"
+fi
+grep -Fq "could not read the page URL" "$TEST_OUTPUT_DIR/err" || fail "unknown page gave no reason"
+! grep -Fxq BACK "$FAKE_AGENT_BROWSER_LOG.checks" || fail "unknown page was navigated back"
 for url in https://github.com/org/repo/pull/1 'https://notion.com.evil.example/'; do
   rm -f "$FAKE_AGENT_BROWSER_LOG.checks"
   rm -f "$FAKE_AGENT_BROWSER_LOG"
@@ -164,22 +212,48 @@ FAKE_AGENT_BROWSER_VERSION=0.39.0 run_rejected get url
 
 # Opt-in: the installed agent-browser enforces the policy's action names.
 if [ "${TICKET_BROWSER_REAL:-}" = 1 ]; then
+  session="tb-test-$$"
+  jq --arg s "$session" '.session = $s | .headed = false' "$CONFIG" > "$TEST_OUTPUT_DIR/real-config.json"
+  printf '{}\n' > "$TEST_OUTPUT_DIR/empty-config.json"
   real() {
-    PATH="$REAL_PATH" HOME="$REAL_HOME" AGENT_BROWSER_SESSION="tb-test-$$" \
+    env -i PATH="$REAL_PATH" HOME="$REAL_HOME" \
+      AGENT_BROWSER_CONFIG="$TEST_OUTPUT_DIR/real-config.json" \
       AGENT_BROWSER_ACTION_POLICY="$POLICY" agent-browser "$@"
   }
-  real open about:blank > /dev/null
+  unrestricted() {
+    env -i PATH="$REAL_PATH" HOME="$REAL_HOME" AGENT_BROWSER_SESSION="$session-open" \
+      AGENT_BROWSER_CONFIG="$TEST_OUTPUT_DIR/empty-config.json" agent-browser "$@"
+  }
+  cleanup_real() {
+    real close > /dev/null 2>&1 || true
+    unrestricted close > /dev/null 2>&1 || true
+  }
+  trap 'cleanup_real; rm -rf "$TEST_OUTPUT_DIR"' EXIT
+
+  unrestricted open about:blank > /dev/null
+  [ "$(unrestricted eval 1+1 2>&1 | tail -n 1)" = 2 ] || fail "control: eval did not run without the policy"
+
+  page='data:text/html,<input id=a><input id=c type=checkbox><select id=s><option>x</option></select><button id=b>Go</button>'
+  real open "$page" > /dev/null || fail "installed agent-browser denied: open"
+  env -i PATH="$REAL_PATH" HOME="$REAL_HOME" agent-browser session list 2>&1 | grep -Fq "$session" || fail "config session key was ignored"
+  for command in "fill #a x" "type #a y" "click #b" "press Tab" "hover #b" "focus #a" \
+    "check #c" "uncheck #c" "select #s x" "find role button click --name Go" \
+    "get text #b" "get value #a" "get attr #a id" "get title" "get url" "get count input" \
+    "is visible #a" "is enabled #a" "is checked #c" "scroll down 10" "scrollintoview #b" \
+    "wait 10" "wait --load load" "snapshot -i -c" "screenshot $TEST_OUTPUT_DIR/shot.png" \
+    reload "open data:text/html,<p>2</p>" back; do
+    # shellcheck disable=SC2086
+    real $command > "$TEST_OUTPUT_DIR/real.out" 2>&1 \
+      || fail "installed agent-browser denied: $command ($(tail -n 1 "$TEST_OUTPUT_DIR/real.out"))"
+  done
   for command in "eval 1" "cookies get" "storage local" "state save $TEST_OUTPUT_DIR/s.json" \
-    "network requests" "get cdp-url"; do
+    "network requests" "get cdp-url" "tab new" "find alt x click"; do
     # shellcheck disable=SC2086
     if real $command > "$TEST_OUTPUT_DIR/real.out" 2>&1 \
       || ! grep -q "denied by policy\|not in the allow list" "$TEST_OUTPUT_DIR/real.out"; then
-      real close > /dev/null 2>&1 || true
       fail "installed agent-browser did not deny: $command"
     fi
   done
-  real get url > /dev/null || fail "installed agent-browser denied an allowed action"
-  real close > /dev/null
 fi
 
 printf 'ticket-browser tests passed\n'

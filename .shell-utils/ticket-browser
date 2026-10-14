@@ -6,6 +6,7 @@ ticket_browser_dir="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="$ticket_browser_dir/ticket-browser.json"
 POLICY_FILE="$ticket_browser_dir/ticket-browser-policy.json"
 PROFILE_DIR="$HOME/.agent-browser/profiles/ticket"
+export LC_ALL=C
 NOTION_URL='^https://([a-z0-9-]+\.)*notion\.(com|so)(/[^[:space:]]*)?$'
 
 reject() {
@@ -31,10 +32,16 @@ jq -e 'type == "object"' "$CONFIG_FILE" > /dev/null 2>&1 \
 
 [ $# -gt 0 ] || reject "usage: ticket-browser <agent-browser command> [args]"
 
-for argument in "$@"; do
+case "$1" in
+  snapshot) allowed_options=" -i -c -d -s " ;;
+  find) allowed_options=" --name --exact " ;;
+  wait) allowed_options=" --load --url --text " ;;
+  screenshot) allowed_options=" --full " ;;
+  *) allowed_options=" " ;;
+esac
+for argument in "${@:2}"; do
   case "$argument" in
-    -i | -c | -d | -s | --name | --exact | --load | --url | --text | --full) ;;
-    -*) reject "option is not allowed: $argument" ;;
+    -*) [[ $allowed_options == *" $argument "* ]] || reject "option is not allowed here: $argument" ;;
   esac
 done
 
@@ -57,7 +64,13 @@ case "$1" in
       *) reject "only plain Enter, Escape, Tab, Backspace, and arrow keys may be pressed" ;;
     esac
     ;;
-  back | reload | snapshot | screenshot | is | find | click | fill | type | select | \
+  find)
+    case "${2:-}" in
+      role | text | label | placeholder | title | nth) ;;
+      *) reject "find ${2:-} is not allowed" ;;
+    esac
+    ;;
+  back | reload | snapshot | screenshot | is | click | fill | type | select | \
     check | uncheck | hover | focus | scroll | scrollintoview | wait | close) ;;
   *) reject "command is not allowed: $1" ;;
 esac
@@ -76,7 +89,8 @@ esac
 
 status=0
 agent-browser "$@" || status=$?
-current=$(agent-browser get url 2> /dev/null | tail -n 1)
+current=$(agent-browser get url 2> /dev/null | tail -n 1) || true
+[ -n "$current" ] || reject "could not read the page URL after the action; check the window"
 if [ "$current" != about:blank ] && ! [[ $current =~ $NOTION_URL ]]; then
   agent-browser back > /dev/null 2>&1 || true
   reject "the action left Notion ($current); went back"
