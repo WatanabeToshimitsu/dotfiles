@@ -357,7 +357,7 @@ try:
             if hook.get("type") != "command" or entry != command:
                 report("unknown", "custom compaction registration; next: inspect /hooks in Claude Code")
                 raise SystemExit
-            if group.get("matcher", "") not in ("", "*", "Read", "Read|Grep|Glob|WebFetch|WebSearch|mcp__.*"):
+            if group.get("matcher", "") not in ("", "*", "Read", "Read|Grep|WebFetch|mcp__.*", "Read|Grep|Glob|WebFetch|WebSearch|mcp__.*"):
                 report("unknown", "compaction matcher is outside the checked scope; next: inspect /hooks in Claude Code")
                 raise SystemExit
             registered = True

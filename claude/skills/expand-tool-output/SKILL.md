@@ -1,6 +1,6 @@
 ---
 name: expand-tool-output
-description: Retrieve a focused excerpt from a large Read, Grep, Glob, Web, or MCP result compacted by the local hook. Use when a tool result contains an archive ID and missing detail is needed.
+description: Retrieve a focused excerpt from a large Read, Grep, WebFetch, or MCP result compacted by the local hook. Use when a tool result contains an archive ID and missing detail is needed.
 argument-hint: <archive-id> [focus term]
 allowed-tools: Bash
 ---
