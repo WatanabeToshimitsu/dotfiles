@@ -8,7 +8,7 @@ import sys
 
 
 LEGACY_PATTERN = re.compile(r"\bgit add (-A|--all|\.($|[ ;|&]))", re.MULTILINE)
-TICKET_STATE = re.compile(r"profiles/ticket\b|(^|[ =])(--session|AGENT_BROWSER_SESSION)[ =]ticket\b")
+TICKET_STATE = re.compile(r"profiles/ticket\b|ticket-browser\.json|(^|[ =])(--session|AGENT_BROWSER_SESSION)[ =]ticket\b")
 
 
 sys.dont_write_bytecode = True

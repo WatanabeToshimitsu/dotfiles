@@ -133,6 +133,8 @@ class ValidateBashTests(unittest.TestCase):
             "env AGENT_BROWSER_SESSION=ticket /opt/homebrew/bin/agent-browser cookies get",
             "ls; npx agent-browser --session ticket snapshot",
             "agent-browser --session ticket get url | head",
+            "AGENT_BROWSER_CONFIG=~/.shell-utils/ticket-browser.json agent-browser open https://example.com",
+            "agent-browser --config ~/.shell-utils/ticket-browser.json get url",
         ]
         for command in denied:
             with self.subTest(command=command):
