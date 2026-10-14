@@ -209,8 +209,7 @@ def plan(root, home):
     links = {BASE + '/current': str(snapshot)}
     links.update({f'.agents/skills/{s}': str(current / 'skills' / s) for s in sorted(active)})
     operations = []
-    def add(name, after, before=None):
-        before = capture(target(home, name)) if before is None else before
+    def add(name, after, before):
         if before != after:
             operations.append({'path': name, 'before': before, 'after': after})
     for name in sorted(owned.keys() | links.keys()):
@@ -218,7 +217,7 @@ def plan(root, home):
         expected = {'kind': 'link', 'target': owned.get(name)}
         if before['kind'] != 'absent' and before != expected:
             raise ValueError(f'managed link collision: {name}')
-        add(name, {'kind': 'link', 'target': links[name]} if name in links else {'kind': 'absent'})
+        add(name, {'kind': 'link', 'target': links[name]} if name in links else {'kind': 'absent'}, before)
     add('.codex/AGENTS.md', file_value(merged_text.encode(), prior_agents.get('mode', 0o600)), prior_agents)
     new_state = {'version': 1, 'root': str(root), 'commit': head, 'generation': generation,
                  'links': links, 'block': block, 'skills': manifest['skills'], 'skipped': skipped,
@@ -356,6 +355,7 @@ def restore(home, dry_run=False):
 
 def uninstall(home, dry_run=False):
     home = home.resolve()
+    state_before = capture(target(home, STATE))
     state = load_state(home)
     if not state:
         return []
@@ -374,7 +374,7 @@ def uninstall(home, dry_run=False):
             operations.append({'path': '.codex/AGENTS.md', 'before': before, 'after': after})
         elif BEGIN in text or END in text:
             raise ValueError('managed instructions were edited; leaving installation unchanged')
-    operations.append({'path': STATE, 'before': capture(target(home, STATE)), 'after': {'kind': 'absent'}})
+    operations.append({'path': STATE, 'before': state_before, 'after': {'kind': 'absent'}})
     if not dry_run:
         with locked(home):
             transaction(home, operations)
