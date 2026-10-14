@@ -696,6 +696,37 @@ class RegressionTest(RepositoryCase):
             install.apply(prepared)
         self.assertEqual(agents.read_text(), 'New local text\n')
 
+    def test_file_created_at_managed_link_during_planning_is_preserved(self):
+        self.merged()
+        link = self.home.resolve() / '.agents/skills/demo'
+        link.parent.mkdir(parents=True, exist_ok=True)
+        real_capture = install.capture
+        def edit_after_capture(path):
+            before = real_capture(path)
+            if path == link:
+                link.write_text('Concurrent local data\n')
+            return before
+        with patch.object(install, 'capture', side_effect=edit_after_capture):
+            prepared = install.plan(self.root, self.home)
+        with self.assertRaisesRegex(ValueError, 'concurrent'):
+            install.apply(prepared)
+        self.assertEqual(link.read_text(), 'Concurrent local data\n')
+
+    def test_state_changed_during_uninstall_planning_is_preserved(self):
+        self.merged()
+        install.apply(install.plan(self.root, self.home))
+        state_path = self.home / install.STATE
+        real_load_state = install.load_state
+        def update_after_load(home):
+            state = real_load_state(home)
+            state_path.write_text(json.dumps(dict(state, commit='f' * 40)))
+            return state
+        with patch.object(install, 'load_state', side_effect=update_after_load):
+            with self.assertRaisesRegex(ValueError, 'concurrent'):
+                install.uninstall(self.home)
+        self.assertEqual(json.loads(state_path.read_text())['commit'], 'f' * 40)
+        self.assertTrue((self.home / '.agents/skills/demo').is_symlink())
+
     def test_agents_edit_during_transaction_is_preserved_on_rollback(self):
         self.merged()
         prepared = install.plan(self.root, self.home)
