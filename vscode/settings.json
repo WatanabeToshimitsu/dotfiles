@@ -553,7 +553,7 @@
   "terminal.integrated.profiles.linux": {
     "zsh": {
       "path": "zsh",
-      "args": ["--login", "-i", "-l"],
+      "args": ["--login", "-i"],
     },
   },
   "githubPullRequests.pullBranch": "never",
