@@ -121,6 +121,7 @@ The user-facing frontier model leads the task and may design, implement, refacto
 - ユーザー向け文章は簡潔にする。
 - 括弧の補足を多用せず、重要事項は本文に書く。
 - PR、issue、deployment、service の状態は、報告する前に毎回コマンドで確認する。会話中に見た内容から断定しない。
+- ユーザーに PR のレビューやマージ、issue の確認を頼むときは、番号だけでなく URL をそのまま書く。
 - When quoting or relying on external documentation, verify the source and
   include its URL or file path. Match quotes to the original and label
   paraphrases and inferences. If verification is unavailable, state that
