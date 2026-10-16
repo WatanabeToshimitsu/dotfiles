@@ -116,7 +116,9 @@ bash install.sh --codex-only
 
 ### 外部スキルの更新
 
-外部スキルは`install.sh`で導入します。導入済みの`natural-japanese`を更新する場合は、以下のコマンドを使ってください。
+外部スキルは`install.sh`でClaude CodeとCodexの両方に導入します。実体は`~/.agents/skills`に置かれ、`~/.claude/skills`からリンクされます。`partial:`と表示されたスキルは、片方にしかないか、リンクが切れています。`~/.claude/skills/<skill>`と`~/.agents/skills/<skill>`を別の場所へ移してから`install.sh`を再実行し、残しておきたいローカルのファイルを`~/.agents/skills/<skill>`へ戻してください。
+
+導入済みの`natural-japanese`を更新する場合は、以下のコマンドを使ってください。
 
 ```bash
 npx skills update natural-japanese -g -y
