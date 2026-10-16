@@ -9,6 +9,7 @@ Claude Code・Codexの状態確認と、使い方を調整するときの手順�
 - [Headroomによる応答量の調整](#headroom-proxy)
 - [ClaudeのBash sandbox](#claude-bash-sandbox-canary)
 - [Auto Memoryと共通ルールへの反映](#claude-auto-memory)
+- [TypeScriptの言語サーバー](#typescript-lsp)
 - [定期実行をエージェントに依頼する](#loop-contracts)
 
 <a id="agent-diagnostics"></a>
@@ -98,6 +99,20 @@ claude-sandbox
 このリポジトリ独自の仕組みは、学びを共通ルールに反映したかどうかの管理です。エージェントはfeedback形式の記憶に`metadata.promoted`を記録し、`CLAUDE.md`・ルール・スキルへの反映先、または反映しない判断を残します。doctorはこの情報から反映待ちを報告します。
 
 今後も守ってほしい好みや方針は、エージェントに伝えてください。[`claude/AUTO-MEMORY.md`](../claude/AUTO-MEMORY.md)は、この独自の管理方法を説明する資料です。
+
+<a id="typescript-lsp"></a>
+
+## TypeScriptの言語サーバー
+
+Claude Codeの`typescript-lsp`プラグインは、ユーザー設定で無効にしています。有効なセッションでは、TypeScriptやJavaScriptのファイルを最初に編集したときにtsserverが起動します。数時間放置したセッションでも残っており、観測時には1プロセスで約3.2GBを使っていました。
+
+定義へのジャンプや編集後の型エラー表示が必要なリポジトリでは、そのリポジトリで以下のコマンドを実行してください。gitで管理されない`.claude/settings.local.json`に書き込まれ、そのリポジトリだけで有効になります。
+
+```bash
+claude plugin enable typescript-lsp@claude-plugins-official --scope local
+```
+
+無効に戻すときは、`enable`を`disable`に替えて実行します。
 
 <a id="loop-contracts"></a>
 

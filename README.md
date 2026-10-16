@@ -95,6 +95,7 @@ Headroomだけを再設定する場合は、以下のコマンドを使ってく
 | 応答量の調整 | [Headroomで応答の長さを調整し、削減効果を測定](docs/agent-operations.md#headroom-proxy) |
 | 作業の隔離 | [macOS向けBash sandboxを必要に応じて利用](docs/agent-operations.md#claude-bash-sandbox-canary) |
 | 学びの共有 | [ClaudeのAuto Memoryと、共通ルールへの反映状況を管理](docs/agent-operations.md#claude-auto-memory) |
+| メモリの節約 | [TypeScriptの言語サーバーは必要なリポジトリだけで有効化](docs/agent-operations.md#typescript-lsp) |
 | 定期実行 | [Loopで任せる作業を計画](docs/agent-operations.md#loop-contracts)。dotfilesでは試行・検証段階 |
 
 <a id="codex-configuration-sync"></a>
