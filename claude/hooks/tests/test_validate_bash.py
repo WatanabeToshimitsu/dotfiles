@@ -12,8 +12,10 @@ HOOK = Path(__file__).resolve().parents[1] / "validate-bash.sh"
 
 
 class ValidateBashTests(unittest.TestCase):
-    def decision(self, command, cwd=None):
+    def decision(self, command, cwd=None, background=False):
         payload = {"tool_name": "Bash", "tool_input": {"command": command}}
+        if background:
+            payload["tool_input"]["run_in_background"] = True
         if cwd:
             payload["cwd"] = cwd
         result = subprocess.run(
@@ -187,6 +189,29 @@ class ValidateBashTests(unittest.TestCase):
         for command in allowed:
             with self.subTest(command=command):
                 self.assertEqual(self.decision(command), "allow")
+
+    def test_background_node_launches_go_through_memgate(self):
+        launches = [
+            "npm run dev", "pnpm storybook", "npx vite --port 5173",
+            "PORT=3000 node server.js", "cd app && yarn dev",
+            "/usr/local/bin/node server.js", "rtk proxy pnpm dev",
+            "env -u NODE_OPTIONS npm run dev", "env -i PATH=/bin node a.js",
+            "env -C app -- bun dev", "env -S 'npm run dev'", "env -S'PORT=1 node a.js'",
+            "command -- npm run dev", "command -p deno run a.ts",
+            "nohup next dev", "time -p vitest", "exec -a dev node server.js",
+        ]
+        for command in launches:
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command, background=True), "deny")
+                self.assertEqual(self.decision(command), "allow")
+        allowed = [
+            "memgate run -- npm run dev",
+            "memgate run --key web -- pnpm storybook",
+            "sleep 30", "git status", "python3 -m http.server",
+        ]
+        for command in allowed:
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command, background=True), "allow")
 
     def test_explicit_paths_and_non_bash_input_are_preserved(self):
         for command in ["git add README.md", "git add ./src/main.ts", "git add -- -A"]:

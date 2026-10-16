@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shlex
 import sys
 
 
@@ -17,7 +18,38 @@ PATH_OPTIONS = {"--profile", "--config", "AGENT_BROWSER_PROFILE", "AGENT_BROWSER
 DIRECTORY_CHANGE = re.compile(r"(^|[;&|(\n]\s*)(cd|pushd|popd)\b")
 RELATIVE_PATH_OPTION = re.compile(
     r"(--profile|--config|AGENT_BROWSER_PROFILE|AGENT_BROWSER_CONFIG)[ =]+(?![\"']?(/|~|\$HOME\b|\$\{HOME\}))")
+NODE_LAUNCHERS = {"node", "npm", "npx", "pnpm", "pnpx", "yarn", "bun", "bunx", "deno", "tsx",
+                  "vite", "next", "storybook", "vitest", "jest", "playwright"}
+WRAPPERS = {"env": {"-u", "--unset", "-C", "--chdir"}, "exec": {"-a"},
+            "nohup": set(), "time": set(), "command": set()}
+ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 working_directory = os.getcwd()
+
+
+def launched_program(arguments):
+    words = list(arguments)
+    while words:
+        if ASSIGNMENT.match(words[0]):
+            words.pop(0)
+        elif words[0] == "rtk":
+            words = words[2:] if words[1:2] == ["proxy"] else words[1:]
+        elif words[0] in WRAPPERS:
+            wrapper = words.pop(0)
+            while words and words[0].startswith("-"):
+                option = words.pop(0)
+                if option == "--":
+                    break
+                if wrapper == "env" and option.startswith("-S"):
+                    try:
+                        words = shlex.split(option[2:] or (words.pop(0) if words else "")) + words
+                    except ValueError:
+                        return None
+                    break
+                if option in WRAPPERS[wrapper] and words:
+                    words.pop(0)
+        else:
+            return Path(words[0]).name
+    return None
 
 
 def names_ticket_path(word, bare=False):
@@ -54,10 +86,13 @@ class Commands(ShellParser):
         self.changes_directory = False
         self.relative_agent_browser_path = False
         self.unknown = False
+        self.node_launch = False
 
     def finish(self, arguments):
         if not arguments:
             return
+        if launched_program(arguments) in NODE_LAUNCHERS:
+            self.node_launch = True
         if arguments[0] in {"cd", "pushd", "popd"}:
             self.changes_directory = True
         bare = [value for option, value in zip(arguments, arguments[1:]) if option in PATH_OPTIONS]
@@ -120,6 +155,7 @@ try:
     if payload.get("tool_name") != "Bash":
         sys.exit(0)
     command = payload.get("tool_input", {}).get("command", "")
+    background = payload.get("tool_input", {}).get("run_in_background") is True
     if isinstance(payload.get("cwd"), str) and os.path.isabs(payload["cwd"]):
         working_directory = payload["cwd"]
     if not isinstance(command, str):
@@ -144,6 +180,8 @@ if commands.ticket_state or (
     reason = "Use ticket-browser for the ticket browser session and profile."
 elif commands.forbidden or (commands.unknown and LEGACY_PATTERN.search(command)):
     reason = "Do not git-add all files. Specify the file name(s) to add."
+elif background and commands.node_launch:
+    reason = "Start long-running Node processes through the memory gate: memgate run -- <command>"
 if reason:
     print(json.dumps({"hookSpecificOutput": {
         "hookEventName": "PreToolUse",
