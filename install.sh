@@ -553,9 +553,11 @@ setup_agent_skills() {
   echo "Installing agent skills..."
   echo "----------------------------------------------"
 
-  # Newer skills CLI copies into ~/.claude/skills directly; older versions
-  # symlink from ~/.agents/skills — treat either as installed.
-  local entry repo skill
+  # The skills CLI keeps the copy Codex reads in ~/.agents/skills and links
+  # ~/.claude/skills to it. A path occupied on only one side is left for manual
+  # recovery: rerunning the CLI there would wipe or replace that directory,
+  # including local files such as reports.
+  local entry repo skill codex_dir claude_dir
   while IFS= read -r entry || [ -n "$entry" ]; do
     entry="${entry%$'\r'}"
     if [[ ! "$entry" =~ ^[^:[:space:]]+:[a-z0-9-]+$ ]]; then
@@ -564,11 +566,17 @@ setup_agent_skills() {
     fi
     repo="${entry%%:*}"
     skill="${entry##*:}"
-    if [ -e "$HOME/.agents/skills/$skill" ] || [ -e "$HOME/.claude/skills/$skill" ]; then
+    codex_dir="$HOME/.agents/skills/$skill"
+    claude_dir="$HOME/.claude/skills/$skill"
+    if [ -e "$codex_dir" ] && [ -e "$claude_dir" ]; then
       echo "  exists: $skill"
       continue
     fi
-    npx -y skills add "$repo" -g -y -s "$skill" -a claude-code </dev/null || echo "  failed: $entry"
+    if [ -e "$codex_dir" ] || [ -L "$codex_dir" ] || [ -e "$claude_dir" ] || [ -L "$claude_dir" ]; then
+      echo "  partial: $skill is not installed for both Claude Code and Codex; move ~/.claude/skills/$skill and ~/.agents/skills/$skill aside and rerun" >&2
+      continue
+    fi
+    npx -y skills add "$repo" -g -y -s "$skill" -a claude-code -a codex </dev/null || echo "  failed: $entry"
   done < "$DOTFILES_DIR/agent-skills.txt"
 }
 
