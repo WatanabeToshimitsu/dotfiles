@@ -129,6 +129,32 @@ class RemoteMutationGuardTest(unittest.TestCase):
         self.assertEqual(detail["pushes"][0]["args"], ["-u", "origin", "topic"])
         self.assertEqual(self.guard.classify_words(["command"]), ("continue", {}))
 
+    def test_duplicate_remote_settings_keep_scalar_and_multivalue_semantics(self):
+        for setting, values, blocked in [
+            ("mirror", ["false", "true"], True),
+            ("mirror", ["true", "false"], False),
+            ("push", ["+HEAD:main", "HEAD:topic"], True),
+            ("push", ["HEAD:topic", "+HEAD:main"], True),
+        ]:
+            with tempfile.TemporaryDirectory() as directory:
+                git = self.topic_repo(directory)
+                for value in values:
+                    git("config", "--add", "remote.origin." + setting, value)
+
+                for client in ["claude", "codex"]:
+                    with self.subTest(setting=setting, values=values, client=client):
+                        output = self.run_hook({
+                            "tool_name": "Bash", "cwd": directory,
+                            "tool_input": {"command": "git push origin"},
+                        }, client)
+
+                        if blocked:
+                            detail = output.get("hookSpecificOutput", {})
+                            self.assertEqual(detail.get("permissionDecision"), "deny")
+                            self.assertEqual(detail["permissionDecisionReason"], self.guard.FORCE_REASON)
+                        else:
+                            self.assertEqual(output, {})
+
     def test_inline_git_config_cannot_hide_forced_push(self):
         for command in [
             "git -c remote.origin.push=+HEAD:main push origin",
