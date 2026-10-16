@@ -63,6 +63,7 @@ The user-facing frontier model leads the task and may design, implement, refacto
   through another route. PR creation grants no merge, profile, scheduling,
   spending, or private-data sharing authority. Keep native checks and report
   instruction checks separately from runtime results.
+- Start long-running Node processes such as dev servers, watchers, and Storybook with `memgate run -- <command>`; `agent-browser` passes through memgate automatically. When memgate refuses for lack of memory, stop idle servers and browsers you started, then retry; do not bypass it.
 - JavaScript/TypeScript を含む範囲のリポジトリ検査やリファクタリングでは、`repository-audit` skill を使い、Knip の結果または実行できなかった理由を残す。
 
 詳細な進行手順とレビュー基準は、該当時に `delivery-workflow` と `code-review` skill を使う。
