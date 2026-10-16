@@ -229,10 +229,17 @@ See skill: `missing-skill`
     def test_repository_instruction_references_are_valid(self):
         self.assertEqual(instruction_reference_errors(ROOT), [])
 
-    def test_external_install_reads_all_recipes_and_skips_either_existing_root(self):
-        self.put('agent-skills.txt', 'fixture/one:first\r\nfixture/two:second\nfixture/three:third\nfixture/four:last')
-        (self.home / '.agents/skills/second').mkdir(parents=True)
-        (self.home / '.claude/skills/third').mkdir(parents=True)
+    def test_external_install_targets_both_clients_and_reports_partial_roots(self):
+        self.put('agent-skills.txt', 'fixture/one:first\r\nfixture/two:second\nfixture/three:third\n'
+                 'fixture/four:shared\nfixture/five:dangling-claude\nfixture/six:dangling-codex\nfixture/seven:last')
+        reports = [self.home / '.agents/skills/second/reports/r.md', self.home / '.claude/skills/third/reports/r.md']
+        for report in reports:
+            report.parent.mkdir(parents=True)
+            report.write_text('local report')
+        (self.home / '.agents/skills/shared').mkdir()
+        (self.home / '.claude/skills/shared').symlink_to('../../.agents/skills/shared')
+        (self.home / '.claude/skills/dangling-claude').symlink_to('../missing')
+        (self.home / '.agents/skills/dangling-codex').symlink_to('../missing')
         function = re.search(r'(?ms)^setup_agent_skills\(\) \{.*?^\}', (ROOT / 'install.sh').read_text())[0]
         calls = self.home / 'npx-calls'
         result = subprocess.run(['/bin/bash', '-c', '''
@@ -243,10 +250,14 @@ npx() { printf '%s\\n' "$*" >> "$CALLS"; cat > /dev/null; }
             env=dict(os.environ, HOME=str(self.home)), capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(calls.read_text().splitlines(), [
-            '-y skills add fixture/one -g -y -s first -a claude-code',
-            '-y skills add fixture/four -g -y -s last -a claude-code'])
-        self.assertIn('exists: second', result.stdout)
-        self.assertIn('exists: third', result.stdout)
+            '-y skills add fixture/one -g -y -s first -a claude-code -a codex',
+            '-y skills add fixture/seven -g -y -s last -a claude-code -a codex'])
+        self.assertIn('exists: shared', result.stdout)
+        for skill in ('second', 'third', 'dangling-claude', 'dangling-codex'):
+            self.assertIn('partial: ' + skill + ' ', result.stderr)
+        self.assertEqual([report.read_text() for report in reports], ['local report'] * 2)
+        self.assertEqual(os.readlink(self.home / '.claude/skills/dangling-claude'), '../missing')
+        self.assertEqual(os.readlink(self.home / '.agents/skills/dangling-codex'), '../missing')
 
 
 class SyncTest(RepositoryCase):

@@ -27,7 +27,7 @@ jobs:
         with:
           persist-credentials: false
       - name: shellcheck
-        run: shellcheck -S warning .shell-utils/dotfiles-update uninstall.sh install.sh test/test-install.sh test/test-dotfiles-doctor.sh test/test-dotfiles-secrets.sh test/test-external-dependencies.sh test/test-agent-skills.sh test/test-notification.sh test/test-claude-sandbox.sh test/test-claude-hooks.sh test/test-launchd.sh test/test-secret-scan.sh test/test-worktree-gc.sh test/test-ticket-browser.sh claude/hooks/*.sh .shell-utils/*.sh .shell-utils/claude-sandbox .shell-utils/worktree-gc .shell-utils/ticket-browser
+        run: shellcheck -S warning .shell-utils/dotfiles-update uninstall.sh install.sh test/test-install.sh test/test-dotfiles-doctor.sh test/test-dotfiles-secrets.sh test/test-external-dependencies.sh test/test-notification.sh test/test-claude-sandbox.sh test/test-claude-hooks.sh test/test-launchd.sh test/test-secret-scan.sh test/test-worktree-gc.sh test/test-ticket-browser.sh claude/hooks/*.sh .shell-utils/*.sh .shell-utils/claude-sandbox .shell-utils/worktree-gc .shell-utils/ticket-browser
       - name: Test 1Password secret rendering
         run: bash test/test-dotfiles-secrets.sh
       - name: Test dotfiles doctor
@@ -48,8 +48,6 @@ jobs:
         run: bash test/test-ticket-browser.sh
       - name: Test launchd agent
         run: bash test/test-launchd.sh
-      - name: Test agent skill installation
-        run: bash test/test-agent-skills.sh
       - name: Test tool-output compaction
         run: python3 -m unittest discover -s claude/hooks/tests -p 'test_*.py'
       - name: Test read-only Loop snapshot
