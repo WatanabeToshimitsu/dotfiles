@@ -155,6 +155,34 @@ class RemoteMutationGuardTest(unittest.TestCase):
                         else:
                             self.assertEqual(output, {})
 
+    def test_remote_mirror_uses_git_boolean_semantics(self):
+        for value, normalized in [
+            (None, "true"), ("2", "true"), ("-1", "true"), ("true", "true"),
+            ("false", "false"), ("0", "false"), ("", "false"),
+        ]:
+            with tempfile.TemporaryDirectory() as directory:
+                git = self.topic_repo(directory, origin="https://example.invalid/o/r.git")
+                if value is None:
+                    with (Path(directory) / ".git/config").open("a") as config:
+                        config.write('\n[remote "origin"]\n\tmirror\n')
+                else:
+                    git("config", "remote.origin.mirror", value)
+                self.assertEqual(git("config", "--bool", "--get", "remote.origin.mirror"), normalized)
+
+                for client in ["claude", "codex"]:
+                    with self.subTest(value=value, client=client):
+                        output = self.run_hook({
+                            "tool_name": "Bash", "cwd": directory,
+                            "tool_input": {"command": "git push origin"},
+                        }, client)
+                        if normalized == "true":
+                            detail = output.get("hookSpecificOutput", {})
+                            self.assertEqual(detail.get("permissionDecision"), "deny",
+                                             "Git-true mirror must be denied")
+                            self.assertEqual(detail["permissionDecisionReason"], self.guard.FORCE_REASON)
+                        else:
+                            self.assertEqual(output, {})
+
     def test_inline_git_config_cannot_hide_forced_push(self):
         for command in [
             "git -c remote.origin.push=+HEAD:main push origin",
