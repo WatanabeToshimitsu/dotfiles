@@ -1,0 +1,363 @@
+#!/usr/bin/env python3
+"""Start memory-heavy commands only when available memory covers their estimate.
+
+memgate run [--key KEY] [--wait SECONDS] -- COMMAND...
+memgate browser ARGS...   (called by the agent-browser shim)
+"""
+import ctypes
+import fcntl
+import json
+import os
+import re
+import subprocess
+import sys
+import time
+from contextlib import contextmanager, nullcontext
+from pathlib import Path
+
+GIB = 1 << 30
+FLOOR = 2 * GIB
+MARGIN = GIB
+WAIT = 100.0
+INTERVAL = 2
+LEDGER_DIR = Path(f"/tmp/memgate-{os.getuid()}")
+PEAKS = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/state") / "memgate/peaks.json"
+BROWSER_KEY = "agent-browser"
+HELP = {"--help", "-h", "--version", "-V"}
+NO_LAUNCH = {"help", "session", "close", "install", "skills", "profiles"}
+VALUE_OPTIONS = {
+    "--action-policy", "--allowed-domains", "--args", "--ca-cert", "--cdp", "--color-scheme", "--config",
+    "--confirm-actions", "--device", "--download-path", "--enable", "--engine", "--executable-path",
+    "--extension", "--frame", "--headers", "--hide-scrollbars", "--idle-timeout", "--init-script",
+    "--input-mode", "--max-output", "--model", "--namespace", "--profile", "--proxy", "--proxy-bypass",
+    "--restore-check-fn", "--restore-check-text", "--restore-check-url", "--restore-save", "--screenshot-dir",
+    "--screenshot-format", "--screenshot-quality", "--session", "--session-name", "--state", "--user-agent",
+    "-d", "--depth", "-p", "--provider", "-s", "--selector"}
+USAGE = "usage: memgate run [--key KEY] [--wait SECONDS] -- COMMAND..."
+
+
+class Busy(Exception):
+    pass
+
+
+if sys.platform == "darwin":
+    libproc = ctypes.CDLL("/usr/lib/libproc.dylib")
+
+    class BsdInfo(ctypes.Structure):
+        _fields_ = [(name, ctypes.c_uint32) for name in (
+            "flags", "status", "xstatus", "pid", "ppid", "uid", "gid", "ruid", "rgid",
+            "svuid", "svgid", "rfu")] + [
+            ("comm", ctypes.c_char * 16), ("name", ctypes.c_char * 32)] + [
+            (name, ctypes.c_uint32) for name in ("nfiles", "pgid", "pjobc", "tdev", "tpgid", "nice")] + [
+            ("start_sec", ctypes.c_uint64), ("start_usec", ctypes.c_uint64)]
+
+    def processes():
+        pids = (ctypes.c_int * (libproc.proc_listallpids(None, 0) + 64))()
+        info = BsdInfo()
+        table = {}
+        for pid in pids[:libproc.proc_listallpids(pids, ctypes.sizeof(pids))]:
+            if libproc.proc_pidinfo(pid, 3, 0, ctypes.byref(info), ctypes.sizeof(info)) == ctypes.sizeof(info):
+                table[pid] = (info.ppid, f"{info.start_sec}.{info.start_usec}",
+                              (info.name or info.comm).decode(errors="replace"))
+        return table
+
+    def footprint(pid):
+        # Why not ps RSS: it omits compressed pages, which dominate under memory pressure.
+        usage = (ctypes.c_uint64 * 40)()
+        return usage[9] if libproc.proc_pid_rusage(pid, 2, usage) == 0 else 0
+
+    def available():
+        # Why not sysctl: sandboxes deny the vm page sysctls, while vm_stat still works.
+        output = subprocess.run(["vm_stat"], capture_output=True, text=True, timeout=10, check=True).stdout
+        pages = dict(re.findall(r'^"?([^:"]+)"?:\s+(\d+)\.$', output, re.MULTILINE))
+        page_size = int(re.search(r"page size of (\d+) bytes", output).group(1))
+        return sum(int(pages[name]) for name in ("Pages free", "File-backed pages", "Pages purgeable")) * page_size
+else:
+    def processes():
+        table = {}
+        for entry in Path("/proc").iterdir():
+            try:
+                stat = (entry / "stat").read_text() if entry.name.isdigit() else ""
+            except OSError:
+                continue
+            if stat:
+                fields = stat[stat.rindex(")") + 2:].split()
+                table[int(entry.name)] = (int(fields[1]), fields[19], stat[stat.index("(") + 1:stat.rindex(")")])
+        return table
+
+    def footprint(pid):
+        try:
+            status = Path(f"/proc/{pid}/status").read_text()
+        except OSError:
+            return 0
+        return sum(int(size) for size in re.findall(r"^(?:VmRSS|VmSwap):\s+(\d+) kB", status, re.MULTILINE)) * 1024
+
+    def available():
+        meminfo = Path("/proc/meminfo").read_text()
+        return int(re.search(r"^MemAvailable:\s+(\d+) kB", meminfo, re.MULTILINE).group(1)) * 1024
+
+
+def gib(size):
+    return f"{size / GIB:.1f} GiB"
+
+
+def load(path, default):
+    try:
+        return json.loads(path.read_text())
+    except (OSError, ValueError):
+        return default
+
+
+def save(path, data):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.{os.getpid()}")
+    temporary.write_text(json.dumps(data))
+    os.replace(temporary, path)
+
+
+@contextmanager
+def locked(deadline=float("inf")):
+    LEDGER_DIR.mkdir(mode=0o700, exist_ok=True)
+    if LEDGER_DIR.is_symlink() or LEDGER_DIR.stat().st_uid != os.getuid():
+        raise PermissionError(f"{LEDGER_DIR} is not a directory owned by this user")
+    with open(LEDGER_DIR / "lock", "a") as lock:
+        while True:
+            try:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError:
+                if time.monotonic() >= deadline:
+                    raise Busy()
+                time.sleep(0.05)
+        yield
+
+
+def tree(table, root, skip):
+    children = {}
+    for pid, (ppid, _, _) in table.items():
+        children.setdefault(ppid, []).append(pid)
+    found, stack = set(), [root]
+    while stack:
+        pid = stack.pop()
+        if pid in table and pid != skip and pid not in found:
+            found.add(pid)
+            stack += children.get(pid, [])
+    return found
+
+
+def alive(table, identity):
+    return identity[0] in table and table[identity[0]][1] == identity[1]
+
+
+def estimate(peaks, key):
+    return peaks[key] if key in peaks else max([FLOOR, *peaks.values()])
+
+
+def pending(ledger, table):
+    total = 0
+    for entry in ledger:
+        pids = tree(table, entry["target"][0], entry["watcher"][0]) if alive(table, entry["target"]) else ()
+        total += max(0, entry["estimate"] - sum(map(footprint, pids)))
+    return total
+
+
+def reserve(key, need, table, pidfile):
+    me = os.getpid()
+    entry = {"key": key, "estimate": need, "target": [me, table[me][1]], "pidfile": pidfile}
+    watcher = subprocess.Popen([sys.executable, os.path.abspath(__file__), "_watch", json.dumps(entry)],
+                               stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                               start_new_session=True)
+    entry["watcher"] = [watcher.pid, processes().get(watcher.pid, (0, None))[1]]
+    return entry
+
+
+def report(key, need, free, held, ledger, table):
+    lines = [f"memgate: {key} needs {gib(need)} but {gib(free)} is available "
+             f"with {gib(held)} reserved and a {gib(MARGIN)} margin."]
+    lines += [f"  reserved {gib(entry['estimate'])} pid {entry['target'][0]} {entry['key']}" for entry in ledger]
+    lines.append("  largest processes:")
+    largest = sorted(((footprint(pid), pid) for pid in table), reverse=True)[:5]
+    lines += [f"  {gib(size)} pid {pid} {table[pid][2]}" for size, pid in largest]
+    lines.append("Stop idle servers or browsers you started, then retry.")
+    print("\n".join(lines), file=sys.stderr)
+
+
+def measure():
+    try:
+        return available()
+    except (OSError, ValueError, AttributeError, KeyError, subprocess.SubprocessError) as error:
+        print(f"memgate: cannot read available memory ({error}); starting without a check", file=sys.stderr)
+        return None
+
+
+def admit(key, wait, ready=lambda table: False, pidfile=None):
+    deadline = time.monotonic() + wait
+    ledger_path = LEDGER_DIR / "ledger.json"
+    shared, waiting = True, False
+    while True:
+        try:
+            with locked(deadline) if shared else nullcontext():
+                table = processes()
+                free = None if ready(table) else measure()
+                if free is None:
+                    return
+                ledger = [entry for entry in load(ledger_path, []) if shared and (
+                    alive(table, entry["watcher"]) or alive(table, entry["target"]))]
+                need = estimate(load(PEAKS, {}), key)
+                held = pending(ledger, table)
+                if free - held - MARGIN >= need:
+                    if shared:
+                        ledger.append(reserve(key, need, table, pidfile))
+                        save(ledger_path, ledger)
+                    return
+        except Busy:
+            print(f"memgate: {LEDGER_DIR / 'lock'} stayed locked for {wait:.0f}s", file=sys.stderr)
+            sys.exit(75)
+        except OSError as error:
+            if not shared:
+                raise
+            print(f"memgate: reservations disabled ({error}); checking memory only", file=sys.stderr)
+            shared = False
+            continue
+        if time.monotonic() >= deadline:
+            report(key, need, free, held, ledger, table)
+            sys.exit(75)
+        if not waiting:
+            print(f"memgate: waiting up to {wait:.0f}s for {gib(need)} of memory", file=sys.stderr)
+            waiting = True
+        time.sleep(INTERVAL)
+
+
+def record(key, size):
+    try:
+        with locked():
+            peaks = load(PEAKS, {})
+            if size > peaks.get(key, 0):
+                peaks[key] = size
+                save(PEAKS, peaks)
+    except OSError:
+        pass
+
+
+def update_ledger(me, change):
+    with locked():
+        ledger_path = LEDGER_DIR / "ledger.json"
+        ledger = [change(entry) if entry["watcher"][0] == me else entry for entry in load(ledger_path, [])]
+        save(ledger_path, [entry for entry in ledger if entry])
+
+
+def session_daemon(table, pidfile):
+    try:
+        pid = int(Path(pidfile).read_text().strip())
+    except (OSError, ValueError, TypeError):
+        return None
+    if pid in table and table[pid][2].startswith("agent-browser"):
+        return [pid, table[pid][1]]
+    return None
+
+
+def watch(entry):
+    me, target, seen, peak = os.getpid(), entry["target"], set(), 0
+    while True:
+        table = processes()
+        daemon = session_daemon(table, entry["pidfile"])
+        if daemon and daemon != target:
+            target = daemon
+            update_ledger(me, lambda reserved: {**reserved, "target": daemon})
+        roots = [target[0]] if alive(table, target) else [pid for pid, start in seen if alive(table, [pid, start])]
+        pids = set().union(*(tree(table, root, me) for root in roots))
+        if not pids:
+            break
+        seen = {(pid, table[pid][1]) for pid in pids}
+        peak = max(peak, sum(map(footprint, pids)))
+        time.sleep(INTERVAL)
+    # Why not record while running: a partial peak would let the next launch of this key skip the 2 GiB floor.
+    record(entry["key"], peak)
+    update_ledger(me, lambda reserved: None)
+
+
+def option(args, name, default):
+    for index, arg in enumerate(args):
+        if arg == name and index + 1 < len(args):
+            return args[index + 1]
+        if arg.startswith(name + "="):
+            return arg.split("=", 1)[1]
+    return default
+
+
+def may_start_session(args):
+    value = False
+    for arg in args:
+        if value:
+            value = False
+        elif arg in HELP:
+            return False
+        elif arg.startswith("-"):
+            value = arg in VALUE_OPTIONS
+        else:
+            return arg not in NO_LAUNCH
+    return True
+
+
+def real_browser():
+    shim = Path(__file__).resolve().with_name("agent-browser")
+    for directory in os.environ.get("PATH", "").split(os.pathsep):
+        candidate = Path(directory) / "agent-browser"
+        if os.access(candidate, os.X_OK) and candidate.resolve() != shim:
+            return str(candidate)
+    sys.exit("memgate: agent-browser not found on PATH")
+
+
+def browser(args):
+    real = real_browser()
+    if may_start_session(args):
+        session = option(args, "--session", os.environ.get("AGENT_BROWSER_SESSION") or "default")
+        namespace = option(args, "--namespace", os.environ.get("AGENT_BROWSER_NAMESPACE"))
+        base = Path.home() / ".agent-browser"
+        if namespace:
+            base = base / "namespaces" / namespace / "run"
+        pidfile = str(base / f"{session}.pid")
+
+        def ready(table):
+            return session_daemon(table, pidfile) is not None
+
+        if not ready(processes()):
+            admit(BROWSER_KEY, WAIT, ready=ready, pidfile=pidfile)
+    os.execv(real, [real, *args])
+
+
+def run(args):
+    key, wait = None, WAIT
+    while len(args) > 1 and args[0] in ("--key", "--wait"):
+        if args[0] == "--key":
+            key = args[1]
+        elif re.fullmatch(r"\d+(\.\d+)?", args[1]):
+            wait = float(args[1])
+        else:
+            sys.exit(USAGE)
+        args = args[2:]
+    if args[:1] != ["--"] or len(args) < 2:
+        sys.exit(USAGE)
+    command = args[1:]
+    admit(key or json.dumps([os.getcwd(), command]), wait)
+    try:
+        os.execvp(command[0], command)
+    except OSError as error:
+        print(f"memgate: cannot run {command[0]}: {error.strerror}", file=sys.stderr)
+        sys.exit(127)
+
+
+def main(argv):
+    action, args = (argv[1] if len(argv) > 1 else ""), argv[2:]
+    if action == "run":
+        run(args)
+    elif action == "browser":
+        browser(args)
+    elif action == "_watch":
+        watch(json.loads(args[0]))
+    else:
+        sys.exit(USAGE)
+
+
+if __name__ == "__main__":
+    main(sys.argv)
