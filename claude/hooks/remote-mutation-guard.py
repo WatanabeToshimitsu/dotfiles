@@ -452,9 +452,9 @@ def inspect_push(cwd, push):
                     remote = git_output(cwd, "config", "--get", "branch." + branch + ".remote")
         for suffix in ["mirror", "push"]:
             try:
-                mode = "--get" if suffix == "mirror" else "--get-all"
-                value = git_output(cwd, "config", mode, "remote." + remote + "." + suffix)
-                if (suffix == "mirror" and value.lower() in {"true", "1", "yes", "on"}) or (suffix == "push" and any(line.startswith(("+", ":")) for line in value.splitlines())):
+                mode = ["--bool", "--get"] if suffix == "mirror" else ["--get-all"]
+                value = git_output(cwd, "config", *mode, "remote." + remote + "." + suffix)
+                if (suffix == "mirror" and value == "true") or (suffix == "push" and any(line.startswith(("+", ":")) for line in value.splitlines())):
                     return True, FORCE_REASON
             except ValueError:
                 pass
