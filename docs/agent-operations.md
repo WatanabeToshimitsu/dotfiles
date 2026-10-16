@@ -21,7 +21,7 @@ Claude Code・Codexの状態確認と、使い方を調整するときの手順�
 ~/.shell-utils/dotfiles-doctor.sh --harness-only
 ```
 
-現在の診断対象は、Headroomへの接続と削減量、MCP接続、Claude Codeのバージョン差分、Codex設定の同期状態です。出力圧縮フックの動作確認は診断対象外のため、圧縮量は[専用の統計コマンド](#claude-tool-output-compaction)で確認できます。
+現在の診断対象は、Headroomへの接続と削減量、MCP接続、Claude Codeのバージョン差分、Codex設定の同期状態、`~/.claude`へのリンクの欠落、外部スキルのClaude CodeとCodexでの差分、Codexのフックが実行するスクリプトの有無です。Codexのフックの承認・有効状態は診断対象外のため、Codexの`/hooks`で確認してください。出力圧縮フックの動作確認は診断対象外のため、圧縮量は[専用の統計コマンド](#claude-tool-output-compaction)で確認できます。
 
 オプションを付けずに実行すると、端末の設定とリポジトリの差分や、Auto Memoryから共通ルールへの反映待ちも確認できます。
 

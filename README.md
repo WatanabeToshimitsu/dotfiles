@@ -145,7 +145,7 @@ Pushover通知を使う場合は、`PUSHOVER_API_TOKEN`と`PUSHOVER_USER_KEY`を
 
 ## エージェント環境の診断
 
-以下のコマンドで、Headroom・MCP・Claude Codeのバージョン・Codex設定の同期状態を確認できます。
+以下のコマンドで、Headroom・MCP・Claude Codeのバージョン・Codex設定の同期状態・Claude設定のリンク・外部スキル・Codexのフックが実行するスクリプトを確認できます。
 
 ```bash
 ~/.shell-utils/dotfiles-doctor.sh --harness-only

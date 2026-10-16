@@ -465,4 +465,141 @@ run_compaction_fixture compact-missing 1
 assert_contains "[ABNORMAL] WARN: registered compaction script is missing" "$TEST_OUTPUT_DIR/compact-missing"
 assert_not_contains "[HEALTHY]" "$TEST_OUTPUT_DIR/compact-missing"
 
+HARNESS_HOME="$TEST_OUTPUT_DIR/harness-home"
+HARNESS_REPO="$TEST_OUTPUT_DIR/harness repo"
+mkdir -p "$HARNESS_HOME/.claude/skills/demo" "$HARNESS_HOME/.codex" "$HARNESS_REPO/claude/skills/demo" "$HARNESS_REPO/claude/hooks"
+
+fixture_snapshot() {
+  find "$1" -print \( -type l -exec readlink {} \; -o -type f -exec cksum {} \; \)
+}
+
+run_harness_fixture() {
+  local fixture_name="$1" check="$2" expected_exit="$3" fixture_exit=0 before
+  before=$(fixture_snapshot "$HARNESS_HOME")
+  env -i HOME="$HARNESS_HOME" PATH="$SYNC_BIN:/usr/bin:/bin" /bin/bash -c '
+    source "$1"
+    DOTFILES_DIR="$2"
+    EXTERNAL_CHECK_TIMEOUT_SECONDS="$4"
+    "$3"
+    finish
+  ' bash "$REPO_DIR/.shell-utils/dotfiles-doctor.sh" "$HARNESS_REPO" "$check" "${4:-8}" \
+    > "$TEST_OUTPUT_DIR/$fixture_name" 2>&1 || fixture_exit=$?
+  [ "$fixture_exit" -eq "$expected_exit" ] \
+    || fail "$fixture_name returned $fixture_exit, expected $expected_exit"
+  [ "$before" = "$(fixture_snapshot "$HARNESS_HOME")" ] \
+    || fail "$fixture_name changed the fixture HOME"
+}
+
+printf 'MANIFEST_CLAUDE_FILES=(\n  CLAUDE.md\n  skills/demo/SKILL.md\n  rules/demo.md\n  hooks/absent.sh\n)\n' > "$HARNESS_REPO/symlink-manifest.sh"
+mkdir -p "$HARNESS_REPO/claude/rules" "$HARNESS_HOME/.claude/rules" "$TEST_OUTPUT_DIR/other-checkout/claude/skills/demo"
+printf 'Fixture instructions\n' > "$HARNESS_REPO/claude/CLAUDE.md"
+printf 'Fixture skill\n' > "$HARNESS_REPO/claude/skills/demo/SKILL.md"
+printf 'Fixture skill\n' > "$TEST_OUTPUT_DIR/other-checkout/claude/skills/demo/SKILL.md"
+printf 'Fixture rule\n' > "$HARNESS_REPO/claude/rules/demo.md"
+ln -s "../../harness repo/claude/CLAUDE.md" "$HARNESS_HOME/.claude/CLAUDE.md"
+ln -s "$HARNESS_REPO/claude/skills/demo/SKILL.md" "$HARNESS_HOME/.claude/skills/demo/SKILL.md"
+ln -s "$HARNESS_REPO/claude/rules/demo.md" "$HARNESS_HOME/.claude/rules/demo.md"
+run_harness_fixture manifest-clean check_claude_manifest_links 0
+assert_contains '[HEALTHY] checked scope passed' "$TEST_OUTPUT_DIR/manifest-clean"
+
+rm "$HARNESS_HOME/.claude/CLAUDE.md" "$HARNESS_HOME/.claude/skills/demo/SKILL.md" "$HARNESS_HOME/.claude/rules/demo.md"
+ln -s "$TEST_OUTPUT_DIR/other-checkout/claude/skills/demo/SKILL.md" "$HARNESS_HOME/.claude/skills/demo/SKILL.md"
+cp "$HARNESS_REPO/claude/rules/demo.md" "$HARNESS_HOME/.claude/rules/demo.md"
+run_harness_fixture manifest-drift check_claude_manifest_links 1
+assert_contains 'doctor: 3 warning(s)' "$TEST_OUTPUT_DIR/manifest-drift"
+for file in CLAUDE.md skills/demo/SKILL.md rules/demo.md; do
+  assert_contains "Claude file is not linked to this checkout: $HARNESS_HOME/.claude/$file; next: bash " "$TEST_OUTPUT_DIR/manifest-drift"
+done
+manifest_hint=$(sed -n 's/.*CLAUDE.md; next: //p' "$TEST_OUTPUT_DIR/manifest-drift")
+eval "set -- $manifest_hint"
+[ "$#" -eq 3 ] && [ "$1" = bash ] && [ "$2" = "$HARNESS_REPO/install.sh" ] && [ "$3" = --symlinks-only ] \
+  || fail "manifest hint does not survive shell word splitting: $manifest_hint"
+assert_not_contains 'hooks/absent.sh' "$TEST_OUTPUT_DIR/manifest-drift"
+
+printf 'example/skills:linked\nexample/skills:copied\nexample/skills:claude-only\r\nexample/skills:codex-only\nexample/skills:differs\nexample/skills:absent\n' > "$HARNESS_REPO/agent-skills.txt"
+mkdir -p "$HARNESS_HOME/.agents/skills/linked" "$HARNESS_HOME/.agents/skills/copied" "$HARNESS_HOME/.claude/skills/copied"
+printf 'Linked skill\n' > "$HARNESS_HOME/.agents/skills/linked/SKILL.md"
+ln -s ../../.agents/skills/linked "$HARNESS_HOME/.claude/skills/linked"
+printf 'Copied skill\n' > "$HARNESS_HOME/.agents/skills/copied/SKILL.md"
+printf 'Copied skill\n' > "$HARNESS_HOME/.claude/skills/copied/SKILL.md"
+printf 'Local report\n' > "$HARNESS_HOME/.agents/skills/copied/report.md"
+run_harness_fixture skills-clean check_external_skills 0
+assert_contains '[HEALTHY] checked scope passed' "$TEST_OUTPUT_DIR/skills-clean"
+
+mkdir -p "$HARNESS_HOME/.claude/skills/claude-only" "$HARNESS_HOME/.agents/skills/codex-only" \
+  "$HARNESS_HOME/.claude/skills/differs" "$HARNESS_HOME/.agents/skills/differs"
+printf 'Claude only\n' > "$HARNESS_HOME/.claude/skills/claude-only/SKILL.md"
+printf 'Codex only\n' > "$HARNESS_HOME/.agents/skills/codex-only/SKILL.md"
+printf 'Original\n' > "$HARNESS_HOME/.agents/skills/differs/SKILL.md"
+printf 'Rewritten\n' > "$HARNESS_HOME/.claude/skills/differs/SKILL.md"
+run_harness_fixture skills-drift check_external_skills 1
+assert_contains 'doctor: 3 warning(s)' "$TEST_OUTPUT_DIR/skills-drift"
+assert_contains 'external skill installed for one client only: claude-only;' "$TEST_OUTPUT_DIR/skills-drift"
+assert_contains 'external skill installed for one client only: codex-only;' "$TEST_OUTPUT_DIR/skills-drift"
+assert_contains 'external skill differs between Claude Code and Codex: differs;' "$TEST_OUTPUT_DIR/skills-drift"
+
+run_harness_fixture hooks-absent check_codex_hook_scripts 0
+assert_contains '[NOT APPLICABLE] no Codex user hooks file' "$TEST_OUTPUT_DIR/hooks-absent"
+
+printf 'import os\nopen(os.path.expanduser("~/hook-executed"), "w")\n' > "$HARNESS_REPO/claude/hooks/guard.py"
+printf 'touch "$HOME/hook-executed"\n' > "$HARNESS_HOME/hook.sh"
+cat > "$HARNESS_HOME/.codex/hooks.json" <<JSON
+{"hooks":{
+  "PreToolUse":[{"matcher":"Bash","hooks":[{"type":"command","command":"python3 \"$HARNESS_REPO/claude/hooks/guard.py\""}]}],
+  "PostToolUse":[{"hooks":[
+    {"type":"command","command":"'$HARNESS_HOME/hook.sh'"},
+    {"type":"command","command":"/bin/bash '$HARNESS_HOME/hook.sh'"}]}],
+  "SessionStart":[{"hooks":[{"type":"command","command":"bash '$HARNESS_HOME/hook.sh' session"}]}]
+}}
+JSON
+run_harness_fixture hooks-clean check_codex_hook_scripts 0
+assert_contains '[HEALTHY] checked scope passed' "$TEST_OUTPUT_DIR/hooks-clean"
+
+cat > "$HARNESS_HOME/.codex/hooks.json" <<JSON
+{"hooks":{
+  "PreToolUse":[{"matcher":"Bash","hooks":[{"type":"command","command":"python3 \"$HARNESS_REPO/claude/hooks/guard.py\""}]}],
+  "PostToolUse":[{"hooks":[
+    {"type":"command","command":"'$HARNESS_HOME/missing.sh'"},
+    {"type":"command","command":"/bin/bash $HARNESS_HOME/missing-abs.sh"},
+    {"type":"command","command":"python3 \"$HARNESS_HOME/missing-py.py\""},
+    {"type":"command","command":"/usr/bin/env bash $HARNESS_HOME/missing-env.sh"}]}],
+  "Stop":[{"hooks":[
+    {"type":"command","command":"printf ok > $HARNESS_HOME/new.log"},
+    {"type":"command","command":"node -e \"require(1)\""},
+    {"type":"command","command":"herdr notify"},
+    {"type":"command","command":"bash \"\$HOME/hook.sh\""},
+    {"type":"command","command":"bash '\$HOME/hook.sh'"},
+    {"type":"command","command":"bash \"~/hook.sh\""},
+    {"type":"command","command":"bash $HARNESS_HOME/hook*.sh"},
+    {"type":"command","command":"bash $HARNESS_HOME/hook.sh\n$HARNESS_HOME/missing-newline.sh"},
+    {"type":"command","command":"$HARNESS_HOME/hook.sh session"},
+    {"type":"command","command":"/usr/bin/ruby $HARNESS_HOME/missing.rb"},
+    {"type":"command","command":"bash $HARNESS_HOME/hook.sh#old"},
+    {"type":"command","command":"/usr/bin/python3.11 $HARNESS_HOME/missing-versioned.py"},
+    {"type":"command","command":"bash $HARNESS_HOME/missing-empty-arg.sh \"\" '|'"}]}]
+}}
+JSON
+run_harness_fixture hooks-drift check_codex_hook_scripts 1
+assert_contains 'doctor: 7 warning(s)' "$TEST_OUTPUT_DIR/hooks-drift"
+for missing in missing.sh missing-abs.sh missing-py.py missing-env.sh hook.sh#old missing-versioned.py missing-empty-arg.sh; do
+  assert_contains "Codex hook runs a missing script: $HARNESS_HOME/$missing;" "$TEST_OUTPUT_DIR/hooks-drift"
+done
+[ "$(grep -c 'Codex hook command not checked' "$TEST_OUTPUT_DIR/hooks-drift")" -eq 10 ] \
+  || fail "hooks-drift did not report ten unresolved commands"
+assert_not_contains 'missing-newline.sh' "$TEST_OUTPUT_DIR/hooks-drift"
+assert_not_contains 'missing.rb' "$TEST_OUTPUT_DIR/hooks-drift"
+assert_not_contains 'guard.py' "$TEST_OUTPUT_DIR/hooks-drift"
+
+for malformed in '{"hooks":' '{"hooks":{"Stop":{}}}'; do
+  printf '%s' "$malformed" > "$HARNESS_HOME/.codex/hooks.json"
+  run_harness_fixture hooks-malformed check_codex_hook_scripts 1
+  assert_contains '[UNVERIFIED] Codex user hooks are invalid' "$TEST_OUTPUT_DIR/hooks-malformed"
+  assert_contains 'doctor: 1 warning(s)' "$TEST_OUTPUT_DIR/hooks-malformed"
+done
+
+rm "$HARNESS_HOME/.codex/hooks.json"
+mkfifo "$HARNESS_HOME/.codex/hooks.json"
+run_harness_fixture hooks-read-timeout check_codex_hook_scripts 0 0.1
+assert_contains '[UNVERIFIED] Codex hook inspection could not run' "$TEST_OUTPUT_DIR/hooks-read-timeout"
+
 printf 'dotfiles-doctor tests: ok\n'

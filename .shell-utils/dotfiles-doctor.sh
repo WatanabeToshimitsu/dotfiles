@@ -530,10 +530,155 @@ check_codex_sync() {
   fi
 }
 
+check_claude_manifest_links() {
+  echo "== Claude manifest links (~/.claude) =="
+  local before=$WARNINGS file installer
+  installer=$(printf '%q' "$DOTFILES_DIR/install.sh")
+  # shellcheck source=../symlink-manifest.sh
+  source "$DOTFILES_DIR/symlink-manifest.sh"
+  for file in "${MANIFEST_CLAUDE_FILES[@]}"; do
+    [ -f "$DOTFILES_DIR/claude/$file" ] || continue
+    # -ef rather than readlink text, so a copy or a link into another checkout fails.
+    if [ ! -L "$HOME/.claude/$file" ] || [ ! "$HOME/.claude/$file" -ef "$DOTFILES_DIR/claude/$file" ]; then
+      warn "Claude file is not linked to this checkout: $HOME/.claude/$file; next: bash $installer --symlinks-only"
+    fi
+  done
+  section_ok "$before"
+}
+
+check_external_skills() {
+  echo "== external skills for Claude Code and Codex (agent-skills.txt) =="
+  local before=$WARNINGS entry skill claude_skill codex_skill next
+  while IFS= read -r entry || [ -n "$entry" ]; do
+    entry="${entry%$'\r'}"
+    skill="${entry##*:}"
+    next="next: move both copies aside, rerun install.sh, then restore local files into ~/.agents/skills/$skill (README#agent-skills)"
+    # Only SKILL.md: skills keep local generated files such as reports next to it.
+    claude_skill="$HOME/.claude/skills/$skill/SKILL.md"
+    codex_skill="$HOME/.agents/skills/$skill/SKILL.md"
+    if [ -f "$claude_skill" ] && [ -f "$codex_skill" ]; then
+      cmp -s "$claude_skill" "$codex_skill" \
+        || warn "external skill differs between Claude Code and Codex: $skill; $next"
+    elif [ -f "$claude_skill" ] || [ -f "$codex_skill" ]; then
+      warn "external skill installed for one client only: $skill; $next"
+    fi
+  done < "$DOTFILES_DIR/agent-skills.txt"
+  section_ok "$before"
+}
+
+check_codex_hook_scripts() {
+  echo "== Codex user hook scripts: static paths in ~/.codex/hooks.json =="
+  if [ ! -e "$HOME/.codex/hooks.json" ]; then
+    info "[NOT APPLICABLE] no Codex user hooks file"
+    return 0
+  fi
+  if ! has_command python3; then
+    unverified "Codex hook inspection requires Python 3; next: check python3 --version"
+    return 0
+  fi
+  local before=$WARNINGS unknown_before=$UNVERIFIED output state message
+  if output=$(run_with_timeout "$EXTERNAL_CHECK_TIMEOUT_SECONDS" python3 -c "$(cat <<'PY'
+import json
+import os
+import re
+import shlex
+import sys
+
+home = sys.argv[1]
+interpreter = re.compile(r"(?:ba|z)?sh|node|python[0-9.]*")
+
+def report(state, message):
+    print(f"{state}\t{message}")
+
+def has_unquoted_operator(command):
+    quote = None
+    escaped = False
+    for char in command:
+        if escaped:
+            escaped = False
+        elif char == "\\" and quote != "'":
+            escaped = True
+        elif quote:
+            quote = None if char == quote else quote
+        elif char in "'\"":
+            quote = char
+        elif char in ";&|<>()":
+            return True
+    return False
+
+def script_path(command):
+    if "\n" in command or "\r" in command:
+        return None, "multiple lines"
+    if has_unquoted_operator(command):
+        return None, "shell operator or redirection"
+    try:
+        words = shlex.split(command, comments=False)
+    except ValueError:
+        return None, "quoting error"
+    if words and os.path.basename(words[0]) == "env":
+        words = words[1:]
+    if words and interpreter.fullmatch(os.path.basename(words[0])):
+        words = words[1:]
+    elif len(words) > 1:
+        # Not resolved: an unknown interpreter would hide its script argument.
+        return None, "arguments after a non-interpreter"
+    if not words or words[0].startswith("-"):
+        return None, "no script argument"
+    path = words[0]
+    # Expansion is not attempted: the tokenizer drops quoting, so "$HOME/x" and
+    # '$HOME/x' look alike. \x60, not a literal backtick: bash 3.2 misparses one
+    # inside $(...).
+    if set(path) & set("$~*?[{\x60"):
+        return None, "shell expansion"
+    if not path.startswith("/"):
+        return None, "not an absolute script path"
+    return path, None
+
+try:
+    with open(os.path.join(home, ".codex/hooks.json")) as handle:
+        events = json.load(handle)["hooks"]
+    resolved = []
+    for event, groups in events.items():
+        if not isinstance(groups, list):
+            raise ValueError
+        for g, group in enumerate(groups):
+            if not isinstance(group["hooks"], list):
+                raise ValueError
+            for h, hook in enumerate(group["hooks"]):
+                if hook.get("type") == "command":
+                    resolved.append((f"{event}:{g}:{h}", *script_path(hook["command"])))
+except OSError:
+    report("unknown", "Codex user hooks could not be read; next: check ~/.codex/hooks.json permissions")
+    raise SystemExit
+except (AttributeError, KeyError, TypeError, ValueError):
+    report("invalid", "Codex user hooks are invalid; next: validate ~/.codex/hooks.json")
+    raise SystemExit
+
+for position, path, reason in resolved:
+    if path is None:
+        report("unknown", f"Codex hook command not checked ({reason}): {position}; next: inspect it in /hooks")
+    elif not os.path.exists(path):
+        report("bad", f"Codex hook runs a missing script: {path}; next: remove it from ~/.codex/hooks.json, then review /hooks in Codex")
+PY
+  )" "$HOME" 2> /dev/null
+  ); then
+    while IFS=$'\t' read -r state message; do
+      case "$state" in
+        bad) warn "$message" ;;
+        unknown) unverified "$message" ;;
+        invalid) unverified "$message" 1 ;;
+      esac
+    done <<< "$output"
+  else
+    unverified "Codex hook inspection could not run; next: check Python and ~/.codex/hooks.json"
+  fi
+  section_ok "$before" "$unknown_before"
+}
+
 main() {
   parse_options "$@" || return $?
   printf 'dotfiles doctor: %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-  info "scope: Headroom deployment/flags/savings; MCP connectivity; Claude versions; Codex managed snapshot; output compaction"
+  info "scope: Headroom deployment/flags/savings; MCP connectivity; Claude versions; Codex managed snapshot; output compaction; Claude manifest links; external skills; Codex hook script paths"
   unverified "roles, skills and other hook behavior are not exercised; next: inspect their repository tests and /hooks"
   if [ "$HARNESS_ONLY" -eq 0 ]; then
     info "additional scope: broken symlinks, Homebrew, memory promotion and repository drift"
@@ -542,6 +687,9 @@ main() {
   check_agent_harness
   check_output_compaction
   check_codex_sync
+  check_claude_manifest_links
+  check_external_skills
+  check_codex_hook_scripts
   finish
 }
 
