@@ -110,9 +110,9 @@ else:
 
     def memory():
         meminfo = Path("/proc/meminfo").read_text()
-        vmstat = Path("/proc/vmstat").read_text()
+        swapins = re.search(r"^pswpin (\d+)", Path("/proc/vmstat").read_text(), re.MULTILINE)
         return (int(re.search(r"^MemAvailable:\s+(\d+) kB", meminfo, re.MULTILINE).group(1)) * 1024,
-                int(re.search(r"^pswpin (\d+)", vmstat, re.MULTILINE).group(1)) * os.sysconf("SC_PAGE_SIZE"))
+                int(swapins.group(1)) * os.sysconf("SC_PAGE_SIZE") if swapins else 0)
 
 
 def gib(size):
@@ -281,16 +281,13 @@ def admit(key, wait, ready=lambda table: False, pidfile=None):
                             "free": free, "held": held, "margin": MARGIN, "rate": rate, "rate_span": span,
                             "swapins": swapins, "allowance": allowance, "short0": short0,
                             "verdict": "admit" if fits else "short", "waited": time.monotonic() - started}
-                if fits or not ENFORCE:
-                    if shared:
-                        ledger.append(reserve(key, need, table, pidfile, {"need": need, "wait": wait} if short0 else None))
-                        save(ledger_path, ledger)
-                    log(decision)
-                    return
+                if (fits or not ENFORCE) and shared:
+                    ledger.append(reserve(key, need, table, pidfile, {"need": need, "wait": wait} if short0 else None))
+                    save(ledger_path, ledger)
         except Retry:
             pass
         except Busy:
-            log({"event": "busy", "key": key, "waited": time.monotonic() - started})
+            log({"event": "busy", "id": [os.getpid(), None], "key": key, "waited": time.monotonic() - started})
             if not ENFORCE:
                 return
             print(f"memgate: {LEDGER_DIR / 'lock'} stayed locked for {wait:.0f}s", file=sys.stderr)
@@ -301,6 +298,9 @@ def admit(key, wait, ready=lambda table: False, pidfile=None):
             print(f"memgate: reservations disabled ({error}); checking memory only", file=sys.stderr)
             shared = False
             continue
+        if decision and (decision["verdict"] == "admit" or not ENFORCE):
+            log(decision)
+            return
         if decision and time.monotonic() >= deadline:
             log({**decision, "verdict": "timeout"})
             report(key, need, free, held, allowance, ledger, table)
@@ -348,13 +348,13 @@ def follow(entry, probe, own, table, elapsed):
     try:
         with locked():
             rate, span = add_sample(time.time(), swapins)
+            if not probe:
+                return None
             others = [other for other in load(LEDGER_DIR / "ledger.json", []) if other["watcher"][0] != me and (
                 alive(table, other["watcher"]) or alive(table, other["target"]))]
             held = pending(others, table)
     except OSError:
         return probe
-    if not probe:
-        return None
     met = free + own - held - MARGIN >= probe["need"]
     log({"event": "sample", "id": entry["id"], "elapsed": elapsed, "free": free, "own": own, "held": held,
          "rate": rate, "rate_span": span, "swapins": swapins, "met": met})

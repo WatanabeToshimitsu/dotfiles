@@ -100,6 +100,7 @@ class MemgateTests(unittest.TestCase):
         self.swapins = 60 * memgate.SWAPIN_LIMIT // 2
         self.assertEqual(self.admit("a")[0], 0)
         self.assertEqual(self.events()[-1]["allowance"], 4 * GIB)
+        (self.root / "run/ledger.json").unlink()
         self.swapins += 60 * memgate.SWAPIN_LIMIT * 4
         code, stderr = self.admit("b")
         self.assertEqual(code, 75)
@@ -173,6 +174,7 @@ class MemgateTests(unittest.TestCase):
                     self.assertEqual(os.waitstatus_to_exitcode(os.waitpid(pid, 0)[1]), expected)
         self.assertEqual([(event["event"], event["mode"]) for event in self.events()],
                          [("busy", "enforce"), ("busy", "observe")])
+        self.assertTrue(all("id" in event for event in self.events()))
 
     def test_observe_mode_launches_a_short_command_silently_and_records_the_decision(self):
         self.patch(memgate, "ENFORCE", False)
@@ -295,9 +297,11 @@ class MemgateTests(unittest.TestCase):
                  "pidfile": None, "id": [100, "s-100"], "probe": {"need": 2 * GIB, "wait": 0}}
         memgate.save(self.root / "run/ledger.json", [entry])
         steps = iter([{100: (1, "s-100", "node"), ME: (1, "s-me", "python")}] * 3 + [{ME: (1, "s-me", "python")}])
+        memgate.save(self.root / "run/swapins.json", [])
         with patch.object(memgate, "processes", lambda: dict(next(steps))):
             memgate.watch(entry)
         self.assertEqual([event["event"] for event in self.events()], ["sample", "end"])
+        self.assertEqual(len(memgate.load(self.root / "run/swapins.json", [])), 3)
 
     def test_watcher_follows_children_that_orphans_start_later(self):
         timeline = [
