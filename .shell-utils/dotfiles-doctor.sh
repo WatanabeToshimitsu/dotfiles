@@ -532,14 +532,15 @@ check_codex_sync() {
 
 check_claude_manifest_links() {
   echo "== Claude manifest links (~/.claude) =="
-  local before=$WARNINGS file
+  local before=$WARNINGS file installer
+  installer=$(printf '%q' "$DOTFILES_DIR/install.sh")
   # shellcheck source=../symlink-manifest.sh
   source "$DOTFILES_DIR/symlink-manifest.sh"
   for file in "${MANIFEST_CLAUDE_FILES[@]}"; do
     [ -f "$DOTFILES_DIR/claude/$file" ] || continue
     # -ef rather than readlink text, so a copy or a link into another checkout fails.
     if [ ! -L "$HOME/.claude/$file" ] || [ ! "$HOME/.claude/$file" -ef "$DOTFILES_DIR/claude/$file" ]; then
-      warn "Claude manifest link missing: $HOME/.claude/$file; next: bash install.sh --symlinks-only"
+      warn "Claude file is not linked to this checkout: $HOME/.claude/$file; next: bash $installer --symlinks-only"
     fi
   done
   section_ok "$before"

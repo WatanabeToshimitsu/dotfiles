@@ -466,7 +466,7 @@ assert_contains "[ABNORMAL] WARN: registered compaction script is missing" "$TES
 assert_not_contains "[HEALTHY]" "$TEST_OUTPUT_DIR/compact-missing"
 
 HARNESS_HOME="$TEST_OUTPUT_DIR/harness-home"
-HARNESS_REPO="$TEST_OUTPUT_DIR/harness-repo"
+HARNESS_REPO="$TEST_OUTPUT_DIR/harness repo"
 mkdir -p "$HARNESS_HOME/.claude/skills/demo" "$HARNESS_HOME/.codex" "$HARNESS_REPO/claude/skills/demo" "$HARNESS_REPO/claude/hooks"
 
 fixture_snapshot() {
@@ -496,7 +496,7 @@ printf 'Fixture instructions\n' > "$HARNESS_REPO/claude/CLAUDE.md"
 printf 'Fixture skill\n' > "$HARNESS_REPO/claude/skills/demo/SKILL.md"
 printf 'Fixture skill\n' > "$TEST_OUTPUT_DIR/other-checkout/claude/skills/demo/SKILL.md"
 printf 'Fixture rule\n' > "$HARNESS_REPO/claude/rules/demo.md"
-ln -s ../../harness-repo/claude/CLAUDE.md "$HARNESS_HOME/.claude/CLAUDE.md"
+ln -s "../../harness repo/claude/CLAUDE.md" "$HARNESS_HOME/.claude/CLAUDE.md"
 ln -s "$HARNESS_REPO/claude/skills/demo/SKILL.md" "$HARNESS_HOME/.claude/skills/demo/SKILL.md"
 ln -s "$HARNESS_REPO/claude/rules/demo.md" "$HARNESS_HOME/.claude/rules/demo.md"
 run_harness_fixture manifest-clean check_claude_manifest_links 0
@@ -508,8 +508,12 @@ cp "$HARNESS_REPO/claude/rules/demo.md" "$HARNESS_HOME/.claude/rules/demo.md"
 run_harness_fixture manifest-drift check_claude_manifest_links 1
 assert_contains 'doctor: 3 warning(s)' "$TEST_OUTPUT_DIR/manifest-drift"
 for file in CLAUDE.md skills/demo/SKILL.md rules/demo.md; do
-  assert_contains "Claude manifest link missing: $HARNESS_HOME/.claude/$file;" "$TEST_OUTPUT_DIR/manifest-drift"
+  assert_contains "Claude file is not linked to this checkout: $HARNESS_HOME/.claude/$file; next: bash " "$TEST_OUTPUT_DIR/manifest-drift"
 done
+manifest_hint=$(sed -n 's/.*CLAUDE.md; next: //p' "$TEST_OUTPUT_DIR/manifest-drift")
+eval "set -- $manifest_hint"
+[ "$#" -eq 3 ] && [ "$1" = bash ] && [ "$2" = "$HARNESS_REPO/install.sh" ] && [ "$3" = --symlinks-only ] \
+  || fail "manifest hint does not survive shell word splitting: $manifest_hint"
 assert_not_contains 'hooks/absent.sh' "$TEST_OUTPUT_DIR/manifest-drift"
 
 printf 'example/skills:linked\nexample/skills:copied\nexample/skills:claude-only\r\nexample/skills:codex-only\nexample/skills:differs\nexample/skills:absent\n' > "$HARNESS_REPO/agent-skills.txt"
