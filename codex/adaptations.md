@@ -31,3 +31,28 @@ their scopes and source hashes are included in this snapshot for review.
 - The ticket skill requires a machine-local `reference.md`. Its content never
   belongs in a public generated file or artifact. Report it as unavailable when
   the reference is absent; do not fabricate identifiers from the example.
+
+## Long-task goal proposals
+
+- At the start of a likely long task, clarify the desired outcome from the
+  request and existing context; ask only for missing decisions that materially
+  affect the objective, scope, or completion criteria.
+  Resolve those decisions before drafting a complete goal; keep independent
+  authorized work moving while waiting for answers.
+- Offer a goal when the task is expected to span multiple PRs, require
+  substantial open-ended local investigation, or take about an hour or more.
+  These are rough estimates. Skip bounded one-PR changes, quick lookups, and
+  short local edits when none of these triggers applies.
+- After light scoping and before substantial work, briefly state the proposed
+  objective and invite the user to use it with `/goal`. In the response
+  language, provide one fenced block containing a complete, copyable
+  `/goal ...` command on a single line. Include task-specific text for the
+  desired outcome, verifiable completion criteria, scope and constraints,
+  autonomous iteration within existing authorization, and when missing input
+  or authority requires user action.
+  Do not leave placeholders or invent a token budget.
+- Suggest once per task; if its size becomes clear later, offer it then. Skip
+  the suggestion when a goal already covers the task or the user has declined
+  it. A suggestion does not create, replace, or activate a goal; do so only
+  when explicitly requested. Preserve existing approval boundaries and keep
+  progressing on authorized work without making adoption a prerequisite.
