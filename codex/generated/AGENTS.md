@@ -68,6 +68,23 @@ The user-facing frontier model leads the task and may design, implement, refacto
 
 詳細な進行手順とレビュー基準は、該当時に `delivery-workflow` と `code-review` skill を使う。
 
+# 長い作業と goal
+
+Read `references/goals.md` in the delivery-workflow skill directory
+([goal guidance](skills/delivery-workflow/references/goals.md)) near the start
+when work likely spans multiple PRs, needs substantial investigation, likely
+takes about an hour or more, or needs staged project planning; also read it
+when that size becomes clear later. Read it for explicit goal requests, and for
+feedback, decisions, or acceptance on an agreed plan's pending handoff,
+including in a later chat. Re-read it when a goal becomes active, at each goal
+completion, before drafting goal commands or updating a goal plan, and after
+compaction during goal work.
+
+If the guidance is unreadable, report it and stop dependent goal drafting or
+handoffs; continue independent authorized work. Do not reconstruct its rules
+from memory. Offer initial goals once; activation requires an explicit user
+request. Preserve native goal lifecycle and approval rules.
+
 # Claude Code Configuration Scope
 
 - Default Claude Code skills, commands, settings, hooks, and permission rules to
@@ -189,22 +206,9 @@ their scopes and source hashes are included in this snapshot for review.
 - The ticket skill requires a machine-local `reference.md`. Its content never
   belongs in a public generated file or artifact. Report it as unavailable when
   the reference is absent; do not fabricate identifiers from the example.
-
-## Goal guidance
-
-Read `~/.codex/dotfiles-sync/current/skills/delivery-workflow/references/goals.md`
-near the start when work likely spans multiple PRs, needs substantial
-investigation, likely takes about an hour or more, or needs staged project
-planning; also read it when that size becomes clear later. Read it for explicit
-goal requests and feedback, decisions, or acceptance for an agreed plan's
-pending handoff, including in a later chat.
-Re-read when a goal becomes active, at each goal completion, before drafting
-goal commands or updating a goal plan, and after compaction during goal work.
-
-If the reference is unreadable, report it and stop dependent goal drafting or
-handoffs; continue independent authorized work. Do not reconstruct its rules
-from memory or activate a disabled skill to obtain them. Offer initial goals
-once; activation requires an explicit user request. Preserve native goal
-lifecycle and permissions.
+- Relative `skills/<name>/...` links in the common instructions refer to
+  `~/.codex/dotfiles-sync/current/skills/<name>/...`, which holds every synced
+  skill even when it is disabled. Read files there; do not enable a skill to
+  obtain them.
 
 Response language: Japanese.

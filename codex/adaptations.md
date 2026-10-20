@@ -31,20 +31,7 @@ their scopes and source hashes are included in this snapshot for review.
 - The ticket skill requires a machine-local `reference.md`. Its content never
   belongs in a public generated file or artifact. Report it as unavailable when
   the reference is absent; do not fabricate identifiers from the example.
-
-## Goal guidance
-
-Read `~/.codex/dotfiles-sync/current/skills/delivery-workflow/references/goals.md`
-near the start when work likely spans multiple PRs, needs substantial
-investigation, likely takes about an hour or more, or needs staged project
-planning; also read it when that size becomes clear later. Read it for explicit
-goal requests and feedback, decisions, or acceptance for an agreed plan's
-pending handoff, including in a later chat.
-Re-read when a goal becomes active, at each goal completion, before drafting
-goal commands or updating a goal plan, and after compaction during goal work.
-
-If the reference is unreadable, report it and stop dependent goal drafting or
-handoffs; continue independent authorized work. Do not reconstruct its rules
-from memory or activate a disabled skill to obtain them. Offer initial goals
-once; activation requires an explicit user request. Preserve native goal
-lifecycle and permissions.
+- Relative `skills/<name>/...` links in the common instructions refer to
+  `~/.codex/dotfiles-sync/current/skills/<name>/...`, which holds every synced
+  skill even when it is disabled. Read files there; do not enable a skill to
+  obtain them.

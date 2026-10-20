@@ -10,7 +10,10 @@
   In the response language, give one fenced, copyable, single-line `/goal ...`
   command with concrete outcome, evidence, constraints, authorized iteration,
   and when missing input or authority requires user action. No placeholders
-  or invented budgets.
+  or invented budgets. Keep the goal condition within the client's documented
+  limit and name evidence the goal checker can observe; Claude Code judges a
+  goal from the conversation alone and accepts a condition of up to 4,000
+  characters (https://code.claude.com/docs/en/goal).
 - Offer once, including when size becomes clear later. Skip the initial offer
   if a goal already covers the task or the workflow was declined. A proposal
   does not activate or replace a goal; an explicit request is required.
