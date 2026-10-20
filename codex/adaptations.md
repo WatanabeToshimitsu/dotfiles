@@ -34,7 +34,7 @@ their scopes and source hashes are included in this snapshot for review.
 
 ## Goal guidance
 
-Read `~/.codex/dotfiles-sync/current/skills/delivery-workflow/references/codex-goals.md`
+Read `~/.codex/dotfiles-sync/current/skills/delivery-workflow/references/goals.md`
 near the start when work likely spans multiple PRs, needs substantial
 investigation, likely takes about an hour or more, or needs staged project
 planning; also read it when that size becomes clear later. Read it for explicit

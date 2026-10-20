@@ -62,7 +62,7 @@ MANIFEST_CLAUDE_FILES=(
   skills/delivery-workflow/references/recovery.md
   skills/delivery-workflow/references/invocation.md
   skills/delivery-workflow/references/scheduled-work.md
-  skills/delivery-workflow/references/codex-goals.md
+  skills/delivery-workflow/references/goals.md
   skills/eli5/SKILL.md
   skills/eli15/SKILL.md
   skills/expand-tool-output/SKILL.md
