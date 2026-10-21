@@ -454,7 +454,7 @@
   "enabledPlugins": {
     "co-mlops-context@hdl-agent-plugins": true,
     "codex@openai-codex": true,
-    "context7@claude-plugins-official": true,
+    "context7@claude-plugins-official": false,
     "discernment-nudge@anthropic-agent-skills": true,
     "typescript-lsp@claude-plugins-official": false,
     "scene-tag@scene-tag-annotator": true,
