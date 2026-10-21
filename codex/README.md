@@ -162,10 +162,41 @@ approval rules, sandbox settings, models, reasoning effort, runtime environment,
 marketplaces, connectors, plugins and host UI preferences remain native. Claude
 hooks and agent definitions are not read or installed into Codex.
 Hook trust hashes are never generated or registered. Existing native hook trust
-and skill disable settings remain untouched. No per-setting, per-hook or
-per-agent exclusion inventory is maintained.
+and skill disable settings remain untouched. Apart from the plugin and MCP
+server decisions below, no per-setting, per-hook or per-agent exclusion
+inventory is maintained.
 
 References: [instruction discovery](https://learn.chatgpt.com/docs/agent-configuration/agents-md),
 [skill discovery](https://learn.chatgpt.com/docs/build-skills),
 [native hook trust](https://learn.chatgpt.com/docs/hooks),
 [app-server discovery](https://learn.chatgpt.com/docs/app-server).
+
+## Plugins and MCP servers
+
+Plugins and MCP servers stay native: the owner installs, enables and
+authenticates them in each client, and the sync never writes them. This table
+records the owner's decision for each entry enabled in either client, plus
+entries removed during a review so their reasons stay recorded. It states
+intent, not observed state;
+[#278](https://github.com/WatanabeToshimitsu/dotfiles/issues/278) tracks the
+native and repository changes that apply it. Last reviewed on 2026-10-20;
+update the date with the table whenever either client gains or loses an entry.
+
+Claude Code is the baseline: a tool used there is shared unless it cannot run
+in Codex or has no use there, and a tool found only in Codex is removed unless
+OpenAI bundles it with Codex. Account connectors, such as those of claude.ai,
+and project-scoped servers are outside this table.
+
+| Name | Kind | Decision | Reason |
+| --- | --- | --- | --- |
+| `ponytail` | plugin | Share | Same simplicity guidance and plugin hooks in both |
+| `co-mlops-context` | plugin | Share | Co-MLOps repository context in both |
+| `scene-tag` | plugin with MCP | Share | Used in Claude Code; ships a Codex plugin definition |
+| `discernment-nudge` | plugin, moving to skill | Share through `agent-skills.txt` | Used in Claude Code; has no Codex plugin, so it ships as a skill |
+| `atlassian-http` | MCP | Share | Jira access for the synced `ticket` skill in both |
+| `context7` | plugin | Remove | Enabled only in Claude Code; never authenticated or used |
+| `serena` | MCP in Claude Code, plugin in Codex | Remove | Unused since 2026-09; removed from Claude Code during the review and already disabled in Codex |
+| `experiment-planner`, `japanese-proofreader`, `report-instructor`, `code-simplifier` | plugin | Remove | Enabled only in Codex |
+| `codex` | plugin | Claude Code only | Calls Codex from Claude Code |
+| `headroom` | MCP | Claude Code only | Retrieves content the local proxy compressed; the proxy compresses only Claude Code traffic and passes Codex requests through |
+| `openai-bundled` marketplace plugins (`browser`, `chrome`, `code-review`, `codex-app-tools`, `computer-use`, `unified-computer-use`, `visualize`) and the `node_repl` MCP server | plugin, MCP | Codex only | Bundled by OpenAI with Codex |
