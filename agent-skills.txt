@@ -8,3 +8,4 @@ coji/natural-japanese:natural-japanese
 tokoroten/prompt-review:prompt-review
 vercel-labs/agent-skills:vercel-react-best-practices
 Seokwoooo/lucian-uxui:lucian-uxui
+anthropics/skills:discernment-nudge

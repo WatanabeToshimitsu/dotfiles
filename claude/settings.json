@@ -455,7 +455,7 @@
     "co-mlops-context@hdl-agent-plugins": true,
     "codex@openai-codex": true,
     "context7@claude-plugins-official": false,
-    "discernment-nudge@anthropic-agent-skills": true,
+    "discernment-nudge@anthropic-agent-skills": false,
     "typescript-lsp@claude-plugins-official": false,
     "scene-tag@scene-tag-annotator": true,
     "ponytail@ponytail": true
