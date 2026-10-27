@@ -1,7 +1,7 @@
 {
   "executables": [],
   "files": {
-    "AGENTS.md": "sha256:c89298ac1175ff9818b1c3b83ae162869daa78974501d01caa86c96983ab5c64",
+    "AGENTS.md": "sha256:1e59d604a4803faabda139e4e9268d22d8413d6326ac8da09633ddf9a769c76f",
     "rules/common/coding-style.md": "sha256:9f3badeb37672cc4331427722dc0ff84bd4520fa8e551713ccf44ab196878f55",
     "rules/common/github-actions.md": "sha256:dd83e898d6979615d69c358ea9664bb671ca70ff0e3b781ef48ee7ebf8d921a2",
     "rules/common/hooks.md": "sha256:958560e5c011273127d8088a65e73d010bfcc1a787cb3b97385663b0a8d1a57d",
@@ -21,6 +21,7 @@
     "rules/typescript/testing.md": "sha256:8052377a8e70e86026802becb457d2d834add590b905a5db8e7919e80225cd1c",
     "rules/typescript/type-safety.md": "sha256:ebba98d3029f4c576f9b94048b76ad10be64c9205e6386ed75efb997d2b2988f",
     "rules/web/security.md": "sha256:09d6d20da7db7c1e1baeac8869cb5862594ada592fde62bd0da07fd8f282f9d8",
+    "rules/web/ui.md": "sha256:f8824e13374d42b659ca3e8b05d327ca9fd3148c125cfaf617ac429e2236fe66",
     "skills/code-review/SKILL.md": "sha256:0c6ee3b95b025b237a61791e727a0820cb38156898d55d39969ecaa79f322567",
     "skills/delivery-workflow/SKILL.md": "sha256:e94a6305912e9d0a6f90bce7ebee8942d387bf5a5c40320138bf5a88606f7d3b",
     "skills/delivery-workflow/references/goals.md": "sha256:42251f434c8c17d735facdc18480dcc708b7bf96f4d7064c21109cc6971a1615",
@@ -59,6 +60,7 @@
     "claude/rules/typescript/testing.md": "sha256:8052377a8e70e86026802becb457d2d834add590b905a5db8e7919e80225cd1c",
     "claude/rules/typescript/type-safety.md": "sha256:ebba98d3029f4c576f9b94048b76ad10be64c9205e6386ed75efb997d2b2988f",
     "claude/rules/web/security.md": "sha256:09d6d20da7db7c1e1baeac8869cb5862594ada592fde62bd0da07fd8f282f9d8",
+    "claude/rules/web/ui.md": "sha256:f8824e13374d42b659ca3e8b05d327ca9fd3148c125cfaf617ac429e2236fe66",
     "claude/settings.json": "sha256:684fd81e47e4364abde4dfea6c8fda803c6670ea91985d3799b27fe9f1f48cfb",
     "claude/skills/code-review/SKILL.md": "sha256:6a62c2904c0bca905b5a9ec45ae14fe0366f69c490ce942b7ecaac35ca858787",
     "claude/skills/delivery-workflow/SKILL.md": "sha256:e0d110ec5736400b122898bba6a1f4b8da70cb04dd1cf89eca6e223982b0f149",
