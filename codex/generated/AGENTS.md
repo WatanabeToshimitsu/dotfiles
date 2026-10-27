@@ -172,6 +172,7 @@ Before editing a file, read every matching rule below, in the listed order. Patt
 - rules/typescript/testing.md: `**/*.ts`, `**/*.tsx`, `**/*.js`, `**/*.jsx`
 - rules/typescript/type-safety.md: `**/*.ts`, `**/*.tsx`
 - rules/web/security.md: `**/{app,pages,routes,controllers,views,handlers}/**`, `**/{schema,migrations}/**`, `**/*.{sql,tsx,vue,svelte}`
+- rules/web/ui.md: `**/*.{astro,css,html,js,jsx,scss,svelte,ts,tsx,vue}`
 
 # Codex adaptations
 
