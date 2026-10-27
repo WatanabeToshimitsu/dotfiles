@@ -65,6 +65,9 @@ MANIFEST_CLAUDE_FILES=(
   skills/delivery-workflow/references/goals.md
   skills/eli5/SKILL.md
   skills/eli15/SKILL.md
+  skills/evidence-video/SKILL.md
+  skills/evidence-video/references/recording.md
+  skills/evidence-video/scripts/trim_idle.py
   skills/expand-tool-output/SKILL.md
   skills/prepare-compaction/SKILL.md
   skills/repository-audit/SKILL.md

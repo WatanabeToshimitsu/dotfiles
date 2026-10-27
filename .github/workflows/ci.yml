@@ -54,6 +54,8 @@ jobs:
         run: python3 -B -m unittest discover -s test -p 'test_loop_snapshot.py'
       - name: Test bounded repair supervisor without model calls
         run: python3 -B -m unittest discover -s test -p 'test_self_improvement_run.py'
+      - name: Test evidence video trimming
+        run: python3 -B -m unittest discover -s test -p 'test_trim_idle.py'
       - name: Test Codex configuration sync
         run: python3 -B -m unittest discover -s test -p 'test_codex_sync.py'
       - name: Test memory gate
@@ -154,6 +156,8 @@ jobs:
         run: python3 -B -m unittest discover -s test -p 'test_loop_snapshot.py'
       - name: Test bounded repair supervisor without model calls
         run: python3 -B -m unittest discover -s test -p 'test_self_improvement_run.py'
+      - name: Test evidence video trimming
+        run: python3 -B -m unittest discover -s test -p 'test_trim_idle.py'
       - name: Test Codex configuration sync
         run: python3 -B -m unittest discover -s test -p 'test_codex_sync.py'
       - name: Test memory gate
