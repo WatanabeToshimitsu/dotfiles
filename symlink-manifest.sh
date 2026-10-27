@@ -55,6 +55,7 @@ MANIFEST_CLAUDE_FILES=(
   rules/common/hooks.md
   rules/common/security.md
   rules/common/testing.md
+  rules/common/ui.md
   agents/fable-deep.md
   agents/sonnet-worker.md
   skills/code-review/SKILL.md
@@ -87,7 +88,6 @@ MANIFEST_CLAUDE_FILES=(
   rules/typescript/testing.md
   rules/typescript/type-safety.md
   rules/web/security.md
-  rules/web/ui.md
 )
 
 # Claude files retired from this repository. install.sh removes only symlinks
@@ -108,6 +108,7 @@ MANIFEST_CLAUDE_OBSOLETE_FILES=(
   rules/typescript/documentation.md
   rules/testing/vitest.md
   rules/typescript/security.md
+  rules/web/ui.md
 )
 
 # Codex has dynamic skill ownership and an AGENTS.md managed block. The installer

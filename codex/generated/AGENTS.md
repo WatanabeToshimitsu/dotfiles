@@ -158,6 +158,7 @@ Before editing a file, read every matching rule below, in the listed order. Patt
 - rules/common/hooks.md: `**/.claude/**`, `claude/hooks/**`, `claude/settings.json`
 - rules/common/security.md: `**/*.{c,cc,cpp,cs,go,java,js,jsx,kt,kts,php,py,pyi,rb,rs,swift,ts,tsx,vue,svelte}`, `**/*.{json,yaml,yml,toml}`
 - rules/common/testing.md: `**/{test,tests,__tests__,spec,specs}/**`, `**/*.{test,spec}.{js,jsx,ts,tsx}`, `**/test_*.py`, `**/*_test.{go,py,rb,rs}`
+- rules/common/ui.md: `**/*.{astro,css,dart,html,js,jsx,kt,scss,storyboard,svelte,swift,ts,tsx,vue,xib}`, `**/res/**/*.xml`
 - rules/golang/coding-style.md: `**/*.go`, `**/go.mod`, `**/go.sum`
 - rules/golang/hooks.md: `**/*.go`, `**/go.mod`, `**/go.sum`
 - rules/golang/security.md: `**/*.go`, `**/go.mod`, `**/go.sum`
@@ -172,7 +173,6 @@ Before editing a file, read every matching rule below, in the listed order. Patt
 - rules/typescript/testing.md: `**/*.ts`, `**/*.tsx`, `**/*.js`, `**/*.jsx`
 - rules/typescript/type-safety.md: `**/*.ts`, `**/*.tsx`
 - rules/web/security.md: `**/{app,pages,routes,controllers,views,handlers}/**`, `**/{schema,migrations}/**`, `**/*.{sql,tsx,vue,svelte}`
-- rules/web/ui.md: `**/*.{astro,css,html,js,jsx,scss,svelte,ts,tsx,vue}`
 
 # Codex adaptations
 

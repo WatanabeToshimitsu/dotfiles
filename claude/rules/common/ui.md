@@ -1,6 +1,7 @@
 ---
 paths:
-  - "**/*.{astro,css,html,js,jsx,scss,svelte,ts,tsx,vue}"
+  - "**/*.{astro,css,dart,html,js,jsx,kt,scss,storyboard,svelte,swift,ts,tsx,vue,xib}"
+  - "**/res/**/*.xml"
 ---
 # UI Copy
 
