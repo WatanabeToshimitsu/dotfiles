@@ -36,7 +36,12 @@ Scale the process to the change's uncertainty and risk.
    unfinished or unavailable checks remain pending or unknown. Investigate
    failures and report their cause; fixes and re-pushes stay within the
    existing task and delivery authority.
-8. Before each PR, including a Draft, prepare its target, title, body, and full
+8. When the change alters what a reviewer can see or do in a running web UI,
+   run the `evidence-video` skill before drafting the PR, whichever skill
+   creates it, and put its Evidence note in the body. Skip docs-only and
+   backend-only changes without UI effect. Its login and write approvals still
+   apply; record `not run` and the reason in the body when it cannot run.
+   Before each PR, including a Draft, prepare its target, title, body, and full
    outgoing commit range. Inspect them for secrets, personal and confidential
    information, and content outside the requested task; report findings and
    uninspected parts. Pattern scans alone do not establish safety. In Claude
