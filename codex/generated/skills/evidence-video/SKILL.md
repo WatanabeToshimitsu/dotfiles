@@ -12,8 +12,11 @@ a visible pointer, readable pauses, no dead time. Commands and mock code are in
 ## Required steps
 
 1. **Shot list.** Per scene: the steps, the result that must be visible, and
-   the dev writes one take makes. Ask the user once to approve the list and its
-   writes. That approval covers the first take of each scene only.
+   the dev writes one take makes. Ask the user to approve the list. Right
+   before each take that writes, ask again for that take and its writes, and
+   wait for an explicit yes: the automatic permission check can stop a write
+   approved only in advance. If it still stops one, report it; never retry it
+   another way.
 2. **Directories.** Final MP4s go to one deliverable directory outside the
    repository. Raw takes, contact sheets, and frames go to a separate work
    directory; nothing else lands next to the MP4s.
@@ -26,15 +29,18 @@ a visible pointer, readable pauses, no dead time. Commands and mock code are in
    with a network abort route on that URL as a guard. Prove the mock with the
    probe in the reference before recording; it never reaches the server.
 5. **Record in a subagent** with an explicit model that can run shell commands,
-   so the main thread stays readable. Hand it the shot list, approved writes,
-   session name, directories, and this skill. It never logs in, never closes the browser, and
+   so the main thread stays readable. Hand it the shot list, the takes the
+   user has permitted, session name, directories, and this skill. It returns
+   before any other writing take, never logs in, never closes the browser, and
    never retakes without the lead.
 6. **Take rules.** `record start <raw>.mp4 --cursor`. Move with `get box` then
    `mouse move <x> <y> --duration 600-900 --steps 30-40`; press with
    `mouse down` and `mouse up`. Never `click` while recording; it teleports.
    After each result, park the pointer beside it, not on its text, and hold
    about 1.5 s. If no result appears within 15 s, stop the take and report;
-   never press again. A write whose outcome is unknown counts as made.
+   never press again. A write whose outcome is unknown counts as made. If the
+   recording cannot keep up, scroll parts that never stop moving, such as
+   camera feeds, out of view and record with `--fps 10`.
 7. **Trim.** `python3 -I <skill-dir>/scripts/trim_idle.py <raw>.mp4 <final>.mp4`
    keeps 1.2 s of each still stretch. Deliver MP4, not GIF: GitHub plays it
    inline and text stays readable.
