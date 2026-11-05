@@ -47,6 +47,7 @@
 | `gcode` | リポジトリを選んでVS Codeで開く |
 | `gvim` | リポジトリを選んでNeovimで開き、シェルの作業ディレクトリも移す |
 | `y` | yaziでファイルを探し、終了時に選んだディレクトリへ移動 |
+| `gco` | ブランチを切り替え。別のworktreeが使用中なら、そのworktreeへ移動 |
 | `gb-prune` | マージ済みブランチを整理。squash mergeにも対応 |
 | `ghq-rm` | ghqで管理するリポジトリを対話的に削除 |
 | `worktree-gc` | マージ済みで変更のないworktreeを洗い出す。`--apply`で削除 |

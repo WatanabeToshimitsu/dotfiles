@@ -42,6 +42,8 @@ jobs:
         run: zsh test/test-headroom-proxy-check.zsh
       - name: Test branch prune safety
         run: zsh -f test/test-git-branch-prune.zsh
+      - name: Test gco worktree jump
+        run: zsh -f test/test-git-checkout-worktree.zsh
       - name: Test Claude sandbox canary
         run: bash test/test-claude-sandbox.sh
       - name: Test ticket browser launcher
@@ -152,6 +154,8 @@ jobs:
         run: zsh test/test-headroom-proxy-check.zsh
       - name: Test branch prune safety
         run: zsh -f test/test-git-branch-prune.zsh
+      - name: Test gco worktree jump
+        run: zsh -f test/test-git-checkout-worktree.zsh
       - name: Test read-only Loop snapshot
         run: python3 -B -m unittest discover -s test -p 'test_loop_snapshot.py'
       - name: Test bounded repair supervisor without model calls
