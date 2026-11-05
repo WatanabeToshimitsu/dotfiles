@@ -145,6 +145,8 @@ export FZF_CTRL_T_OPTS='--preview "bat  --color=always --style=header,grid --lin
 autoload colors && colors
 
 source ~/.shell-utils/git-branch-prune.zsh
+source ~/.shell-utils/git-checkout-worktree.zsh
+compdef _git gco=git-checkout
 
 alias vi='/usr/bin/vim'
 command -v nvim &>/dev/null && alias vim='nvim'
@@ -187,7 +189,6 @@ alias gb='git branch'
 alias gpl='git pull'
 alias gps='git push'
 alias gsts='git status'
-alias gco='git checkout'
 alias gbd='cd-gitroot'
 alias gcd='cd $(ghq root)/$(ghq list | fzf)'
 alias gb-prune='git-branch-prune'
