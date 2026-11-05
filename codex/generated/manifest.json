@@ -1,7 +1,7 @@
 {
   "executables": [],
   "files": {
-    "AGENTS.md": "sha256:81f54652464dc9a8e492b1baf91f317a13652a9ed54b3e78968decf4b0477610",
+    "AGENTS.md": "sha256:ce6446d30542a1611c0b0ae7c225dbc1ef28d579843a4206548e824540e74ac1",
     "rules/common/coding-style.md": "sha256:9f3badeb37672cc4331427722dc0ff84bd4520fa8e551713ccf44ab196878f55",
     "rules/common/github-actions.md": "sha256:dd83e898d6979615d69c358ea9664bb671ca70ff0e3b781ef48ee7ebf8d921a2",
     "rules/common/hooks.md": "sha256:958560e5c011273127d8088a65e73d010bfcc1a787cb3b97385663b0a8d1a57d",
@@ -21,6 +21,7 @@
     "rules/typescript/hooks.md": "sha256:3b0bc2a8a8793c7d6b391f7976ffcc3bf73edc4eddf4257072a39cf4c9d8ce01",
     "rules/typescript/testing.md": "sha256:8052377a8e70e86026802becb457d2d834add590b905a5db8e7919e80225cd1c",
     "rules/typescript/type-safety.md": "sha256:ebba98d3029f4c576f9b94048b76ad10be64c9205e6386ed75efb997d2b2988f",
+    "rules/web/manual-api-failure-checks.md": "sha256:5e67745ca376b5fa2db09bff35add91d068c7d3b1d9893ae251799020b866073",
     "rules/web/security.md": "sha256:09d6d20da7db7c1e1baeac8869cb5862594ada592fde62bd0da07fd8f282f9d8",
     "skills/code-review/SKILL.md": "sha256:0c6ee3b95b025b237a61791e727a0820cb38156898d55d39969ecaa79f322567",
     "skills/delivery-workflow/SKILL.md": "sha256:e94a6305912e9d0a6f90bce7ebee8942d387bf5a5c40320138bf5a88606f7d3b",
@@ -60,6 +61,7 @@
     "claude/rules/typescript/hooks.md": "sha256:3b0bc2a8a8793c7d6b391f7976ffcc3bf73edc4eddf4257072a39cf4c9d8ce01",
     "claude/rules/typescript/testing.md": "sha256:8052377a8e70e86026802becb457d2d834add590b905a5db8e7919e80225cd1c",
     "claude/rules/typescript/type-safety.md": "sha256:ebba98d3029f4c576f9b94048b76ad10be64c9205e6386ed75efb997d2b2988f",
+    "claude/rules/web/manual-api-failure-checks.md": "sha256:5e67745ca376b5fa2db09bff35add91d068c7d3b1d9893ae251799020b866073",
     "claude/rules/web/security.md": "sha256:09d6d20da7db7c1e1baeac8869cb5862594ada592fde62bd0da07fd8f282f9d8",
     "claude/settings.json": "sha256:684fd81e47e4364abde4dfea6c8fda803c6670ea91985d3799b27fe9f1f48cfb",
     "claude/skills/code-review/SKILL.md": "sha256:6a62c2904c0bca905b5a9ec45ae14fe0366f69c490ce942b7ecaac35ca858787",
