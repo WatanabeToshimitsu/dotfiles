@@ -8,12 +8,17 @@
   keep independent authorized work moving while waiting.
 - Before substantial work, briefly invite the user to use the proposed goal.
   In the response language, give one fenced, copyable, single-line `/goal ...`
-  command with concrete outcome, evidence, constraints, authorized iteration,
-  and when missing input or authority requires user action. No placeholders
-  or invented budgets. Keep the goal condition within the client's documented
+  command with concrete outcome, evidence, task-specific constraints,
+  authorized iteration, and when missing input or authority requires user
+  action. No placeholders or invented budgets. Keep the goal condition within the client's documented
   limit and name evidence the goal checker can observe; Claude Code judges a
   goal from the conversation alone and accepts a condition of up to 4,000
   characters (https://code.claude.com/docs/en/goal).
+- Write only what this goal adds. The worker already loads CLAUDE.md or
+  AGENTS.md, rules, skills, and repository guidance, so omit their rules, such
+  as TDD, review, delivery, and PR inspection steps. Restate one only when the
+  goal narrows or overrides it, and point to the plan or issue instead of
+  copying its details.
 - Offer once, including when size becomes clear later. Skip the initial offer
   if a goal already covers the task or the workflow was declined. A proposal
   does not activate or replace a goal; an explicit request is required.
@@ -37,11 +42,14 @@
 - If an active goal grows into this scope, propose the staged plan and any
   scope change for explicit user agreement. Keep native lifecycle controls;
   use the agreed completion point for the first continuation handoff.
-- Put this contract in every goal: at completion, compare results to the
+- Make this contract a completion criterion of every goal through one short
+  clause that requires the plan update and the next `/goal`, closure, or
+  missing input; do not copy this text. At completion, compare results to the
   overall outcome and update the agreed plan; close if overall criteria are
   met, otherwise output the next small, copyable `/goal`, or name missing
   input/authority instead of guessing. Carry the outcome or plan reference,
-  constraints, next checkpoint, and this contract into every successor.
+  task-specific constraints, next checkpoint, and that clause into every
+  successor.
   This planned closing proposal is not a repeated initial offer; activation
   still needs an explicit request. Keep it within existing authority and ask
   separately before adding new publication, spending, background execution,
