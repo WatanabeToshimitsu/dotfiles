@@ -212,8 +212,6 @@
       "Bash(mongosh --eval *drop*)",
       "Bash(redis-cli FLUSHALL*)",
       "Bash(redis-cli FLUSHDB*)",
-      "Bash(op read *)",
-      "Bash(op item *)",
       "Read(**/*.env)",
       "Read(**/*.env.*)",
       "Read(**/*.key)",
@@ -342,7 +340,8 @@
       "mcp__*createPullRequest*",
       "Bash(ssh *)",
       "Bash(scp *)",
-      "Bash(rsync *)"
+      "Bash(rsync *)",
+      "Bash(op *)"
     ],
     "defaultMode": "auto",
     "disableBypassPermissionsMode": "disable"
