@@ -1,6 +1,7 @@
 # Recording reference
 
-`ab` below stands for `agent-browser --session <name> --headed --idle-timeout 0`.
+`ab` below stands for
+`agent-browser --session <name> --restore <key> --headed --idle-timeout 0`.
 Pass exactly these options on every command, in the lead and the subagent: a
 command whose launch options differ relaunches the browser on `about:blank`
 and loses the login. `--idle-timeout 0` stops the daemon from closing the
@@ -13,8 +14,9 @@ memgate run -- <dev command>          # background; agent-browser passes through
 ab open <app url>
 ```
 
-Ask the user to log in in that window and to say when they are done; then
-confirm with `ab get url` and a snapshot that the target page is open. Close consent banners with their most private option. Scroll the
+If a login form appears, the lead signs in as the browser login rule says. When
+it falls back, ask the user to log in in that window and to say when they are
+done. Then confirm with `ab get url` and a snapshot that the target page is open. Close consent banners with their most private option. Scroll the
 target area into view before `record start` and keep it there.
 
 ## Failure mock
