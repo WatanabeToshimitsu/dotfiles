@@ -222,6 +222,7 @@
       "Read(**/.gnupg/**)",
       "Read(~/.npmrc)",
       "Read(~/.netrc)",
+      "Read(~/.agent-browser/**)",
       "Read(**/credentials/**)",
       "Read(**/credentials.*)",
       "Read(**/*.credentials)",
@@ -339,7 +340,8 @@
       "mcp__*createPullRequest*",
       "Bash(ssh *)",
       "Bash(scp *)",
-      "Bash(rsync *)"
+      "Bash(rsync *)",
+      "Bash(op *)"
     ],
     "defaultMode": "auto",
     "disableBypassPermissionsMode": "disable"

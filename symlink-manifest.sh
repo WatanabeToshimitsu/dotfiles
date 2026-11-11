@@ -88,6 +88,7 @@ MANIFEST_CLAUDE_FILES=(
   rules/typescript/hooks.md
   rules/typescript/testing.md
   rules/typescript/type-safety.md
+  rules/web/browser-login.md
   rules/web/manual-api-failure-checks.md
   rules/web/security.md
 )

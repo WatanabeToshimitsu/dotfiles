@@ -21,10 +21,12 @@ a visible pointer, readable pauses, no dead time. Commands and mock code are in
    repository. Raw takes, contact sheets, and frames go to a separate work
    directory; nothing else lands next to the MP4s.
 3. **Browser.** Start the dev server with `memgate run -- <dev command>`. Pass
-   `--session <name> --headed --idle-timeout 0` on every browser command;
-   other launch options relaunch the browser and lose the login. The user logs
-   in by hand; never type or store credentials. If waiting for login times
-   out, ask again; never close the browser. Keep it open across retakes.
+   `--session <name> --restore <key> --headed --idle-timeout 0` on every
+   browser command; other launch options relaunch the browser and lose the
+   login. The lead signs in as the browser login rule says; when it falls back,
+   the user logs in by hand. Never type or store credentials. If waiting for
+   login times out, ask again; never close the browser. Keep it open across
+   retakes.
 4. **Failure paths.** Mock in the page, for one URL and method, behind a flag,
    with a network abort route on that URL as a guard. Prove the mock with the
    probe in the reference before recording; it never reaches the server.

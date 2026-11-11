@@ -64,6 +64,8 @@ The user-facing frontier model leads the task and may design, implement, refacto
   spending, or private-data sharing authority. Keep native checks and report
   instruction checks separately from runtime results.
 - Start long-running Node processes such as dev servers, watchers, and Storybook with `memgate run -- <command>`; `agent-browser` passes through memgate automatically. When memgate refuses for lack of memory, stop idle servers and browsers you started, then retry; do not bypass it.
+- Before opening a web app with agent-browser, follow the [browser login rule](rules/web/browser-login.md); it also limits production use.
+- Call 1Password's `op` by its bare name, not through a path or a script, so the Claude Code permission prompt shows each call. Keep secret values out of tool output and logs: feed them straight into the command that uses them, with a pipe, `$(op read ...)`, `op run` without `--no-masking`, or `op inject -o <file>`, and check that the command does not echo them.
 - JavaScript/TypeScript を含む範囲のリポジトリ検査やリファクタリングでは、`repository-audit` skill を使い、Knip の結果または実行できなかった理由を残す。
 
 詳細な進行手順とレビュー基準は、該当時に `delivery-workflow` と `code-review` skill を使う。
