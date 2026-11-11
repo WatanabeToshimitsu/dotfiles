@@ -1,7 +1,7 @@
 {
   "executables": [],
   "files": {
-    "AGENTS.md": "sha256:1ff70b8716dcd067d7c600f6f80daa574b8f5888e163c5fbe3c6a42f9a17ca42",
+    "AGENTS.md": "sha256:33a0db69ae6461f35897af2e9a8078724f481c5c1f9281b76fb9eff086b1c878",
     "rules/common/coding-style.md": "sha256:9f3badeb37672cc4331427722dc0ff84bd4520fa8e551713ccf44ab196878f55",
     "rules/common/github-actions.md": "sha256:dd83e898d6979615d69c358ea9664bb671ca70ff0e3b781ef48ee7ebf8d921a2",
     "rules/common/hooks.md": "sha256:958560e5c011273127d8088a65e73d010bfcc1a787cb3b97385663b0a8d1a57d",
@@ -21,7 +21,7 @@
     "rules/typescript/hooks.md": "sha256:3b0bc2a8a8793c7d6b391f7976ffcc3bf73edc4eddf4257072a39cf4c9d8ce01",
     "rules/typescript/testing.md": "sha256:8052377a8e70e86026802becb457d2d834add590b905a5db8e7919e80225cd1c",
     "rules/typescript/type-safety.md": "sha256:ebba98d3029f4c576f9b94048b76ad10be64c9205e6386ed75efb997d2b2988f",
-    "rules/web/browser-login.md": "sha256:84627f4dc71e7f676d10eb18b8017fe56f6cebf3c280f5ad0e047c9661a19def",
+    "rules/web/browser-login.md": "sha256:475d0c39fbd15804c66dd786c653b03347d4af8fadac1731f3a4f9d0e6622033",
     "rules/web/manual-api-failure-checks.md": "sha256:5e67745ca376b5fa2db09bff35add91d068c7d3b1d9893ae251799020b866073",
     "rules/web/security.md": "sha256:09d6d20da7db7c1e1baeac8869cb5862594ada592fde62bd0da07fd8f282f9d8",
     "skills/code-review/SKILL.md": "sha256:0c6ee3b95b025b237a61791e727a0820cb38156898d55d39969ecaa79f322567",
@@ -43,7 +43,7 @@
     "skills/ticket/reference.example.md": "sha256:6ec32ff44cb70e980585e31e8ac8b35ab6da243e097f72558ac2253c7987ca58"
   },
   "inputs": {
-    "claude/CLAUDE.md": "sha256:53baf0633760bf29e2b72e92a1753eee184178456fc211979f1b347f2b586ee7",
+    "claude/CLAUDE.md": "sha256:8442e5250419c4ab4673ec69739c5303751314dc2f81d07bfdb0c7d4c85371c6",
     "claude/rules/common/coding-style.md": "sha256:9f3badeb37672cc4331427722dc0ff84bd4520fa8e551713ccf44ab196878f55",
     "claude/rules/common/github-actions.md": "sha256:dd83e898d6979615d69c358ea9664bb671ca70ff0e3b781ef48ee7ebf8d921a2",
     "claude/rules/common/hooks.md": "sha256:958560e5c011273127d8088a65e73d010bfcc1a787cb3b97385663b0a8d1a57d",
@@ -63,7 +63,7 @@
     "claude/rules/typescript/hooks.md": "sha256:3b0bc2a8a8793c7d6b391f7976ffcc3bf73edc4eddf4257072a39cf4c9d8ce01",
     "claude/rules/typescript/testing.md": "sha256:8052377a8e70e86026802becb457d2d834add590b905a5db8e7919e80225cd1c",
     "claude/rules/typescript/type-safety.md": "sha256:ebba98d3029f4c576f9b94048b76ad10be64c9205e6386ed75efb997d2b2988f",
-    "claude/rules/web/browser-login.md": "sha256:84627f4dc71e7f676d10eb18b8017fe56f6cebf3c280f5ad0e047c9661a19def",
+    "claude/rules/web/browser-login.md": "sha256:475d0c39fbd15804c66dd786c653b03347d4af8fadac1731f3a4f9d0e6622033",
     "claude/rules/web/manual-api-failure-checks.md": "sha256:5e67745ca376b5fa2db09bff35add91d068c7d3b1d9893ae251799020b866073",
     "claude/rules/web/security.md": "sha256:09d6d20da7db7c1e1baeac8869cb5862594ada592fde62bd0da07fd8f282f9d8",
     "claude/settings.json": "sha256:684fd81e47e4364abde4dfea6c8fda803c6670ea91985d3799b27fe9f1f48cfb",
