@@ -346,7 +346,11 @@
   },
   "model": "opus",
   "skillOverrides": {
-    "difit": "user-invocable-only"
+    "difit": "user-invocable-only",
+    "lucian-uxui": "off",
+    "vercel-react-best-practices": "off",
+    "find-skills": "off",
+    "prepare-compaction": "off"
   },
   "hooks": {
     "Notification": [
@@ -458,7 +462,8 @@
     "discernment-nudge@anthropic-agent-skills": false,
     "typescript-lsp@claude-plugins-official": false,
     "scene-tag@scene-tag-annotator": true,
-    "ponytail@ponytail": true
+    "ponytail@ponytail": true,
+    "swift-lsp@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "claude-powerline": {
