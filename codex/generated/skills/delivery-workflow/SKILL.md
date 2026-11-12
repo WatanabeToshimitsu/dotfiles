@@ -6,6 +6,10 @@ description: Implement, test, commit, push, or prepare a pull request for a repo
 # Delivery Workflow
 
 Scale the process to the change's uncertainty and risk.
+Every lead turn re-reads the whole conversation, so turns cost more as it
+grows. Combine independent read-only git checks into one call. Reuse a check
+result only while its inputs are unchanged; required HEAD and CI rechecks
+still run.
 
 1. Inspect repository guidance, code, tests, branch, and unrelated dirty files.
 2. Define the smallest coherent change and its acceptance checks.
@@ -24,12 +28,16 @@ Scale the process to the change's uncertainty and risk.
    Never force-push, use forced refspecs, mirror, or delete remote refs.
    Delegated C implementers do not commit or push.
    After each authorized push, identify CI runs/checks for the repository,
-   branch, and exact pushed HEAD. Watch them through an available background
-   or nonblocking call, such as `gh pr checks --watch` or
-   `gh run watch <run-id> --exit-status`, with a finite deadline set before
-   starting. Keep the conversation responsive and honor cancellation and
-   Loop stops; use bounded status snapshots if a nonblocking watch is
-   unavailable. Recheck the HEAD before reporting, after each new push,
+   branch, and exact pushed HEAD. Set a finite watch deadline before starting.
+   When a background helper with an explicit smaller model is available, such
+   as `general-purpose` with `model: sonnet` in Claude Code, hand it
+   `gh pr checks --watch` or `gh run watch <run-id> --exit-status`. It reports
+   once on success, failure, timeout, or cancellation, with conclusions, links,
+   and failing log excerpts; the lead does not poll it. Otherwise use an
+   available background or nonblocking watch; if neither is available, use
+   bounded status snapshots.
+   Keep the conversation responsive and honor cancellation and Loop stops.
+   Recheck the HEAD before reporting, after each new push,
    and after PR creation for PR-triggered CI. Skip monitoring only when CI
    is not configured; an empty check list is not proof of absent CI.
    Report actual conclusions and links without waiting for another request;
