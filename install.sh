@@ -431,6 +431,8 @@ setup_cli_tools() {
 # version installed above, and cannot restart itself from inside the container.
 # Target selection is left to auto detection, so the deployment covers every
 # installed tool and the target list is not treated as drift.
+# Not the default coding profile's lossy compression and cross-turn dedup: they
+# replaced tool output with markers the model could not resolve (issue #304).
 
 setup_headroom() {
   if ! command -v headroom > /dev/null 2>&1; then
@@ -449,7 +451,9 @@ setup_headroom() {
        and .runtime_kind == $runtime
        and .base_env.HEADROOM_ROLLOUT_CHANNEL == "beta"
        and .base_env.HEADROOM_OUTPUT_SHAPER == "1"
-       and .base_env.HEADROOM_OUTPUT_HOLDOUT == "0.1"' \
+       and .base_env.HEADROOM_OUTPUT_HOLDOUT == "0.1"
+       and .base_env.HEADROOM_LOSSLESS == "1"
+       and .base_env.HEADROOM_DEDUPE == "0"' \
       "$manifest" > /dev/null 2>&1; then
     echo "  exists: Headroom persistent proxy ($preset)"
     if ! headroom install status --profile default 2>/dev/null | grep -q '^Status:.*running'; then
@@ -474,6 +478,8 @@ setup_headroom() {
     --env HEADROOM_ROLLOUT_CHANNEL=beta \
     --env HEADROOM_OUTPUT_SHAPER=1 \
     --env HEADROOM_OUTPUT_HOLDOUT=0.1 \
+    --env HEADROOM_LOSSLESS=1 \
+    --env HEADROOM_DEDUPE=0 \
     || echo "  failed: Headroom persistent Claude deployment"
 }
 
