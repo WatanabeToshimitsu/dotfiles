@@ -693,5 +693,175 @@ class RemoteMutationGuardSpellingTest(unittest.TestCase):
         self.assertEqual(self.config_alias_output.get("hookSpecificOutput", {}).get("permissionDecision"), "deny")
 
 
+class RemoteMutationGuardFallbackTest(unittest.TestCase):
+    """Commands the shell parser rejects, as measured for issues #310 and #317."""
+
+    @classmethod
+    def setUpClass(cls):
+        spec = importlib.util.spec_from_file_location("remote_guard", HOOK)
+        cls.guard = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cls.guard)
+
+    def assert_decisions(self, commands, decision):
+        for command in commands:
+            with self.subTest(command=command):
+                with self.assertRaises(self.guard.UnsupportedShell):
+                    self.guard.ShellWords(command).parse()
+                self.assertEqual(self.guard.classify_shell(command)[0], decision)
+
+    def test_publication_calls_in_command_position_stay_blocked(self):
+        self.assert_decisions([
+            'branch=$(git branch --show-current); git push origin --delete "$branch"',
+            'git commit -m "fix $ticket" && git push origin HEAD',
+            'git add -- "$file" && rtk git -C "$dir" push -u origin topic',
+            'body=$(cat "$draft"); gh pr create --title T --body "$body"',
+            'gh pr new --title "$title" --body B',
+            'gh api repos/o/r/issues/1/comments -F body=@"$file"',
+            'jq -n "$payload" | gh api graphql --input -',
+            'gh api -X "$method" repos/o/r/issues/1',
+            'gh api --method=PATCH "repos/o/r/issues/$n" -f state=closed',
+            'gh api graphql -f query="mutation { addComment(input: {subjectId: \\"$id\\"}) { clientMutationId } }"',
+            'if [ -n "$b" ]; then git push origin "$b"; fi',
+            'for b in $branches; do timeout 30 git push origin "$b"; done',
+            'echo "$(git push origin "$b")"',
+            'echo `git push origin $b`',
+            'x=$y; bash -c \'git push origin main\'',
+            'x=$y; bash -c \'gh api -X POST repos/o/r/issues/1/comments -f body=B\'',
+            'x=$y; bash --norc -c \'git push origin main\'',
+            'x=$y; sh -e -c \'git push origin main\'',
+            'x=$y; cat <<EO\\\nF\n$(git push origin main)\nEOF\n',
+            'x=$y; echo "$(case x in x) git push origin main;; esac)"',
+            'x=$y; echo `echo \\`git push origin main\\``',
+            'echo $\'don\\\'t\' "$x"; git push origin main',
+            'x=$((1<<2))\ngit push origin main\n',
+            'echo ${x:- #}; git push origin main',
+            'x=$y; git > >(cat) push origin main',
+            'time { git push origin "$b"; }',
+            'diff <(git push origin main) "$x"',
+            'title=${title:-${tag} #317}; gh pr create --title "$title" --body B',
+            'x=$y; bash -c "git \\\n  push origin main"',
+            "x=$y; bash -c $'echo ready\\n  git push origin main'",
+            'cmd="git push origin main"; bash -c "$cmd"',
+            'cmd="git push origin $b"; $cmd',
+            "x=$y; bash <<'EOF'\ngit push origin main\nEOF\n",
+            'echo "git push origin $b" | sh',
+            'x=$y; bash -c "echo It\\\'s ready; git push origin main"',
+            "x=$y; bash -c -o pipefail 'git push origin main'",
+            "x=$y; bash -co pipefail 'git push origin main'",
+            "x=$y; bash -s -- -c config <<'EOF'\ngit push origin main\nEOF\n",
+            "x=$y; bash -o pipefail -c 'git push origin main'",
+            'cat <<EOF\n$(echo "$x"\nEOF\ngit push origin main\n)\n',
+            "x=$y; cat <<!\nIt's ready.\n!\ngit push origin main\n",
+            'x=$y; a+=b git push origin main',
+            'message=ready; [[ "$message" =~ ready|# ]] && git push origin main',
+            "x=$y; /bin/sh -c 'gh api -X POST repos/o/r/issues/1/comments -f body=B'",
+            'gh api -XDELETE "repos/o/r/git/refs/heads/$b"',
+            'x=$y; time git push origin main',
+            'x=$y; (git push origin main)',
+            'cat <<EOF\n$(git push origin main)\nEOF\n',
+            'cat <<EOF\n"$(git push origin main)"\nEOF\n',
+            'cat <<-EOF\n\tbody\n\tEOF\ngit push origin "$b"\n',
+            'cat "$x" <<\'A\' <<\'B\'\nA-body\nA\nB-body\nB\ngit push origin main\n',
+            'gi\\\nt push origin "$b"',
+            'git 2>/dev/null push origin "$b"',
+            '>"$log" git push origin main',
+            'git push "$b" --repo',
+            'x=$y; gh pr create --title',
+        ], "deny")
+
+    def test_words_outside_command_position_do_not_block(self):
+        self.assert_decisions([
+            'cat > "$file" <<\'EOF\'\nRun git push origin main, then gh pr create.\nEOF\n',
+            'git commit -F - <<EOF\nNever git push from $HOME; gh api is read-only here.\nEOF\n',
+            'git stash push -m "wip $ticket"',
+            'git log --oneline | grep -c "api" ; echo $?',
+            'gh pr view "$n" --json body --jq .body | grep -n "git push"',
+            'echo "$1: run gh pr create later"',
+            'for n in 1 2 3; do gh api "repos/o/r/issues/$n" --jq .title; done',
+            'gh api -X GET "repos/o/r/pulls/$n" | jq .head',
+            'git -C "$dir" log --grep push',
+            'echo "\\$(git push origin main) $x"',
+            'cat "$x" <<\'A\' <<\'B\'\ngit push origin main\nA\ngh pr create\nB\n',
+            'cat <<-EOF\n\tgit push origin main\n\tEOF\necho "$x"\n',
+            'gh issue list --search "$q" --label',
+            'echo "${#items[@]} items"; git stash push',
+            'gh issue comment 1 --body "Run \\`git push\\` after $step"',
+            'cat > "$f" <<\'EOF\'\nRun `git push` later.\nEOF\n',
+            "x=$y; bash --norc -lc 'git status; echo \"git push later\"'",
+        ], "continue")
+
+
+class RemoteMutationGuardFallbackMissTest(unittest.TestCase):
+    """Spellings the narrowed fallback lets through, recorded for issue #317.
+
+    Each one either never occurs as shell syntax in the records measured for
+    issue #310, or belongs to the forms the #317 review criterion leaves out of
+    scope: zsh-only syntax, brace groups, nested heredocs, and options or
+    scripts injected through expansions. Fixing the guard turns the test into
+    an unexpected success.
+    """
+
+    MISSES = (
+        ('line_continuation_between_dollar_and_paren', 'x=$y; echo "$\\\n(git push origin main)"'),
+        ('legacy_arithmetic_expansion', 'echo "$x"; n=$[1<<2]\ngit push origin main\n'),
+        ('heredoc_delimiter_with_substitution', 'x=$y; cat <<"$(true)"\nbody\n$(true)\ngit push origin main\n'),
+        ('heredoc_delimiter_split_by_line_continuation', 'cat <<EOF\nEO\\\nF\ngit push origin "$b"\n'),
+        ('empty_heredoc_delimiter', "x=$y; cat <<''\n'\n\ngit push origin main\n"),
+        ('crlf_heredoc', "x=$y; cat <<'EOF'\r\nEOF\r\ngit push origin main # publish\r\n"),
+        ('heredoc_closed_by_paren_inside_substitution', 'x=$y; git commit -m "$(cat <<\'EOF\'\nmsg\nEOF)" && git push origin main'),
+        ('heredoc_started_inside_parentheses', "x=$y; (cat <<'EOF')\n'\nEOF\ngit push origin main\n"),
+        ('heredoc_read_in_piped_subshell', 'x=$y; cat <<EOF | (\npayload\nEOF\ncat\n)\ngit push origin main\n'),
+        ('two_pending_heredocs_in_nested_frames', "x=$y; cat <<'OUT' | (cat <<'IN'\nouter\nOUT\ninner\nIN\n)\ngit push origin main\n"),
+        ('tab_stripped_heredoc_with_nested_heredoc', "x=$y; cat <<-OUT\n$(cat <<'IN'\n\tIN\n\tgit push origin main\n)\nOUT\n"),
+        ('heredoc_operator_split_by_line_continuation', "x=$y; cat <\\\n<'EOF'\n'\nEOF\ngit push origin main\n"),
+        ('heredoc_operator_in_array_subscript', 'a[1<<n ]=3\ngit push origin "$b"\nn'),
+        ('ampersand_redirect_before_subcommand', 'git &>/dev/null push origin "$b"'),
+        ('named_descriptor_redirect', 'git {fd}>/dev/null push origin "$b"'),
+        ('redirect_target_after_line_continuation', 'x=$y; > \\\n  publish.log git push origin main'),
+        ('noclobber_override_redirect', 'x=$y; >| publish.log git push origin main'),
+        ('zsh_clobber_redirect', 'x=$y; >! publish.log git push origin main'),
+        ('zsh_append_both_redirect', 'x=$y; >>&publish.log git push origin main'),
+        ('comment_after_process_substitution', 'cat <(echo a)# ; git push origin "$b"'),
+        ('comment_inside_substitution_in_bash_3_2', 'y=$v; x=$(echo a # ) ; git push origin main\n)'),
+        ('ansi_c_quote_after_line_continuation', 'echo $\\\n\'a\\\'\' ; git push origin "$b" #\''),
+        ('coproc', 'coproc git push origin "$b"'),
+        ('for_without_in', 'x=$y; set -- main; for branch do git push origin "$branch"; done'),
+        ('env_with_directory_option', 'x=$y; env -C repo git push origin main'),
+        ('zsh_repeat', "x=$y; zsh -c 'repeat 1 git push origin main'"),
+        ('zsh_nocorrect', 'x=$y; nocorrect git push origin main'),
+        ('zsh_brace_loop', 'while [[ -n $b ]] { git push origin "$b"; break; }'),
+        ('zsh_short_if', 'x=$y; if [[ -n $b ]] git push origin $b'),
+        ('zsh_brace_group_without_space', 'x=$y; {git push origin main}'),
+        ('zsh_glob_flag', 'x=$y; print -r -- (#i)readme*; git push origin main'),
+        ('zsh_pattern_with_hash', 'x=$y; ls (a|#b); git push origin main'),
+        ('shell_script_built_by_substitution', 'x=$y; bash -c "echo $(printf \'ready; git push origin main\')"'),
+        ('git_subcommand_from_variable', 'x=$y; git "$sub" origin main # push'),
+        ('gh_subcommand_from_variable', 'x=$y; gh "$cmd" create --title T --body B'),
+        ('api_option_from_variable', 'api_flag=-f; gh api repos/o/r/issues/1/comments $api_flag body=B'),
+        ('api_argument_word_splitting', 'request="1/comments -f body=B"; gh api repos/o/r/issues/$request'),
+        ('quoted_at_expansion_in_api_argument', 'set -- "" -f body=B; gh api "repos/o/r/issues/1/comments$@"'),
+        ('api_field_in_short_option_cluster', 'x=$y; gh api -if body=B repos/o/r/issues/1/comments'),
+        ('api_method_in_short_option_cluster', 'x=$y; gh api -iXPOST repos/o/r/issues/1/comments'),
+        ('pr_create_after_option', 'x=$y; gh pr -R o/r create --title T --body B'),
+    )
+
+    @classmethod
+    def setUpClass(cls):
+        spec = importlib.util.spec_from_file_location("remote_guard", HOOK)
+        cls.guard = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cls.guard)
+
+    def test_recorded_misses_reach_the_fallback(self):
+        for name, command in self.MISSES:
+            with self.subTest(name=name):
+                with self.assertRaises(self.guard.UnsupportedShell):
+                    self.guard.ShellWords(command).parse()
+
+
+for _name, _command in RemoteMutationGuardFallbackMissTest.MISSES:
+    setattr(RemoteMutationGuardFallbackMissTest, f"test_{_name}_is_blocked", unittest.expectedFailure(
+        lambda self, command=_command: self.assertEqual(self.guard.classify_shell(command)[0], "deny")))
+
+
 if __name__ == "__main__":
     unittest.main()
