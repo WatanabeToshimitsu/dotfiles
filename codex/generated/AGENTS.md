@@ -13,79 +13,27 @@
 - 他リポジトリを参照する調査や実装では、先に origin を fetch し、origin の既定ブランチ（trunk / main）の内容を根拠にする。作業ブランチや古いローカル checkout を根拠にしない。
 - バグ修正は報告された問題に絞り、正しく直せる最小の変更を選ぶ。
 - ユーザーにモデル選択やコンテキスト管理を委ねず、自分で調整する。
-- For widespread failures of tests or CI jobs, group the failures and investigate
-  a shared cause before fixing cases individually. Start with relevant recent
-  changes; if they do not explain the failures, broaden the investigation
-  according to the affected areas to dependencies, mocks, setup, or runtime.
-  Distinguish confirmed causes from hypotheses; narrow the search if no shared
-  cause is found.
-- For unresolved architecture or infrastructure choices, compare two or three
-  viable options in a short table before exploring one deeply. Include a simpler
-  managed option or explain why it is unsuitable, and recommend one using
-  requirements and trade-offs. Respect choices already made by the user and
-  skip comparison for small changes or obvious fixes. Follow existing judgment
-  and approval rules for continuation and material concerns.
+- For widespread test or CI failures, group them and seek a shared cause first, from recent changes out to dependencies, mocks, setup, or runtime; keep confirmed causes apart from hypotheses, and narrow the search if none is found.
+- For an open architecture or infrastructure choice, table two or three viable options before exploring one deeply, including a simpler managed one or why it is unsuitable, and recommend one by requirements and trade-offs; skip small changes, obvious fixes, and settled user choices.
 
 # 実装と配送
 
-The user-facing frontier model leads the task and may design, implement, refactor, audit, test, and fix through its authorized tools. Either Claude or Codex may delegate bounded work; follow `delivery-workflow` for independent review and transfer of writer authority before Git delivery.
-
 - コード、コメント、技術文書は英語で書く。
-- リポジトリ固有の指示、既存パターン、テストを先に確認する。
 - 変更可能なコードは TDD の RED、GREEN、REFACTOR で進める。
-- リファクタリングと機能変更を同じ変更に混ぜない。
-- 無関係な作業ツリーの変更を保護し、ファイルを明示して stage する。
-- 権限に配送が含まれる場合は、検証後に論理単位で commit、通常の push まで進める。強制 push、強制 refspec、リモートの削除は行わない。
-- For `git push`, include a literal absolute repository path in the command, such as `rtk proxy git -C /absolute/repo push origin topic`, even when the tool sets `workdir`. Codex shell hooks may receive only the command and session cwd.
+- Give `git push` a literal absolute repo path, such as `rtk proxy git -C /absolute/repo push origin topic`, even when `workdir` is set; Codex shell hooks may see only the command and session cwd.
 - For Codex CLI PR creation, use an absolute `--body-file` path.
-- Before every PR, including a Draft, prepare the target, title, body, and full
-  outgoing commit range, and inspect them for secrets, personal and confidential
-  information, and content outside the requested task. Pattern scans alone do
-  not establish safety.
-- In Claude Code, create the PR without separate confirmation when the task's
-  authority includes delivery, the inspection is complete, and it finds nothing.
-  Ask before creating when findings, uninspected scope, or out-of-scope content
-  remain. Report the created PR with its inspection results.
-- In Codex, complete inspection and establish user authorization before invoking
-  a PR tool; its context-only hook warnings cannot pause a PR for late findings.
-  Reuse explicit continuing or multi-PR authorization for inspected operations
-  within its stated targets, actions, data scope, and limits; do not ask again
-  for covered actions.
-  Without a stated wider scope, limit approval to the current task and repository
-  in the current conversation. Ask only for missing or ambiguous authorization,
-  expanded scope, or unresolved inspection concerns. A user's explicit per-action
-  confirmation requirement still applies; generic reminders do not revoke a
-  continuing authorization. Never turn one-PR consent into a persisted allow rule.
-- For Codex, PR authorization alone does not authorize image uploads. When
-  attachments are explicitly authorized, view each image and check its content
-  and destination against that authorization; preserve native upload checks.
-- Stop on unresolved sensitive findings or runtime rejection. Never evade a denial
-  through another route. PR creation grants no merge, profile, scheduling,
-  spending, or private-data sharing authority. Keep native checks and report
-  instruction checks separately from runtime results.
-- Start long-running Node processes such as dev servers, watchers, and Storybook with `memgate run -- <command>`; `agent-browser` passes through memgate automatically. When memgate refuses for lack of memory, stop idle servers and browsers you started, then retry; do not bypass it.
+- Before every PR, including a Draft, follow `delivery-workflow` step 8. In Codex, also finish inspection and get explicit user authorization before a PR tool call, as hook warnings cannot pause it.
+- Run long-lived Node processes such as dev servers, watchers, and Storybook with `memgate run -- <command>`; `agent-browser` already does. If memgate refuses for memory, stop idle servers and browsers you started and retry; never bypass it.
 - Before opening a web app with agent-browser, follow the [browser login rule](rules/web/browser-login.md); it also limits production use.
-- Call 1Password's `op` by its bare name, not through a path or a script, so the Claude Code permission prompt shows each call. Keep secret values out of tool output and logs: feed them straight into the command that uses them, with a pipe, `$(op read ...)`, `op run` without `--no-masking`, or `op inject -o <file>`, and check that the command does not echo them.
+- Call 1Password's `op` by its bare name, not a path or script, so the Claude Code permission prompt shows each call. Pass secrets straight to their consumer with a pipe, `$(op read ...)`, `op run` without `--no-masking`, or `op inject -o <file>`, keep them out of output and logs, and check the command does not echo them.
 - JavaScript/TypeScript を含む範囲のリポジトリ検査やリファクタリングでは、`repository-audit` skill を使い、Knip の結果または実行できなかった理由を残す。
 
-詳細な進行手順とレビュー基準は、該当時に `delivery-workflow` と `code-review` skill を使う。
+詳細な手順とレビュー基準は `delivery-workflow` と `code-review` skill に従う。
 
 # 長い作業と goal
 
-Read `references/goals.md` in the delivery-workflow skill directory
-([goal guidance](skills/delivery-workflow/references/goals.md)) near the start
-when work likely spans multiple PRs, needs substantial investigation, likely
-takes about an hour or more, or needs staged project planning; also read it
-when that size becomes clear later. Read it for explicit goal requests, and for
-feedback, decisions, or acceptance on an agreed plan's pending handoff,
-including in a later chat. Re-read it when a goal becomes active, at each goal
-completion, before drafting goal commands or updating a goal plan, and after
-compaction during goal work.
-
-If the guidance is unreadable, report it and stop dependent goal drafting or
-handoffs; continue independent authorized work. Do not reconstruct its rules
-from memory. Offer initial goals once; activation requires an explicit user
-request. Preserve native goal lifecycle and approval rules.
+Read the [goal guidance](skills/delivery-workflow/references/goals.md) near the start, or once the size becomes clear, for work likely to span multiple PRs, need substantial investigation, take about an hour or more, or need staged planning; also for goal requests and feedback on a pending plan handoff, even in a later chat. Re-read it on goal activation and completion, before drafting goals or plan updates, and after compaction mid-goal.
+If it is unreadable, say so, stop dependent goal drafting and handoffs, continue independent authorized work, and never rebuild its rules from memory.
 
 # Claude Code Configuration Scope
 
@@ -118,13 +66,10 @@ request. Preserve native goal lifecycle and approval rules.
 
 # モデルとコンテキスト
 
-- Keep the user-facing frontier model as lead by default. Delegate for concrete reasons such as tools, capacity, existing ownership, or demonstrated suitability; preserve accepted designs and one writer per shared scope.
-- Reuse explicit user authorization for collaboration and necessary packet sharing within the approved task, providers, purpose, and data scope. Do not ask again for design review, implementation review, or review after fixes when those boundaries are unchanged.
-- Carry the actual approval basis and its task, providers, purpose, and permitted data scope in each private handoff and invocation. Share only the necessary artifact, acceptance criteria, and verification; remove secrets, personal information, and unrelated material.
-- Check changed tasks, providers, purposes, or expanded data against the existing approval, and obtain only the missing authorization before dependent sharing. Identify the rejecting authority, action, and reason for a runtime permission denial; never evade it through another route, provider, or agent.
-- Approval reuse grants no new tool, authentication, spending, publication, or permission authority. Preserve the PR publication rules and unsolicited-post restrictions, and record document checks, actual model calls, and approval-runtime results separately.
-- Follow [delivery-workflow](skills/delivery-workflow/SKILL.md#stage-contract) for when independent design and implementation reviews are required, reviewer selection, automatic fallback, actual model and review-level reporting, and writer handoff.
-- Keep the configured frontier lead; never silently downgrade it, enable spending, or change permissions. If no frontier can continue as lead, save a handoff and pause dependent work.
+- Keep the user-facing frontier model as lead, never silently downgraded. Delegate for concrete reasons such as tools, capacity, ownership, or proven fit; keep accepted designs and one writer per scope.
+- Reuse explicit approval for collaboration and packet sharing, re-reviews included, while task, providers, purpose, and data scope hold; ask only for what a change adds. Each private handoff and invocation carries that basis and only the needed artifact, criteria, and checks, without secrets, personal data, or unrelated material.
+- Approval reuse grants no new tool, authentication, spending, publication, unsolicited-post, or permission authority; record document checks, actual model calls, and runtime approval results apart. Trace a runtime denial to its authority, action, and reason; never evade it through another route, provider, or agent.
+- The [stage contract](skills/delivery-workflow/SKILL.md#stage-contract) decides when reviews run, reviewers, review levels, and writer handoff.
 - Agent 呼び出しでは常に非 `inherit` の model を明示し、同じ探索を重複させない。
 - サブエージェントからは結論、関連箇所、リスク、検証結果だけを受け取る。
 - 大量ログは要約またはファイルへ退避し、main conversation に戻さない。
@@ -142,14 +87,8 @@ request. Preserve native goal lifecycle and approval rules.
 - 括弧の補足を多用せず、重要事項は本文に書く。
 - PR、issue、deployment、service の状態は、報告する前に毎回コマンドで確認する。会話中に見た内容から断定しない。
 - ユーザー向けの文章で PR や issue に触れるときは、番号だけでなく URL をそのまま書く。レビューやマージを頼む場合も、紹介や参照だけの場合も同じ。
-- When quoting or relying on external documentation, verify the source and
-  include its URL or file path. Match quotes to the original and label
-  paraphrases and inferences. If verification is unavailable, state that
-  limitation rather than presenting unverified wording as a quote.
-- Before claiming that a tool or external service lacks a feature or cannot
-  do something, check current official documentation or the actual tool/service
-  for the relevant version and environment. If verification is inconclusive
-  or unavailable, report it as unconfirmed.
+- Verify external documentation before quoting or relying on it and cite its URL or path; match quotes to the original, label paraphrases and inferences, and say when you could not verify.
+- Before saying a tool or service lacks a feature or cannot do something, check its current official docs or the tool itself for that version and environment; report inconclusive checks as unconfirmed.
 
 # Shared scoped rules
 
