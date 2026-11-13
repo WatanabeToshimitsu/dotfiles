@@ -49,6 +49,7 @@ MANIFEST_CLAUDE_FILES=(
   hooks/validate-bash.sh
   hooks/_shell_parser.py
   hooks/remote-mutation-guard.py
+  hooks/japanese-guard.py
   rules/common/coding-style.md
   rules/common/github-actions.md
   rules/common/hooks.md
@@ -98,7 +99,6 @@ MANIFEST_CLAUDE_FILES=(
 MANIFEST_CLAUDE_OBSOLETE_FILES=(
   hooks/deny-check.sh
   hooks/link-worktree-memory.sh
-  hooks/japanese-guard.py
   rules/common/agents.md
   rules/common/code-review.md
   rules/common/development-workflow.md
