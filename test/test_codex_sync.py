@@ -670,6 +670,16 @@ class RegressionTest(RepositoryCase):
         with self.assertRaisesRegex(ValueError, 'manifest'):
             generate.write(self.root, out)
 
+    def test_finder_metadata_is_ignored_but_other_unowned_files_are_refused(self):
+        out = self.generate()
+        self.put('codex/generated/rules/.DS_Store', 'x')
+        generate.write(self.root, out)
+        self.assertEqual(generate.changes(self.root, out), [])
+        self.put('codex/generated/rules/notes.txt', 'x')
+        with self.assertRaisesRegex(ValueError, 'manually edited'):
+            generate.write(self.root, out)
+        self.assertEqual(generate.changes(self.root, out), ['rules/notes.txt'])
+
     def test_executable_skill_resource_survives_generation_and_install(self):
         self.put('claude/skills/demo/run.sh', '#!/bin/sh\nprintf resource-ok\n')
         script = self.root / 'claude/skills/demo/run.sh'

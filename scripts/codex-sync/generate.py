@@ -172,6 +172,8 @@ def existing(root):
         return {}
     result = {}
     for path in base.rglob('*'):
+        if path.name == '.DS_Store':
+            continue
         name = path.relative_to(base).as_posix()
         if path.is_symlink():
             raise ValueError(f'generated symlink is not managed: {name}')
