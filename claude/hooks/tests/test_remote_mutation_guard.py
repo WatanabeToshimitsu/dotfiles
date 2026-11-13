@@ -585,5 +585,113 @@ class RemoteMutationGuardTest(unittest.TestCase):
             self.assertNotIn(secret, report)
 
 
+class RemoteMutationGuardSpellingTest(unittest.TestCase):
+    """Spellings of guarded operations measured for issue #310.
+
+    Each expectedFailure records one spelling the guard lets through today;
+    fixing the guard turns that test into an unexpected success.
+    """
+
+    FORCE = "git push --force origin main"
+    REF = "repos/o/r/git/refs/heads/main"
+
+    @classmethod
+    def setUpClass(cls):
+        spec = importlib.util.spec_from_file_location("remote_guard", HOOK)
+        cls.guard = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cls.guard)
+        with tempfile.TemporaryDirectory() as directory:
+            subprocess.run(["git", "init", directory], check=True, capture_output=True)
+            subprocess.run(["git", "-C", directory, "config", "alias.publish", "push --force"], check=True)
+            result = subprocess.run(
+                ["python3", str(HOOK), "--client", "claude"],
+                input=json.dumps({"tool_name": "Bash", "cwd": directory,
+                                  "tool_input": {"command": "git publish origin main"}}),
+                text=True, capture_output=True, check=True,
+            )
+        cls.config_alias_output = json.loads(result.stdout) if result.stdout else {}
+
+    def assert_decisions(self, cases):
+        for command, decision in cases:
+            with self.subTest(command=command):
+                self.assertEqual(self.guard.classify_shell(command)[0], decision)
+
+    def assert_decision(self, command, decision):
+        self.assertEqual(self.guard.classify_shell(command)[0], decision)
+
+    def test_spellings_from_the_issue_table_keep_their_measured_decisions(self):
+        self.assert_decisions([
+            (self.FORCE, "deny"),
+            ("env " + self.FORCE, "deny"),
+            ("\\" + self.FORCE, "deny"),
+            ("sh -c '" + self.FORCE + "'", "deny"),
+            ("git -c alias.publish='push --force' publish origin main", "deny"),
+            ("echo '" + self.FORCE + "'", "continue"),
+        ])
+
+    def test_wrappers_absolute_paths_and_ref_api_updates_are_blocked(self):
+        self.assert_decisions([
+            ("builtin " + self.FORCE, "deny"),
+            ("exec " + self.FORCE, "deny"),
+            ("nohup " + self.FORCE, "deny"),
+            ("/usr/bin/" + self.FORCE, "deny"),
+            ("gh api -X PATCH " + self.REF + " -f sha=abc -F force=true", "deny"),
+            ("gh api -X DELETE " + self.REF, "deny"),
+            ("/opt/homebrew/bin/gh pr create --title T --body B", "pr"),
+        ])
+
+    @unittest.expectedFailure
+    def test_command_p_push_is_blocked(self):
+        self.assert_decision("command -p " + self.FORCE, "deny")
+
+    @unittest.expectedFailure
+    def test_command_p_pr_create_requires_review(self):
+        self.assert_decision("command -p gh pr create --title T --body B", "pr")
+
+    @unittest.expectedFailure
+    def test_exec_with_argv0_option_push_is_blocked(self):
+        self.assert_decision("exec -a name " + self.FORCE, "deny")
+
+    @unittest.expectedFailure
+    def test_xargs_push_is_blocked(self):
+        self.assert_decision("xargs " + self.FORCE + " < /dev/null", "deny")
+
+    @unittest.expectedFailure
+    def test_xargs_push_with_refs_from_stdin_is_blocked(self):
+        self.assert_decision("echo main | xargs git push --force origin", "deny")
+
+    @unittest.expectedFailure
+    def test_xargs_pr_create_requires_review(self):
+        self.assert_decision("xargs gh pr create --title T --body B < /dev/null", "pr")
+
+    @unittest.expectedFailure
+    def test_sudo_push_is_blocked(self):
+        self.assert_decision("sudo " + self.FORCE, "deny")
+
+    @unittest.expectedFailure
+    def test_eval_push_is_blocked(self):
+        self.assert_decision("eval '" + self.FORCE + "'", "deny")
+
+    @unittest.expectedFailure
+    def test_brace_group_push_is_blocked(self):
+        self.assert_decision("{ " + self.FORCE + "; }", "deny")
+
+    @unittest.expectedFailure
+    def test_graphql_update_ref_with_force_is_blocked(self):
+        self.assert_decision("gh api graphql -f query='mutation { updateRef(input: {refId: \"R\", oid: \"O\", force: true}) { clientMutationId } }'", "deny")
+
+    @unittest.expectedFailure
+    def test_graphql_delete_ref_is_blocked(self):
+        self.assert_decision("gh api graphql -f query='mutation { deleteRef(input: {refId: \"R\"}) { clientMutationId } }'", "deny")
+
+    @unittest.expectedFailure
+    def test_pr_new_alias_requires_review(self):
+        self.assert_decision("gh pr new --title T --body B", "pr")
+
+    @unittest.expectedFailure
+    def test_push_alias_from_repository_config_is_blocked(self):
+        self.assertEqual(self.config_alias_output.get("hookSpecificOutput", {}).get("permissionDecision"), "deny")
+
+
 if __name__ == "__main__":
     unittest.main()
