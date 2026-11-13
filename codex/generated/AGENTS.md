@@ -94,24 +94,16 @@ If it is unreadable, say so, stop dependent goal drafting and handoffs, continue
 
 Before editing a file, read every matching rule below, in the listed order. Patterns use repository-relative paths, ** spans directories, and braces list alternatives. Do not apply unmatched rules. These are prompt instructions, not native Claude conditional loading. Rule files live under ~/.codex/dotfiles-sync/current/. Repository and local Codex instructions retain their normal precedence.
 
-- rules/common/coding-style.md: `**/*.{c,cc,cpp,cs,go,java,js,jsx,kt,kts,php,py,pyi,rb,rs,swift,ts,tsx,vue,svelte}`
 - rules/common/github-actions.md: `.github/workflows/*.{yml,yaml}`, `.github/actions/**/*.{yml,yaml}`
 - rules/common/hooks.md: `**/.claude/**`, `claude/hooks/**`, `claude/settings.json`
 - rules/common/security.md: `**/*.{c,cc,cpp,cs,go,java,js,jsx,kt,kts,php,py,pyi,rb,rs,swift,ts,tsx,vue,svelte}`, `**/*.{json,yaml,yml,toml}`
-- rules/common/testing.md: `**/{test,tests,__tests__,spec,specs}/**`, `**/*.{test,spec}.{js,jsx,ts,tsx}`, `**/test_*.py`, `**/*_test.{go,py,rb,rs}`
 - rules/common/ui.md: `**/*.{astro,css,dart,html,js,jsx,kt,scss,storyboard,svelte,swift,ts,tsx,vue,xib}`, `**/res/**/*.xml`
 - rules/golang/coding-style.md: `**/*.go`, `**/go.mod`, `**/go.sum`
 - rules/golang/hooks.md: `**/*.go`, `**/go.mod`, `**/go.sum`
-- rules/golang/security.md: `**/*.go`, `**/go.mod`, `**/go.sum`
 - rules/golang/testing.md: `**/*.go`, `**/go.mod`, `**/go.sum`
-- rules/python/coding-style.md: `**/*.py`, `**/*.pyi`
 - rules/python/fastapi.md: `**/app/**/*.py`, `**/fastapi/**/*.py`, `**/*_api.py`
 - rules/python/hooks.md: `**/*.py`, `**/*.pyi`
-- rules/python/security.md: `**/*.py`, `**/*.pyi`
-- rules/python/testing.md: `**/*.py`, `**/*.pyi`
-- rules/typescript/coding-style.md: `**/*.ts`, `**/*.tsx`, `**/*.js`, `**/*.jsx`
 - rules/typescript/hooks.md: `**/*.ts`, `**/*.tsx`, `**/*.js`, `**/*.jsx`
-- rules/typescript/testing.md: `**/*.ts`, `**/*.tsx`, `**/*.js`, `**/*.jsx`
 - rules/typescript/type-safety.md: `**/*.ts`, `**/*.tsx`
 - rules/web/browser-login.md: `**/*.{astro,html,jsx,svelte,tsx,vue}`
 - rules/web/manual-api-failure-checks.md: `**/*.{astro,html,jsx,svelte,tsx,vue}`

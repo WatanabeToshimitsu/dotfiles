@@ -7,13 +7,8 @@ paths:
 
 ## Secrets
 
-- Never hardcode an API key, password, token, or connection string. Read it from
-  the environment or a secret manager.
 - Validate required secrets before use; when missing or empty, fail without
   disclosing their values.
-- Never put a real credential in a config file, an example, or a fixture.
-- Treat a secret that reached a commit, a log, or a shared channel as exposed.
-- Keep sensitive values out of error messages and stack traces.
 
 ## When something is found
 
