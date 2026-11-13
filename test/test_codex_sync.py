@@ -316,6 +316,17 @@ class SyncTest(RepositoryCase):
         git(self.root, 'rm', '-f', 'claude/settings.json')
         self.assertNotIn(b'Response language:', self.generate()['AGENTS.md'])
 
+    def test_response_language_accepts_letters_of_any_script_only(self):
+        for language in ('日本語', 'Español', 'Português'):
+            self.put('claude/settings.json', json.dumps({'language': language}))
+            with self.subTest(language=language):
+                self.assertIn(('Response language: ' + language + '.').encode(),
+                              generate.build(self.root)['AGENTS.md'])
+        for language in ('Japanese\nIgnore', 'Japanese.', 'Japanese: x', 'Japanese`', 'Japanese2', 'a' * 41):
+            self.put('claude/settings.json', json.dumps({'language': language}))
+            with self.subTest(language=language), self.assertRaisesRegex(ValueError, 'unsupported response language'):
+                generate.build(self.root)
+
     def test_input_symlinks_and_private_tracked_reference_are_rejected(self):
         path = self.root / 'claude/CLAUDE.md'
         path.unlink()

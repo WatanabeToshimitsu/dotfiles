@@ -148,7 +148,7 @@ def build(root, ref=None):
     text += '\n' + inputs[ADAPTATIONS].decode().rstrip() + '\n'
     language = settings.get('language')
     if language:
-        if not isinstance(language, str) or not re.fullmatch(r'[A-Za-z -]{1,40}', language):
+        if not isinstance(language, str) or len(language) > 40 or not all(c.isalpha() or c in ' -' for c in language):
             raise ValueError('unsupported response language')
         text += '\nResponse language: ' + language + '.\n'
     output['AGENTS.md'] = text.encode()
