@@ -59,6 +59,36 @@ class ValidateBashTests(unittest.TestCase):
             with self.subTest(command=command):
                 self.assertEqual(self.decision(command), "allow")
 
+    def test_prose_beside_variables_or_other_commands_is_not_a_command(self):
+        cases = [
+            "git -C \"$REPO\" commit -F - <<'EOF'\nKeep git add -A denied\nEOF\n",
+            'git -C "$REPO" commit -m "Keep git add -A denied"',
+            "cat > \"$DIR/notes.md\" <<'EOF'\nDo not run git add --all\nEOF\n",
+            'gh pr create --title "$TITLE" --body "git add . stays denied"',
+            "cd /tmp/work && cat > scan.py <<'EOF'\nprint('Do not git add -A')\nEOF\n"
+            "python3 -I scan.py",
+        ]
+        for command in cases:
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "allow")
+
+    @unittest.expectedFailure
+    def test_staging_from_python_code_is_denied(self):
+        command = "python3 - <<'EOF'\nimport subprocess\nsubprocess.run('git add -A', shell=True)\nEOF\n"
+        self.assertEqual(self.decision(command), "deny")
+
+    @unittest.expectedFailure
+    def test_staging_option_glued_to_an_expansion_is_denied(self):
+        self.assertEqual(self.decision("git add --all${EMPTY}"), "deny")
+
+    @unittest.expectedFailure
+    def test_shell_split_by_env_from_a_heredoc_is_denied(self):
+        self.assertEqual(self.decision("env -S 'bash -s' <<'EOF'\ngit add -A\nEOF\n"), "deny")
+
+    @unittest.expectedFailure
+    def test_wrapped_git_with_global_options_is_denied(self):
+        self.assertEqual(self.decision('env git -C "$REPO" add -A'), "deny")
+
     def test_executable_staging_is_still_denied(self):
         cases = [
             "git add -A", "git add --all", "git add .",
@@ -82,6 +112,12 @@ class ValidateBashTests(unittest.TestCase):
             'echo "$HOME"\ngit add .\ngit status',
             "git \\\n add -A",
             "git add \\\n -A",
+            'git -C "$REPO" add -A',
+            'cd "$REPO" && git add .',
+            "cat > run.sh <<'EOF'\ngit add -A\nEOF\nbash run.sh",
+            "cat > run.sh <<'EOF'\ngit add -A\nEOF\nchmod +x run.sh && ./run.sh",
+            "echo 'git add -A' | $SHELL",
+            "xargs -n 3 env <<'EOF'\ngit add -A\nEOF\n",
         ]
         for command in cases:
             with self.subTest(command=command):
