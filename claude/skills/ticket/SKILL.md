@@ -126,12 +126,16 @@ Evidence workflow, after a pull request is created:
    appending, Backspace over it and retype it the same way, or delete the
    block when the URL is all it holds. Read the field back and confirm one
    link whose target is exactly the pull request URL.
-3. Jira: if `ticketJiraKey` is set, read the issue. Unless the pull
-   request is already under the pull request heading reference.md names
-   in the link form it gives, append it in that form, or rewrite a bare
-   URL into it. A text match cannot tell the two apart, because the link
-   form contains the URL. Read the description back and confirm the link
-   form, not a bare URL.
+3. Jira: if `ticketJiraKey` is set, read the description in the format
+   reference.md names and write it back in that same format; a markdown
+   round trip breaks other people's links. Change nothing outside the
+   pull request heading, even links that look broken. Unless the pull
+   request is already under that heading as a link card, append it as
+   one, or turn the plain-text URL into one. Judge by node type, not by
+   text: a card, a link mark, and plain text can all show the same URL.
+   Read the description back and confirm that the pull request is a card
+   whose target is exactly its URL and that nothing else changed apart
+   from the attributes reference.md says the write drops.
 4. Steps 2 and 3 are independent: run both even when one finds the link
    already there, so a rerun completes a half-finished append. Neither
    needs approval: the user asked for evidence to be automatic.
