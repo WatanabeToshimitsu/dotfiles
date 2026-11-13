@@ -18,13 +18,13 @@ still run.
 3. Follow the stage contract. Use RED, GREEN, REFACTOR for behavior changes;
    keep refactoring separate from feature behavior.
 4. Run focused checks, fix their cause, and rerun affected checks.
-5. Use `code-review` with the independent reviewer selected by artifact author.
+5. Use `code-review` for each review the stage contract requires.
 6. Self-review the complete final diff for scope and accidental changes.
    Keep related out-of-scope work as proposals instead of implementing it.
    Do not add intermediate variables, conversions, or test cases beyond what
    the requested behavior requires.
-7. After C handback and D, apply the outcomes below before authorized Git
-   delivery. Stage explicit files, commit logical units, and push normally.
+7. After C handback and required D, apply the outcomes below before authorized
+   Git delivery. Stage explicit files, commit logical units, and push normally.
    Never force-push, use forced refspecs, mirror, or delete remote refs.
    Delegated C implementers do not commit or push.
    After each authorized push, identify CI runs/checks for the repository,
@@ -101,9 +101,9 @@ nor writes.
 D is required for non-obvious changes and changes to hooks, permissions,
 settings, sandbox, publication or delivery steps, or secret handling. B runs
 when the design has options or touches those areas; resolve its blockers before
-dependent C work. Other changes, like docs-only edits or test-verified
-mechanical removals and renames, get a full-diff self-review; report B and D as
-`not run`. Repeat a review that later changes invalidate.
+dependent C work. Agent instructions (CLAUDE.md, rules, skills, agents) also
+need D. Other changes get a full-diff self-review; report B and D as `not run`.
+Redo reviews that later changes invalidate.
 
 ### Models and availability
 
