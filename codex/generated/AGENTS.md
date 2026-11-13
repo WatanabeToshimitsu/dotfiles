@@ -147,4 +147,4 @@ their scopes and source hashes are included in this snapshot for review.
   skill even when it is disabled. Read files there; do not enable a skill to
   obtain them.
 
-Response language: Japanese.
+Response language: 日本語.
