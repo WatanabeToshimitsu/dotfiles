@@ -65,8 +65,6 @@ MANIFEST_CLAUDE_FILES=(
   skills/delivery-workflow/references/scheduled-work.md
   skills/delivery-workflow/references/goals.md
   skills/difit-guided-review/SKILL.md
-  skills/eli5/SKILL.md
-  skills/eli15/SKILL.md
   skills/evidence-video/SKILL.md
   skills/evidence-video/references/recording.md
   skills/evidence-video/scripts/trim_idle.py
@@ -112,6 +110,8 @@ MANIFEST_CLAUDE_OBSOLETE_FILES=(
   rules/testing/vitest.md
   rules/typescript/security.md
   rules/web/ui.md
+  skills/eli5/SKILL.md
+  skills/eli15/SKILL.md
 )
 
 # Codex has dynamic skill ownership and an AGENTS.md managed block. The installer
