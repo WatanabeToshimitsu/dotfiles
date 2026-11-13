@@ -49,11 +49,9 @@ MANIFEST_CLAUDE_FILES=(
   hooks/_shell_parser.py
   hooks/remote-mutation-guard.py
   hooks/japanese-guard.py
-  rules/common/coding-style.md
   rules/common/github-actions.md
   rules/common/hooks.md
   rules/common/security.md
-  rules/common/testing.md
   rules/common/ui.md
   agents/fable-deep.md
   agents/sonnet-worker.md
@@ -74,16 +72,10 @@ MANIFEST_CLAUDE_FILES=(
   skills/ticket/reference.example.md
   rules/golang/coding-style.md
   rules/golang/hooks.md
-  rules/golang/security.md
   rules/golang/testing.md
-  rules/python/coding-style.md
   rules/python/fastapi.md
   rules/python/hooks.md
-  rules/python/security.md
-  rules/python/testing.md
-  rules/typescript/coding-style.md
   rules/typescript/hooks.md
-  rules/typescript/testing.md
   rules/typescript/type-safety.md
   rules/web/browser-login.md
   rules/web/manual-api-failure-checks.md
@@ -109,6 +101,14 @@ MANIFEST_CLAUDE_OBSOLETE_FILES=(
   rules/testing/vitest.md
   rules/typescript/security.md
   rules/web/ui.md
+  rules/common/coding-style.md
+  rules/common/testing.md
+  rules/golang/security.md
+  rules/python/coding-style.md
+  rules/python/security.md
+  rules/python/testing.md
+  rules/typescript/coding-style.md
+  rules/typescript/testing.md
   skills/eli5/SKILL.md
   skills/eli15/SKILL.md
   hooks/require-subagent-model.sh
