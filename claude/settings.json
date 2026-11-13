@@ -437,6 +437,17 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/japanese-guard.py",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   },
   "worktree": {
