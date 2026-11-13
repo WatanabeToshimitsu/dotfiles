@@ -59,6 +59,8 @@ python3 ~/.claude/hooks/compact-tool-output.py stats
 
 `install.sh`では、Headroomを導入し、Claude Code・Codexの通信をローカルプロキシへ通す設定を行います。応答の長さを調整する構成になっており、macOSではlaunchdがログイン時の起動と異常終了時の再起動を担います。
 
+ツール出力の圧縮は、原文に戻せる畳み込みだけに絞っています（`HEADROOM_LOSSLESS=1`）。会話をまたいだ重複の置き換えも止めています（`HEADROOM_DEDUPE=0`）。既定の設定では、ツール出力の語や行が落ちたり、`<<ccr:…>>`や`[↑NL same as msg M]`の印に置き換わったりして、モデルが原文を読めないことがありました。経緯は[#304](https://github.com/WatanabeToshimitsu/dotfiles/issues/304)にあります。
+
 会話の10%は調整をかけず、削減効果を測るための比較対象になります。`headroom output-savings`の`MEASURED`は比較対象を使った実測、`ESTIMATED`は合成した基準値による推定です。
 
 以下のコマンドで、プロキシの状態と出力の削減量を調べることができます。
