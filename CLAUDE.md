@@ -82,9 +82,10 @@ label can stay in that case.
 Both Claude and Codex must read and follow the
 [delivery stage contract](claude/skills/delivery-workflow/SKILL.md#stage-contract)
 and [review instructions](claude/skills/code-review/SKILL.md). The user-facing
-frontier model may lead design and implementation from either client. Reviewers
-are independent of the artifact author, with cross-family frontier review
-preferred and automatic fallback defined by the contract.
+frontier model may lead design and implementation from either client. The
+contract decides which changes need a review. Reviewers are independent of the
+artifact author, with cross-family frontier review preferred and automatic
+fallback defined by the contract.
 
 The label holder may delegate a bounded stage under its existing claim, branch,
 and worktree. Explicitly invited delegates do not claim a rival label or branch;
