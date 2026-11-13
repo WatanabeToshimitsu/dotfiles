@@ -45,7 +45,6 @@ MANIFEST_CLAUDE_FILES=(
   hooks/notification.sh
   hooks/post-ts-lint.sh
   hooks/compact-tool-output.py
-  hooks/require-subagent-model.sh
   hooks/validate-bash.sh
   hooks/_shell_parser.py
   hooks/remote-mutation-guard.py
@@ -112,6 +111,7 @@ MANIFEST_CLAUDE_OBSOLETE_FILES=(
   rules/web/ui.md
   skills/eli5/SKILL.md
   skills/eli15/SKILL.md
+  hooks/require-subagent-model.sh
 )
 
 # Codex has dynamic skill ownership and an AGENTS.md managed block. The installer
