@@ -17,7 +17,7 @@ sys.path.insert(0, str(parser_dir))
 try:
     if not (parser_dir / "_shell_parser.py").is_file():
         raise ImportError
-    from _shell_parser import ShellParser, UnsupportedShell
+    from _shell_parser import LenientParser, ShellParser, UNMODELED_SHELL, UnsupportedShell
 except ImportError:
     print("Required shell parser is unavailable", file=sys.stderr)
     raise SystemExit(2)
@@ -36,136 +36,11 @@ class ShellWords(ShellParser):
 
 
 RESERVED_WORDS = {"!", "{", "}", "do", "done", "then", "else", "elif", "fi", "if", "while", "until"}
-UNMODELED_SHELL = re.compile(r"=~|\(\(|\$\{#?(?!#)[^}#]*(?:[#\s'\"<>()`;&|\\]|\$\{)")
 KEYWORD_FALLBACK = re.compile(r"\b(?:git|gh)\b[\s\S]*\b(?:push|create|api)\b")
-REDIRECT = re.compile(r"<<<|<<-|<<|<>|<&|<|>>|>&|>")
-ANSI_C = re.compile(r"'((?:[^'\\]|\\.)*)'?", re.S)
 
 
-class LenientWords(ShellWords):
-    """Locate simple commands in text ShellWords rejects; expansions stay literal.
-
-    Quoted text, comments, and heredoc bodies never start a command, except
-    the $( ) substitutions inside them. Syntax whose boundaries this scanner
-    does not model, such as backquote substitution, raises UnsupportedShell.
-    """
-
-    def substitution(self, char):
-        if char == "$" and self.source.startswith("(", self.index):
-            self.index += 1
-            self.parse(")")
-        elif char == "`":
-            raise UnsupportedShell()
-        else:
-            return False
-        return True
-
-    def expansions(self, stop):
-        value = []
-        while self.index < len(self.source) and self.source[self.index] != stop:
-            char = self.source[self.index]
-            self.index += 1
-            following = self.source[self.index:self.index + 1]
-            if char == "\\" and following and following in "$`\\\n" + ('"' if stop == '"' else ""):
-                if following != "\n":
-                    value.append(following)
-                self.index += 1
-            elif self.substitution(char):
-                value.append("<substitution>")
-            else:
-                value.append(char)
-        self.index += 1
-        return "".join(value)
-
-    def word(self, closer=None):
-        value = []
-        quoted = False
-        while self.index < len(self.source):
-            char = self.source[self.index]
-            if char in " \t\r\n;&|()<>" or char == closer:
-                break
-            self.index += 1
-            if char == "'":
-                end = self.source.find("'", self.index)
-                end = len(self.source) if end < 0 else end
-                value.append(self.source[self.index:end])
-                self.index = end + 1
-                quoted = True
-            elif char == '"':
-                value.append(self.expansions('"'))
-                quoted = True
-            elif char == "$" and self.source.startswith("'", self.index):
-                match = ANSI_C.match(self.source, self.index)
-                if "\\" in match.group(1):
-                    raise UnsupportedShell()
-                value.append(match.group(1))
-                self.index = match.end()
-                quoted = True
-            elif char == "\\":
-                if self.source[self.index:self.index + 1] != "\n":
-                    value.append(self.source[self.index:self.index + 1])
-                    quoted = True
-                self.index += 1
-            elif self.substitution(char):
-                value.append("<substitution>")
-            else:
-                value.append(char)
-        return "".join(value), quoted
-
-    def heredocs(self, pending):
-        for delimiter, strip_tabs, quoted in pending:
-            while self.index < len(self.source):
-                end = self.source.find("\n", self.index)
-                end = len(self.source) if end < 0 else end
-                line = self.source[self.index:end]
-                if (line.lstrip("\t") if strip_tabs else line) == delimiter or quoted:
-                    self.index = end + 1
-                    if (line.lstrip("\t") if strip_tabs else line) == delimiter:
-                        break
-                else:
-                    self.expansions("\n")
-
-    def parse(self, closer=None):
-        arguments = []
-        pending = []
-        while self.index < len(self.source):
-            char = self.source[self.index]
-            if char == closer:
-                self.index += 1
-                break
-            if char in " \t\r":
-                self.index += 1
-            elif self.source.startswith("\\\n", self.index):
-                self.index += 2
-            elif char == "#":
-                end = self.source.find("\n", self.index)
-                self.index = end if end >= 0 else len(self.source)
-            elif char in "<>":
-                operator = REDIRECT.match(self.source, self.index).group()
-                self.index += len(operator)
-                if operator in {"<", ">"} and self.source.startswith("(", self.index):
-                    self.index += 1
-                    self.parse(")")
-                    continue
-                while self.index < len(self.source) and self.source[self.index] in " \t":
-                    self.index += 1
-                target, quoted = self.word(closer)
-                if operator in {"<<", "<<-"} and target:
-                    pending.append((target, operator == "<<-", quoted))
-            elif char in ";&|()\n":
-                self.finish(arguments)
-                arguments = []
-                self.index += 1
-                if char == "(":
-                    self.parse(")")
-                elif char == "\n":
-                    self.heredocs(pending)
-                    pending = []
-            else:
-                word, quoted = self.word(closer)
-                if quoted or not word.isdigit() or self.source[self.index:self.index + 1] not in {"<", ">"}:
-                    arguments.append(word)
-        self.finish(arguments)
+class LenientWords(LenientParser, ShellWords):
+    """Collect simple commands from text ShellWords rejects."""
 
 
 FORCE_REASON = "強制 push・履歴の上書き・リモート削除は許可していません。通常の push を使用してください。"

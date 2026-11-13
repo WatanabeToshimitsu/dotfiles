@@ -23,6 +23,7 @@ NODE_LAUNCHERS = {"node", "npm", "npx", "pnpm", "pnpx", "yarn", "bun", "bunx", "
 WRAPPERS = {"env": {"-u", "--unset", "-C", "--chdir"}, "exec": {"-a"},
             "nohup": set(), "time": set(), "command": set()}
 ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+SHELLS = {"bash", "sh", "zsh", "dash", "ksh", "eval", "source", "xargs"}
 working_directory = os.getcwd()
 
 
@@ -48,7 +49,7 @@ def launched_program(arguments):
                 if option in WRAPPERS[wrapper] and words:
                     words.pop(0)
         else:
-            return Path(words[0]).name
+            return words[0]
     return None
 
 
@@ -70,7 +71,7 @@ sys.path.insert(0, str(parser_dir))
 try:
     if not (parser_dir / "_shell_parser.py").is_file():
         raise ImportError
-    from _shell_parser import ShellParser, UnsupportedShell
+    from _shell_parser import LenientParser, ShellParser, UNMODELED_SHELL, UnsupportedShell
 except ImportError:
     print("Required shell parser is unavailable", file=sys.stderr)
     raise SystemExit(2)
@@ -86,12 +87,13 @@ class Commands(ShellParser):
         self.changes_directory = False
         self.relative_agent_browser_path = False
         self.unknown = False
+        self.shell_text = False
         self.node_launch = False
 
     def finish(self, arguments):
         if not arguments:
             return
-        if launched_program(arguments) in NODE_LAUNCHERS:
+        if Path(launched_program(arguments) or "").name in NODE_LAUNCHERS:
             self.node_launch = True
         if arguments[0] in {"cd", "pushd", "popd"}:
             self.changes_directory = True
@@ -119,7 +121,7 @@ class Commands(ShellParser):
                 break
             # New options must not suppress the fallback over executable config.
             if option == "--literal-pathspecs" or option.startswith("-c"):
-                self.unknown = True
+                self.unknown = self.shell_text = True
             arguments = ["git", *arguments[3 if option in {"-C", "-c"} else 2:]]
         if arguments[:2] == ["git", "add"]:
             options = True
@@ -134,8 +136,6 @@ class Commands(ShellParser):
                     self.forbidden = True
             return
         # Only these commands are known to treat their arguments/stdin as data.
-        # An interpreter, eval, unknown wrapper, or pipeline consumer retains
-        # the legacy check over the entire original command, including heredocs.
         if arguments[:1] in [["cat"], ["echo"], ["printf"]]:
             return
         if len(arguments) >= 2 and arguments[0] == "git" and arguments[1] in {
@@ -148,6 +148,17 @@ class Commands(ShellParser):
         ):
             return
         self.unknown = True
+        # Why not every other command: only a shell, eval, xargs, a script path, or arguments
+        # that spell an all-files add can run text this parser did not see as a command.
+        program = launched_program(arguments) or ""
+        if (program == "." or any(mark in program for mark in ("/", "$", "<substitution>")) or
+                SHELLS & {Path(word).name for word in arguments} or
+                LEGACY_PATTERN.search(" ".join(arguments))):
+            self.shell_text = True
+
+
+class LenientCommands(LenientParser, Commands):
+    """Apply the same policy to commands located in text Commands rejects."""
 
 
 try:
@@ -168,6 +179,15 @@ try:
     commands.parse()
 except (UnsupportedShell, RecursionError):
     commands.unknown = True
+    lenient = LenientCommands(command)
+    try:
+        if UNMODELED_SHELL.search(command):
+            raise UnsupportedShell()
+        lenient.parse()
+    except (UnsupportedShell, RecursionError):
+        lenient.shell_text = True
+    commands.forbidden |= lenient.forbidden
+    commands.shell_text |= lenient.shell_text
 
 reason = None
 # Why not track cd targets: the hook never evaluates the command, so a relative
@@ -178,7 +198,7 @@ if commands.ticket_state or (
             TICKET_STATE.search(command) or
             (DIRECTORY_CHANGE.search(command) and RELATIVE_PATH_OPTION.search(command)))):
     reason = "Use ticket-browser for the ticket browser session and profile."
-elif commands.forbidden or (commands.unknown and LEGACY_PATTERN.search(command)):
+elif commands.forbidden or (commands.shell_text and LEGACY_PATTERN.search(command)):
     reason = "Do not git-add all files. Specify the file name(s) to add."
 elif background and commands.node_launch:
     reason = "Start long-running Node processes through the memory gate: memgate run -- <command>"
