@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Review a design, code change, branch, commit, or pull request for correctness, regressions, security, and maintainability. Use for design review, when asked to review code, or before delivering any change, including low-risk changes.
+description: Review a design, code change, branch, commit, or pull request for correctness, regressions, security, and maintainability. Use for design review, when asked to review code, or before delivering any change.
 ---
 
 # Code Review
@@ -20,11 +20,12 @@ it remains ambiguous, cannot be determined, or no current-branch PR exists.
 
 For every review task, first read and follow the
 [delivery stage contract](../delivery-workflow/SKILL.md#stage-contract).
-It defines independent design and implementation review, reviewer selection,
-fallback, invocation, handoffs, findings disposition, and review outcomes.
+It defines when independent design and implementation review is required,
+reviewer selection, fallback, invocation, handoffs, and review outcomes.
 
 Scale depth by risk; high-risk changes receive adversarial focus and a specialist
-only when the domain requires one. Self-checks never replace independent approval.
+only when the domain requires one. Self-checks never replace a required
+independent review.
 
 Do not start a separate review after every edit unless the user explicitly
 requests one. Do not repeat the same exploration in multiple agents.

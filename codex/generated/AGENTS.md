@@ -123,7 +123,7 @@ request. Preserve native goal lifecycle and approval rules.
 - Carry the actual approval basis and its task, providers, purpose, and permitted data scope in each private handoff and invocation. Share only the necessary artifact, acceptance criteria, and verification; remove secrets, personal information, and unrelated material.
 - Check changed tasks, providers, purposes, or expanded data against the existing approval, and obtain only the missing authorization before dependent sharing. Identify the rejecting authority, action, and reason for a runtime permission denial; never evade it through another route, provider, or agent.
 - Approval reuse grants no new tool, authentication, spending, publication, or permission authority. Preserve the PR publication rules and unsolicited-post restrictions, and record document checks, actual model calls, and approval-runtime results separately.
-- Follow [delivery-workflow](skills/delivery-workflow/SKILL.md#stage-contract) for independent design and implementation reviews, reviewer selection, automatic fallback, actual model and review-level reporting, and writer handoff. Small changes waive neither review.
+- Follow [delivery-workflow](skills/delivery-workflow/SKILL.md#stage-contract) for when independent design and implementation reviews are required, reviewer selection, automatic fallback, actual model and review-level reporting, and writer handoff.
 - Keep the configured frontier lead; never silently downgrade it, enable spending, or change permissions. If no frontier can continue as lead, save a handoff and pause dependent work.
 - Agent 呼び出しでは常に非 `inherit` の model を明示し、同じ探索を重複させない。
 - サブエージェントからは結論、関連箇所、リスク、検証結果だけを受け取る。
