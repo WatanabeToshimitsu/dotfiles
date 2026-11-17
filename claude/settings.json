@@ -504,11 +504,17 @@
       }
     }
   },
-  "language": "Japanese",
+  "language": "日本語",
   "syntaxHighlightingDisabled": false,
   "effortLevel": "xhigh",
   "modelSettings": {
     "claude-opus-5-5": {
+      "effortLevel": "xhigh"
+    },
+    "claude-fable-5-2": {
+      "effortLevel": "high"
+    },
+    "claude-fable-5-1": {
       "effortLevel": "xhigh"
     }
   },
