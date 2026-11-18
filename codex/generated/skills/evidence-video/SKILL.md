@@ -12,14 +12,17 @@ a visible pointer, readable pauses, no dead time. Commands and mock code are in
 ## Required steps
 
 1. **Shot list.** Per scene: the steps, the result that must be visible, and
-   the dev writes one take makes. Ask the user to approve the list. Right
-   before each take that writes, ask again for that take and its writes, and
+   the dev writes one take makes. Ask the user to approve the list and, in
+   the same question, whether to attach the final MP4s to a repository and PR
+   you name. Say that anyone can open an upload to a public repository without
+   signing in and that an upload cannot be undone. Right before each take
+   that writes, ask again for that take and its writes, and
    wait for an explicit yes: the automatic permission check can stop a write
    approved only in advance. If it still stops one, report it; never retry it
    another way.
 2. **Directories.** Final MP4s go to one deliverable directory outside the
    repository. Raw takes, contact sheets, and frames go to a separate work
-   directory; nothing else lands next to the MP4s.
+   directory; only the PR body file from Attach joins the MP4s.
 3. **Browser.** Start the dev server with `memgate run -- <dev command>`. Pass
    `--session <name> --restore <key> --headed --idle-timeout 0` on every
    browser command; other launch options relaunch the browser and lose the
@@ -66,14 +69,42 @@ On a failure, re-edit first. Retake only when content is missing, at most twice
 per scene, and only after the user approves that retake and its writes. After
 two retakes, report the failure instead.
 
+## Attach
+
+Attach only with the step 1 yes, only to the PR it names, and only after the
+lead's check above passes. gh warns that an upload cannot be undone, and no
+way to delete one is confirmed. Keep each MP4 at 10,000,000 bytes or less by
+`wc -c`, within the free-plan video limit.
+
+Once the PR exists, save its body with `gh pr view <PR URL> --json body -q
+.body` to `body.md` in the deliverable directory and change only the Evidence
+section. Put each video alone in its own paragraph as
+`![<scene>](./<file>.mp4)`: gh turns that into a bare asset URL that GitHub
+plays inline, while a video reference inside other text becomes a plain link.
+Right before uploading, fetch the body again and stop if it changed. Attach
+every video in one command, one `--attach` each, with the full PR URL and
+absolute file paths; a second edit from the same `body.md` would turn the
+first URLs back into local paths:
+
+```bash
+gh pr edit <PR URL> --body-file <dir>/body.md \
+  --attach <dir>/<scene-1>.mp4 --attach <dir>/<scene-2>.mp4
+gh pr view <PR URL> --json body
+```
+
+A non-zero exit can still leave uploads and a rewritten body, so read the
+body either way. Report each `https://github.com/user-attachments/` URL and
+any reference still pointing at a local file. On a failure, stop; never upload
+again.
+
 ## Report
 
 Per scene: file path, length, what it shows, the dev writes it made, and how
-any failure was mocked. Add one sentence for the PR's Evidence note. Never
-upload the videos; the user attaches them, and a PR body never calls
-unattached videos attached. When the skill cannot run, report `not run` with
-the reason: no reachable environment, no subagent, login not completed, or
-writes not approved.
+any failure was mocked. Add one sentence for the PR's Evidence note. List each
+attached video's URL. Without the attach yes, the user attaches the files, and
+a PR body never calls unattached videos attached. When the skill cannot run,
+report `not run` with the reason: no reachable environment, no subagent,
+login not completed, or writes not approved.
 
 Finally remove the mocks and routes, stop the dev server, and leave the
 logged-in browser open until the user says they are done.
