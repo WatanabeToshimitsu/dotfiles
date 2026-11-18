@@ -12,14 +12,16 @@ a visible pointer, readable pauses, no dead time. Commands and mock code are in
 ## Required steps
 
 1. **Shot list.** Per scene: the steps, the result that must be visible, and
-   the dev writes one take makes. Ask the user to approve the list. Right
-   before each take that writes, ask again for that take and its writes, and
+   the dev writes one take makes. Ask the user to approve the list and
+   whether to attach the MP4s to a PR you name; say that an upload cannot be
+   undone and is public on a public repository. Right before each take that
+   writes, ask again for that take and its writes, and
    wait for an explicit yes: the automatic permission check can stop a write
    approved only in advance. If it still stops one, report it; never retry it
    another way.
 2. **Directories.** Final MP4s go to one deliverable directory outside the
    repository. Raw takes, contact sheets, and frames go to a separate work
-   directory; nothing else lands next to the MP4s.
+   directory; only Attach's `body.md` joins the MP4s.
 3. **Browser.** Start the dev server with `memgate run -- <dev command>`. Pass
    `--session <name> --restore <key> --headed --idle-timeout 0` on every
    browser command; other launch options relaunch the browser and lose the
@@ -66,11 +68,26 @@ On a failure, re-edit first. Retake only when content is missing, at most twice
 per scene, and only after the user approves that retake and its writes. After
 two retakes, report the failure instead.
 
+## Attach
+
+With the step 1 yes and after the lead's check, write the full PR body to
+`body.md` beside the MP4s, each video alone in its own paragraph of the
+Evidence section as `![<scene>](./<file>.mp4)`; inside other text it becomes
+a link, not a player. On a free plan, first check each is 10 MB or less.
+Attach every video in one command.
+
+```bash
+gh pr edit <PR> --body-file <dir>/body.md --attach <dir>/<scene>.mp4
+```
+
+Read the body afterwards, even after a failure, and report the attached URLs;
+never upload again.
+
 ## Report
 
 Per scene: file path, length, what it shows, the dev writes it made, and how
-any failure was mocked. Add one sentence for the PR's Evidence note. Never
-upload the videos; the user attaches them, and a PR body never calls
+any failure was mocked. Add one sentence for the PR's Evidence note. Without
+the attach yes, the user attaches the videos, and a PR body never calls
 unattached videos attached. When the skill cannot run, report `not run` with
 the reason: no reachable environment, no subagent, login not completed, or
 writes not approved.

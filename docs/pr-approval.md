@@ -110,12 +110,15 @@ remain agent prerequisites assessed by native review, not facts mechanically
 verified by this hook. Unresolved sensitive findings and native denials always
 stop the action.
 
-PR creation does not itself authorize image uploads. When the user explicitly
-includes attachments, view each image and check that its content and GitHub
-destination are covered before reusing that authorization. Browser site access,
-upload approval, and connector approval are separate controls; changing PR
-instructions or the connector reviewer does not establish that upload prompts
-will disappear. Diagnose the actual upload route before changing its settings.
+PR creation does not itself authorize image or video uploads. When the user
+explicitly includes attachments, view each image or the video frames and check
+that their content and GitHub destination are covered before reusing that
+authorization. Attach them after creation with `gh pr edit --attach`, which
+the hook does not inspect; Codex blocks `--attach` on `gh pr create`. Browser
+site access, upload approval, and connector approval are separate controls;
+changing PR instructions or the connector reviewer does not establish that
+upload prompts will disappear. Diagnose the actual upload route before changing
+its settings.
 
 Update the shared source and regenerate Codex instructions through the normal
 sync workflow. Apply the installer only after integration, from the canonical
