@@ -12,17 +12,16 @@ a visible pointer, readable pauses, no dead time. Commands and mock code are in
 ## Required steps
 
 1. **Shot list.** Per scene: the steps, the result that must be visible, and
-   the dev writes one take makes. Ask the user to approve the list and, in
-   the same question, whether to attach the final MP4s to a repository and PR
-   you name. Say that anyone can open an upload to a public repository without
-   signing in and that an upload cannot be undone. Right before each take
-   that writes, ask again for that take and its writes, and
+   the dev writes one take makes. Ask the user to approve the list and
+   whether to attach the MP4s to a PR you name; say that an upload cannot be
+   undone and is public on a public repository. Right before each take that
+   writes, ask again for that take and its writes, and
    wait for an explicit yes: the automatic permission check can stop a write
    approved only in advance. If it still stops one, report it; never retry it
    another way.
 2. **Directories.** Final MP4s go to one deliverable directory outside the
    repository. Raw takes, contact sheets, and frames go to a separate work
-   directory; only the PR body file from Attach joins the MP4s.
+   directory; only Attach's `body.md` joins the MP4s.
 3. **Browser.** Start the dev server with `memgate run -- <dev command>`. Pass
    `--session <name> --restore <key> --headed --idle-timeout 0` on every
    browser command; other launch options relaunch the browser and lose the
@@ -71,40 +70,27 @@ two retakes, report the failure instead.
 
 ## Attach
 
-Attach only with the step 1 yes, only to the PR it names, and only after the
-lead's check above passes. gh warns that an upload cannot be undone, and no
-way to delete one is confirmed. Keep each MP4 at 10,000,000 bytes or less by
-`wc -c`, within the free-plan video limit.
-
-Once the PR exists, save its body with `gh pr view <PR URL> --json body -q
-.body` to `body.md` in the deliverable directory and change only the Evidence
-section. Put each video alone in its own paragraph as
-`![<scene>](./<file>.mp4)`: gh turns that into a bare asset URL that GitHub
-plays inline, while a video reference inside other text becomes a plain link.
-Right before uploading, fetch the body again and stop if it changed. Attach
-every video in one command, one `--attach` each, with the full PR URL and
-absolute file paths; a second edit from the same `body.md` would turn the
-first URLs back into local paths:
+With the step 1 yes and after the lead's check, write the full PR body to
+`body.md` beside the MP4s, each video alone in its own paragraph of the
+Evidence section as `![<scene>](./<file>.mp4)`; inside other text it becomes
+a link, not a player. On a free plan, first check each is 10 MB or less.
+Attach every video in one command.
 
 ```bash
-gh pr edit <PR URL> --body-file <dir>/body.md \
-  --attach <dir>/<scene-1>.mp4 --attach <dir>/<scene-2>.mp4
-gh pr view <PR URL> --json body
+gh pr edit <PR> --body-file <dir>/body.md --attach <dir>/<scene>.mp4
 ```
 
-A non-zero exit can still leave uploads and a rewritten body, so read the
-body either way. Report each `https://github.com/user-attachments/` URL and
-any reference still pointing at a local file. On a failure, stop; never upload
-again.
+Read the body afterwards, even after a failure, and report the attached URLs;
+never upload again.
 
 ## Report
 
 Per scene: file path, length, what it shows, the dev writes it made, and how
-any failure was mocked. Add one sentence for the PR's Evidence note. List each
-attached video's URL. Without the attach yes, the user attaches the files, and
-a PR body never calls unattached videos attached. When the skill cannot run,
-report `not run` with the reason: no reachable environment, no subagent,
-login not completed, or writes not approved.
+any failure was mocked. Add one sentence for the PR's Evidence note. Without
+the attach yes, the user attaches the videos, and a PR body never calls
+unattached videos attached. When the skill cannot run, report `not run` with
+the reason: no reachable environment, no subagent, login not completed, or
+writes not approved.
 
 Finally remove the mocks and routes, stop the dev server, and leave the
 logged-in browser open until the user says they are done.
