@@ -18,19 +18,24 @@ stays for the user.
 ## Register (the user is present)
 
 1. Read the PR with `gh pr view <pr> --json url,title,state,isDraft`. Choose
-   where to send it:
-   - A channel or person the user named.
-   - Otherwise, search the user's own past review requests that link the
-     same repository, such as `from:<@USER_ID> github.com/<owner>/<repo>/pull`.
-     If the recent ones went to one channel, use it and mention the reviewer
-     they mentioned.
-   - If that leaves doubt, do not guess. Ask, listing a few channel names the
-     user can copy as the answer: channels they often send review requests
-     to, and channels whose names match the repository or project.
+   where to send it and whom to mention:
+   - A DM only when the user asks for one. A person named without that is
+     the reviewer to mention in a channel.
+   - A channel the user named. Otherwise, search the user's own past review
+     requests that link the same repository, such as
+     `from:<@USER_ID> github.com/<owner>/<repo>/pull`, and use the channel
+     the recent ones went to, if they agree.
+   - The reviewer the user named. Otherwise, the one the recent requests
+     mentioned, if they agree.
+   - If either leaves doubt, do not guess. Ask, listing a few names the user
+     can copy as the answer: for a channel, channels they often send review
+     requests to and channels whose names match the repository or project;
+     for a reviewer, people their past requests mentioned.
 
    Before using a channel the user did not name, read its topic and
    description with `slack_search_channels`. If they say review requests
-   belong elsewhere, tell the user instead of using it.
+   belong elsewhere, tell the user instead of using it. Show only names when
+   asking or confirming, not the past messages behind them.
 2. Write the message in the user's voice. Search the user's own past review
    requests in Slack and match their greeting, length, and closing. Include
    the PR URL and, in a channel, a mention of the reviewer. No AI tells.
@@ -39,11 +44,12 @@ stays for the user.
 4. Open the channel in a new Chrome tab: the draft result's `channel_link`
    with `/archives/` replaced by `/messages/`. Wait for the composer, run the
    read script below with `javascript_tool`, and close the tab.
-5. Show the user the recipient and `display`, which is how Slack shows the
-   text. Check that `content` holds the PR URL and the intended mention IDs as targets.
-   The user's approval covers this one send; keep `channel`, `display`, and
-   `content` verbatim as the expected values. For edits, ask the user to edit the draft
-   in Slack, then repeat step 4.
+5. Show the user the destination, as `#channel` or `DM to <name>`, and
+   `display`, which is how Slack shows the text. Check that `content` holds
+   the PR URL and the intended mention IDs as targets. The user's approval
+   covers this one send; keep `channel`, `display`, and `content` verbatim
+   as the expected values. For edits, ask the user to edit the draft in
+   Slack, then repeat step 4.
 6. Run `gh pr checks <pr> --watch --fail-fast --interval 30` alone in a
    background Bash call and tell the user they can move on. If it ends with
    `no checks reported`, run a background `sleep 60` and watch again. After
