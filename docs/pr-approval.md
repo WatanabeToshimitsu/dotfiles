@@ -110,10 +110,16 @@ remain agent prerequisites assessed by native review, not facts mechanically
 verified by this hook. Unresolved sensitive findings and native denials always
 stop the action.
 
-PR creation does not itself authorize image or video uploads. When the user
-explicitly includes attachments, view each image or the video frames and check
-that their content and GitHub destination are covered before reusing that
-authorization. Attach them after creation with `gh pr edit --attach`, which
+Delivery authority covers attaching the task's own evidence images and videos
+to the PR it delivers only when `gh repo view <owner/repo> --json visibility`
+reports `PRIVATE` or `INTERNAL` for the base repository; GitHub then shows the
+files only to people with repository access
+([attaching files](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/attaching-files)).
+This holds in Claude Code and Codex and changes no PR-creation requirement.
+Ask first for `PUBLIC`, where the files can be accessed without
+authentication, and when the visibility cannot be confirmed. Before every
+attach, view each image or the video frames and stop on credentials, tokens,
+personal data, or content outside the task. Attach them after creation with `gh pr edit --attach`, which
 the hook does not inspect; Codex blocks `--attach` on `gh pr create`. Browser
 site access, upload approval, and connector approval are separate controls;
 changing PR instructions or the connector reviewer does not establish that
