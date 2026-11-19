@@ -7,8 +7,10 @@
   context. Resolve material missing decisions with the user before drafting;
   keep independent authorized work moving while waiting.
 - Before substantial work, briefly invite the user to use the proposed goal.
-  In the response language, give one fenced, copyable, single-line `/goal ...`
-  command with concrete outcome, evidence, task-specific constraints,
+  In the response language, give one fenced, copyable, single-line launch
+  command, `cd <absolute repo path> && claude -n "<project> <task>" '/goal ...'`,
+  so parallel sessions can be told apart by name; single-quote the prompt and
+  escape inner single quotes. The `/goal` carries concrete outcome, evidence, task-specific constraints,
   authorized iteration, and when missing input or authority requires user
   action. No placeholders or invented budgets. Keep the goal condition within the client's documented
   limit and name evidence the goal checker can observe; Claude Code judges a
