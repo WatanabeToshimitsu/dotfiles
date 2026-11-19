@@ -22,6 +22,7 @@ skills/*
 !skills/expand-tool-output/
 !skills/prepare-compaction/
 !skills/repository-audit/
+!skills/review-ping/
 !skills/ticket/
 # Concrete IDs, board URLs, and option labels stay local: this repo is public
 skills/ticket/reference.md
