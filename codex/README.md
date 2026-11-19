@@ -158,7 +158,8 @@ refresh an existing task.
 ## Deliberately native settings
 
 Only the response language becomes a generated instruction. Authentication,
-approval rules, sandbox settings, models, reasoning effort, runtime environment,
+approval rules (apart from the permission parity file below), sandbox settings,
+models, reasoning effort, runtime environment,
 marketplaces, connectors, plugins and host UI preferences remain native. Claude
 hooks and agent definitions are not read or installed into Codex.
 Hook trust hashes are never generated or registered. Existing native hook trust
@@ -170,6 +171,49 @@ References: [instruction discovery](https://learn.chatgpt.com/docs/agent-configu
 [skill discovery](https://learn.chatgpt.com/docs/build-skills),
 [native hook trust](https://learn.chatgpt.com/docs/hooks),
 [app-server discovery](https://learn.chatgpt.com/docs/app-server).
+
+## Permission parity with Claude Code
+
+Exec rules are the exception to native approval rules.
+`codex/rules/claude-parity.rules` allows the browser CLIs and ports the subset
+of `claude/settings.json` `permissions.deny` that prefix rules can express; the
+owner accepted the gaps listed below. Every rule is also registered behind
+`rtk` and `rtk proxy`, because Codex types commands that way and prefix rules
+match the literal argv. Allowed browser commands run outside the sandbox with
+neither a user prompt nor auto-review; only `ticket-browser allow`, which widens
+the browser's page allowlist, still asks.
+
+Coverage is not exact. Prefix rules match whole tokens, so Claude patterns that
+end inside a token, such as `git clean -f*`, `git gc --prune*` and
+`git restore .*`, cover only the forms listed in the file: `git clean -ffx`,
+`git gc --prune=yesterday` and `git restore ./src` are not blocked. Deny entries
+with an inner wildcard, such as `git push * --force*` and `psql -c *DROP*`, and
+the `Read`/`Edit` path denies are not ported. Codex-only rules such as the
+`gh pr create` prompt stay in the native `default.rules`, where Codex itself
+appends "always allow" choices.
+
+`install.sh` and `install.sh --symlinks-only` copy the file to
+`~/.codex/rules/`, because Codex skips symlinks when it loads `*.rules`.
+`dotfiles-update` does not refresh it; run `install.sh --symlinks-only` after a
+change. Edit the repository copy and keep it in step with
+`claude/settings.json`. A copy in `~/.codex/rules/` that differs from the
+repository, whether edited locally or left from an older version, is backed up
+and replaced on the next install, and `uninstall.sh` keeps it and prints its
+path.
+
+The reviewer stays native in `~/.codex/config.toml`, which the Codex app also
+writes: set `approvals_reviewer = "auto_review"` above the first table. It is
+Codex's counterpart to Claude Code's auto mode. It does not create approvals;
+it changes who answers the ones that arise, such as sandbox escalations and
+`prompt` rules, from the user to a reviewer model. Unlike Claude's `ask` rules,
+Codex documents no way to keep a human prompt for specific commands under
+auto-review, so an `ssh`, `scp`, `rsync`, `op` or PR-creation call that needs
+approval goes to the reviewer.
+
+References: [rules](https://learn.chatgpt.com/docs/agent-configuration/rules.md),
+[auto-review](https://learn.chatgpt.com/docs/sandboxing/auto-review),
+[config reference](https://learn.chatgpt.com/docs/config-file/config-reference.md),
+[rules loader](https://github.com/openai/codex/blob/main/codex-rs/core/src/exec_policy.rs).
 
 ## Plugins and MCP servers
 

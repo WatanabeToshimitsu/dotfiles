@@ -64,7 +64,8 @@ for dir in "${MANIFEST_DIRS[@]}"; do
 done
 
 echo "=== Pre-creating real files from each managed file list ==="
-BACKUP_FILES=("${MANIFEST_FILES[0]}" "${MANIFEST_CONFIG_FILES[0]}" ".claude/${MANIFEST_CLAUDE_FILES[0]}")
+CODEX_RULE_BACKUP=".codex/rules/${MANIFEST_CODEX_RULE_FILES[0]}"
+BACKUP_FILES=("${MANIFEST_FILES[0]}" "${MANIFEST_CONFIG_FILES[0]}" ".claude/${MANIFEST_CLAUDE_FILES[0]}" "$CODEX_RULE_BACKUP")
 for rel in "${BACKUP_FILES[@]}"; do
     mkdir -p "$HOME/$(dirname "$rel")"
     printf '%s: %s\n' "$SENTINEL_CONTENT" "$rel" > "$HOME/$rel"
@@ -102,6 +103,17 @@ for entry in "${MANAGED_LINKS[@]}"; do
         ERRORS=$((ERRORS + 1))
     else
         echo "  OK: $rel"
+    fi
+done
+
+echo "=== Verifying Codex rule files were copied as regular files ==="
+for file in "${MANIFEST_CODEX_RULE_FILES[@]}"; do
+    target="$HOME/.codex/rules/$file"
+    if [ -f "$target" ] && [ ! -L "$target" ] && cmp -s "$target" "$DOTFILES_DIR/codex/rules/$file"; then
+        echo "  OK: .codex/rules/$file"
+    else
+        echo "  FAIL: .codex/rules/$file is not a regular copy of the repository file"
+        ERRORS=$((ERRORS + 1))
     fi
 done
 
@@ -202,6 +214,18 @@ else
     ERRORS=$((ERRORS + 1))
 fi
 
+echo "=== Verifying re-runs did not back up the unchanged Codex rule copy again ==="
+codex_rule_backups=0
+for backup in "$HOME/.dotfiles-backup"/*/"$CODEX_RULE_BACKUP"; do
+    [ -f "$backup" ] && codex_rule_backups=$((codex_rule_backups + 1))
+done
+if [ "$codex_rule_backups" -eq 1 ]; then
+    echo "  OK: $CODEX_RULE_BACKUP backed up once"
+else
+    echo "  FAIL: $CODEX_RULE_BACKUP has $codex_rule_backups backups after re-runs"
+    ERRORS=$((ERRORS + 1))
+fi
+
 echo "=== Creating a foreign symlink (must survive uninstall) ==="
 ln -sf /etc/hosts "$HOME/.foreign"
 
@@ -216,6 +240,15 @@ for entry in "${MANAGED_LINKS[@]}"; do
         echo "  OK: $rel removed"
     else
         echo "  FAIL: $rel still present"
+        ERRORS=$((ERRORS + 1))
+    fi
+done
+
+for file in "${MANIFEST_CODEX_RULE_FILES[@]}"; do
+    if [ ! -e "$HOME/.codex/rules/$file" ] && [ ! -L "$HOME/.codex/rules/$file" ]; then
+        echo "  OK: .codex/rules/$file removed"
+    else
+        echo "  FAIL: .codex/rules/$file still present"
         ERRORS=$((ERRORS + 1))
     fi
 done
@@ -243,6 +276,30 @@ if [ ! -e "$HOME/.gitconfig" ] && [ ! -L "$HOME/.gitconfig" ]; then
     echo "  OK: no .gitconfig created on a machine without one"
 else
     echo "  FAIL: install created $HOME/.gitconfig"
+    ERRORS=$((ERRORS + 1))
+fi
+
+echo "=== Verifying a symlinked Codex rule file is replaced by a copy ==="
+rm -f "$HOME/$CODEX_RULE_BACKUP"
+ln -s "$DOTFILES_DIR/codex/rules/${MANIFEST_CODEX_RULE_FILES[0]}" "$HOME/$CODEX_RULE_BACKUP"
+bash "$DOTFILES_DIR/install.sh" --symlinks-only > /dev/null
+if [ -f "$HOME/$CODEX_RULE_BACKUP" ] && [ ! -L "$HOME/$CODEX_RULE_BACKUP" ] \
+    && cmp -s "$HOME/$CODEX_RULE_BACKUP" "$DOTFILES_DIR/codex/rules/${MANIFEST_CODEX_RULE_FILES[0]}"; then
+    echo "  OK: $CODEX_RULE_BACKUP is a regular copy"
+else
+    echo "  FAIL: $CODEX_RULE_BACKUP is still a symlink, which Codex skips"
+    ERRORS=$((ERRORS + 1))
+fi
+
+echo "=== Verifying uninstall keeps a locally edited Codex rule file ==="
+if [ ! -L "$HOME/$CODEX_RULE_BACKUP" ]; then
+    echo '# machine-local edit' >> "$HOME/$CODEX_RULE_BACKUP"
+fi
+bash "$DOTFILES_DIR/uninstall.sh" > /dev/null
+if grep -q 'machine-local edit' "$HOME/$CODEX_RULE_BACKUP"; then
+    echo "  OK: edited $CODEX_RULE_BACKUP preserved"
+else
+    echo "  FAIL: uninstall removed the edited $CODEX_RULE_BACKUP"
     ERRORS=$((ERRORS + 1))
 fi
 

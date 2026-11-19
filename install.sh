@@ -177,6 +177,19 @@ setup_symlinks() {
     fi
   done
 
+  local rule_target
+  for file in "${MANIFEST_CODEX_RULE_FILES[@]}"; do
+    rule_target="$HOME/.codex/rules/$file"
+    if [ ! -L "$rule_target" ] && cmp -s "$dotfiles_dir/codex/rules/$file" "$rule_target"; then
+      continue
+    fi
+    mkdir -p "$HOME/.codex/rules"
+    backup_if_real_path "$rule_target"
+    rm -f "$rule_target"
+    cp "$dotfiles_dir/codex/rules/$file" "$rule_target"
+    echo "  copied: .codex/rules/$file"
+  done
+
   local obsolete_file obsolete_target
   for obsolete_file in "${MANIFEST_CLAUDE_OBSOLETE_FILES[@]}"; do
     obsolete_target="$HOME/.claude/$obsolete_file"

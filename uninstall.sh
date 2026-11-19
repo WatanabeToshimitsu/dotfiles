@@ -58,6 +58,20 @@ for file in "${MANIFEST_CLAUDE_FILES[@]}"; do
   remove_if_dotfiles_symlink "$HOME/.claude/$file"
 done
 
+for file in "${MANIFEST_CODEX_RULE_FILES[@]}"; do
+  rule_target="$HOME/.codex/rules/$file"
+  if [ -f "$rule_target" ] && [ ! -L "$rule_target" ] && cmp -s "$DOTFILES_DIR/codex/rules/$file" "$rule_target"; then
+    if [ "$DRY_RUN" -eq 1 ]; then
+      echo "  would remove: $rule_target"
+    else
+      rm -f "$rule_target"
+      echo "  removed: $rule_target"
+    fi
+  elif [ -e "$rule_target" ] || [ -L "$rule_target" ]; then
+    echo "  kept (differs from the repository copy): $rule_target"
+  fi
+done
+
 for dir in "${MANIFEST_DIRS[@]}"; do
   remove_if_dotfiles_symlink "$HOME/$dir"
 done
