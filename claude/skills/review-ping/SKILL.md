@@ -17,8 +17,20 @@ stays for the user.
 
 ## Register (the user is present)
 
-1. Read the PR with `gh pr view <pr> --json url,title,state,isDraft`. Find the
-   recipient with `slack_search_users` or `slack_search_channels`.
+1. Read the PR with `gh pr view <pr> --json url,title,state,isDraft`. Choose
+   where to send it:
+   - A channel or person the user named.
+   - Otherwise, search the user's own past review requests that link the
+     same repository, such as `from:<@USER_ID> github.com/<owner>/<repo>/pull`.
+     If the recent ones went to one channel, use it and mention the reviewer
+     they mentioned.
+   - If that leaves doubt, do not guess. Ask, listing a few channel names the
+     user can copy as the answer: channels they often send review requests
+     to, and channels whose names match the repository or project.
+
+   Before using a channel the user did not name, read its topic and
+   description with `slack_search_channels`. If they say review requests
+   belong elsewhere, tell the user instead of using it.
 2. Write the message in the user's voice. Search the user's own past review
    requests in Slack and match their greeting, length, and closing. Include
    the PR URL and, in a channel, a mention of the reviewer. No AI tells.
