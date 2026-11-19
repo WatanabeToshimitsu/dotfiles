@@ -5,133 +5,76 @@ description: Register a Slack review request for a pull request once, then send 
 
 # Review ping
 
-The message must read as one the user typed. Never send it with
-`slack_send_message` or `slack_schedule_message`: Slack stamps those with the
-connector's app name. Create a draft with `slack_send_message_draft`, and press
-Send in the user's own Slack web session through Claude in Chrome.
+Never send with `slack_send_message` or `slack_schedule_message`: Slack stamps
+those with the app name. Draft with `slack_send_message_draft`, then press Send
+in the user's Slack web session through Claude in Chrome. Keep this session
+and Chrome open until CI ends; if either closes, the draft stays unsent.
 
-This needs Claude Code with the Slack connector, Claude in Chrome, and
-background Bash that re-invokes the session. Keep the registering session and
-Chrome open until CI ends; closing the session drops the ping, and the draft
-stays for the user.
+## Register
 
-## Register (the user is present)
-
-1. Read the PR with `gh pr view <pr> --json url,title,state,isDraft`. Choose
-   where to send it and whom to mention. If the user asks for a DM, find
-   that person and skip the rest of this step. Otherwise a named person is
-   the reviewer to mention in a channel, and the user's own past review
-   requests that link the same repository, such as
-   `from:<@USER_ID> github.com/<owner>/<repo>/pull`, fill in what they did
-   not name:
-   - The channel the user named, or else the one the recent requests went
-     to, if they agree.
-   - The reviewer the user named, or else the one the recent requests
-     mentioned, if they agree.
-   - If either leaves doubt, do not guess. Ask, listing a few names the user
-     can copy as the answer: for a channel, channels they often send review
-     requests to and channels whose names match the repository or project;
-     for a reviewer, people their past requests mentioned.
-
-   Before using a channel the user did not name, read its topic and
-   description with `slack_search_channels`. If they say review requests
-   belong elsewhere, tell the user instead of using it. Show only names when
-   asking or confirming, not the past messages behind them.
-2. Write the message in the user's voice. Search the user's own past review
-   requests in Slack and match their greeting, length, and closing. Include
-   the PR URL and, in a channel, a mention of the reviewer. No AI tells.
-3. Create the draft. On `attached_draft_exists`, stop and ask: another draft
-   or ping already holds that channel.
-4. Open the channel in a new Chrome tab: the draft result's `channel_link`
-   with `/archives/` replaced by `/messages/`. Wait for the composer, run the
-   read script below with `javascript_tool`, and close the tab.
-5. Show the user the destination, as `#channel` or `DM to <name>`, and
-   `display`, which is how Slack shows the text. Check that `content` holds
-   the PR URL and the intended mention IDs as targets. The user's approval
-   covers this one send; keep `channel`, `display`, and `content` verbatim
-   as the expected values. For edits, ask the user to edit the draft in
-   Slack, then repeat step 4.
-6. Run `gh pr checks <pr> --watch --fail-fast --interval 30` alone in a
-   background Bash call and tell the user they can move on. If it ends with
-   `no checks reported`, run a background `sleep 60` and watch again. After
-   5 tries, stop: report that CI was not confirmed and the draft is kept.
-
-## Send (on re-invocation)
-
-7. Recheck in separate calls: `gh pr view <pr> --json state,isDraft,headRefOid`
-   shows the PR open and not a Draft, plain `gh pr checks <pr>` exits 0, and a
-   second `gh pr view` shows the same `headRefOid`. Exit 8 (pending, as after a
-   new push) or a changed head means go back to step 6. Anything else means do
-   not send. This guarantees that every check reported for the last head seen
-   passed, not that no push lands during the click.
-8. Read the newest message with `slack_read_channel` (limit 1) and note its
-   timestamp. Open the channel in a new Chrome tab, wait for the composer,
-   and run the send script below with the expected values as JSON strings.
-9. Only an explicit `not-sent: ...` result means nothing was sent. After
-   any other result, an error, a timeout, or no result, never run the send
-   script again, even when the draft is still there: read the channel
-   with `slack_read_channel` and `oldest` set to the noted timestamp. The
-   sent message is the one new message from the user that matches
-   `content`. To compare, parse the message text into a list before
-   decoding entities: plain text, `["mention", ID]` for `<@ID>` or
-   `<@ID|...>`, and `["link", URL, label]` for `<URL|label>` or
-   `["link", URL]` for `<URL>`, splitting at the first `|`. Then decode
-   `&amp;`, `&lt;`, `&gt;` in each piece, merge adjacent text, and trim. Map
-   `content` the same way: a `ts-mention` entry to `["mention", target]`,
-   an `a` entry to `["link", target, label]`, and a `ts-slug` entry, a bare
-   URL whose label Slack derives from it, to `["link", target]`; drop the
-   label of a parsed link when its `content` counterpart has none. With no
-   match or more than one, report the send as unknown, not failed. Close
+1. Destination: a DM only if the user asks for one; otherwise a named person
+   is the reviewer to mention in a channel. Fill an unnamed channel or
+   reviewer from the user's recent review requests for the same repository
+   (`from:<@USER_ID> github.com/<owner>/<repo>/pull`) when they agree.
+   Otherwise ask, listing a few names to copy: channels the user often sends
+   review requests to, channels named after the repository or project, past
+   reviewers. Before using a channel the user did not name, read its topic;
+   if it sends review requests elsewhere, tell the user.
+2. Write the message like the user's past review requests: same greeting,
+   length, and closing, with the mention and the PR URL.
+3. Create the draft; on `attached_draft_exists`, stop and ask. Open the
+   result's `channel_link`, with `/archives/` replaced by `/messages/`, in a
+   new Chrome tab, run the script below with `EXPECTED = null`, and close
    the tab.
-10. Report the message link, or why it was not sent with the failing checks
-    and their links. When it was not sent or the result is unknown, tell the
-    user to check the channel and send the remaining draft by hand.
+4. Show the destination as `#channel` or `DM to <name>`, and `display`.
+   Approval covers this one send; keep `channel` and `content` verbatim. For
+   edits, the user edits the draft in Slack and you repeat step 3.
+5. Run `gh pr checks <pr> --watch --fail-fast --interval 30` alone in a
+   background Bash call, and tell the user they can move on. On `no checks
+   reported`, run a background `sleep 60` and watch again; after 5 tries,
+   report CI as unconfirmed.
 
-Use the tab only to open the target channel and run the scripts below. A
-sign-in page means do not send. If a step before the send script fails
-twice, stop and report.
+## Send
 
-## Scripts
+6. In separate calls, `gh pr view <pr> --json state,isDraft,headRefOid` must
+   show an open, non-Draft PR, `gh pr checks <pr>` must exit 0, and a second
+   `gh pr view` must show the same head. Exit 8 means go back to step 5;
+   anything else means do not send.
+7. Note the newest message timestamp with `slack_read_channel`. Open the
+   channel in a new tab and run the script with the kept values.
+8. Only `not-sent: ...` means nothing was sent. After any other result or
+   none, never run the script again. Read the messages after the noted
+   timestamp: exactly one new message from the user holding the PR URL is
+   the sent one; otherwise report the result as unknown. Close the tab and
+   report the message link, or why it was not sent and the draft is waiting.
 
-`ser` turns the composer into a list of text pieces and
-`[kind, target, label]` entries, such as `["ts-mention", "U123", "@name"]`,
-`["ts-slug", "https://...", label]` for a bare URL, or `["a", "https://...",
-label]` for a labeled link. `content` is that list as JSON, so a changed
-label, target, or pairing of the two no longer matches.
+## Script
 
-Read:
-
-```js
-(() => {
-  const ser = n => n.nodeType === 3 ? [n.data] : n.nodeType !== 1 ? [] : n.dataset.id || n.tagName === "A" ? [[n.tagName.toLowerCase(), n.dataset.url || n.dataset.id || n.getAttribute("href"), n.textContent]] : [...[...n.childNodes].flatMap(ser), ...(n.tagName === "P" ? ["\n"] : [])];
-  const ed = document.querySelector('[data-qa="texty_input"]');
-  return JSON.stringify({channel: location.pathname.split("/").pop(), display: ed.innerText.trim(), content: JSON.stringify(ser(ed))});
-})()
-```
-
-Send. It clicks at least 20 seconds after page load, because Slack ignored a
-click 7 seconds after load in testing, then waits up to 10 seconds for Slack
-to clear the composer. It clicks once at most:
+With `EXPECTED = null` it returns the composer as `{channel, display,
+content}`; `content` lists text and `[kind, target, label]` for each mention
+and link. With the kept values it waits until 20 seconds after page load
+(Slack ignored an earlier click), checks the channel, composer, attachments,
+and content, clicks Send once, and waits for the composer to clear.
 
 ```js
 await (async () => {
-  const channel = CHANNEL, display = DISPLAY, content = CONTENT;
+  const EXPECTED = null; // or {channel: "...", content: "..."}
   const ser = n => n.nodeType === 3 ? [n.data] : n.nodeType !== 1 ? [] : n.dataset.id || n.tagName === "A" ? [[n.tagName.toLowerCase(), n.dataset.url || n.dataset.id || n.getAttribute("href"), n.textContent]] : [...[...n.childNodes].flatMap(ser), ...(n.tagName === "P" ? ["\n"] : [])];
-  await new Promise(r => setTimeout(r, Math.max(0, 20000 - performance.now())));
-  if (!location.pathname.endsWith("/" + channel)) return "not-sent: wrong channel";
-  const inputs = document.querySelectorAll('[data-qa="texty_input"]');
-  const buttons = document.querySelectorAll('[data-qa="texty_send_button"]');
-  if (inputs.length !== 1 || buttons.length !== 1) return "not-sent: composer not unique";
-  let box = inputs[0];
-  while (box && !box.contains(buttons[0])) box = box.parentElement;
-  if (!box) return "not-sent: composer not found";
+  if (EXPECTED) await new Promise(r => setTimeout(r, Math.max(0, 20000 - performance.now())));
+  const eds = document.querySelectorAll('[data-qa="texty_input"]');
+  const btns = document.querySelectorAll('[data-qa="texty_send_button"]');
+  if (eds.length !== 1 || btns.length !== 1) return "not-sent: composer not unique";
+  const [ed, btn] = [eds[0], btns[0]];
+  const now = {channel: location.pathname.split("/").pop(), display: ed.innerText.trim(), content: JSON.stringify(ser(ed))};
+  if (!EXPECTED) return JSON.stringify(now);
+  let box = ed;
+  while (!box.contains(btn)) box = box.parentElement;
   if (box.querySelector('[data-qa^="multi-file-upload"], [data-qa^="pending_file"]')) return "not-sent: attachment";
-  if (inputs[0].innerText.trim() !== display || JSON.stringify(ser(inputs[0])) !== content) return "not-sent: text changed";
-  if (buttons[0].disabled) return "not-sent: send disabled";
-  buttons[0].click();
+  if (now.channel !== EXPECTED.channel || now.content !== EXPECTED.content || btn.disabled) return "not-sent: changed";
+  btn.click();
   for (let i = 0; i < 20; i++) {
     await new Promise(r => setTimeout(r, 500));
-    if (!inputs[0].isConnected || inputs[0].innerText.trim() === "") return "clicked";
+    if (!ed.isConnected || !ed.innerText.trim()) return "clicked";
   }
   return "unknown: composer not cleared";
 })()
