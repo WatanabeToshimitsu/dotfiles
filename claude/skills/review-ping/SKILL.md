@@ -18,14 +18,15 @@ stays for the user.
 ## Register (the user is present)
 
 1. Read the PR with `gh pr view <pr> --json url,title,state,isDraft`. Choose
-   where to send it and whom to mention:
-   - A DM only when the user asks for one. A person named without that is
-     the reviewer to mention in a channel.
-   - A channel the user named. Otherwise, search the user's own past review
-     requests that link the same repository, such as
-     `from:<@USER_ID> github.com/<owner>/<repo>/pull`, and use the channel
-     the recent ones went to, if they agree.
-   - The reviewer the user named. Otherwise, the one the recent requests
+   where to send it and whom to mention. If the user asks for a DM, find
+   that person and skip the rest of this step. Otherwise a named person is
+   the reviewer to mention in a channel, and the user's own past review
+   requests that link the same repository, such as
+   `from:<@USER_ID> github.com/<owner>/<repo>/pull`, fill in what they did
+   not name:
+   - The channel the user named, or else the one the recent requests went
+     to, if they agree.
+   - The reviewer the user named, or else the one the recent requests
      mentioned, if they agree.
    - If either leaves doubt, do not guess. Ask, listing a few names the user
      can copy as the answer: for a channel, channels they often send review
