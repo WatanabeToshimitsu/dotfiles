@@ -53,12 +53,15 @@ stays for the user.
    script again, even when the draft is still there: read the channel
    with `slack_read_channel` and `oldest` set to the noted timestamp. The
    sent message is the one new message from the user that matches
-   `content`. To compare, parse the message text into a list
-   before decoding entities: plain text, `["mention", ID]` for `<@ID|...>`,
-   and `["link", URL, label]` for `<URL|label>`, splitting at the first `|`.
-   Then decode `&amp;`, `&lt;`, `&gt;` in each piece, merge adjacent text,
-   and trim. Map `content` the same way: a `ts-mention` entry to
-   `["mention", target]`, other entries to `["link", target, label]`. With no
+   `content`. To compare, parse the message text into a list before
+   decoding entities: plain text, `["mention", ID]` for `<@ID>` or
+   `<@ID|...>`, and `["link", URL, label]` for `<URL|label>` or
+   `["link", URL]` for `<URL>`, splitting at the first `|`. Then decode
+   `&amp;`, `&lt;`, `&gt;` in each piece, merge adjacent text, and trim. Map
+   `content` the same way: a `ts-mention` entry to `["mention", target]`,
+   an `a` entry to `["link", target, label]`, and a `ts-slug` entry, a bare
+   URL whose label Slack derives from it, to `["link", target]`; drop the
+   label of a parsed link when its `content` counterpart has none. With no
    match or more than one, report the send as unknown, not failed. Close
    the tab.
 10. Report the message link, or why it was not sent with the failing checks
