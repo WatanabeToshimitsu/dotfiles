@@ -18,17 +18,20 @@ and Chrome open until CI ends; if either closes, the draft stays unsent.
    (`from:<@USER_ID> github.com/<owner>/<repo>/pull`) when they agree.
    Otherwise ask, listing a few names to copy: channels the user often sends
    review requests to, channels named after the repository or project, past
-   reviewers. Before using a channel the user did not name, read its topic;
-   if it sends review requests elsewhere, tell the user.
+   reviewers. Before using a channel the user did not name, read its topic
+   and description; if they send review requests elsewhere, do not use it
+   and ask again.
 2. Write the message like the user's past review requests: same greeting,
    length, and closing, with the mention and the PR URL.
 3. Create the draft; on `attached_draft_exists`, stop and ask. Open the
    result's `channel_link`, with `/archives/` replaced by `/messages/`, in a
-   new Chrome tab, run the script below with `EXPECTED = null`, and close
-   the tab.
-4. Show the destination as `#channel` or `DM to <name>`, and `display`.
-   Approval covers this one send; keep `channel` and `content` verbatim. For
-   edits, the user edits the draft in Slack and you repeat step 3.
+   new Chrome tab, wait for the composer, run the script below with
+   `EXPECTED = null` until it returns the object, and close the tab.
+4. Check that the targets in `content` are the PR URL and the intended
+   mention IDs. Show the destination as `#channel` or `DM to <name>`, and
+   `display`. Approval covers this one send; keep `channel` and `content`
+   verbatim. For edits, the user edits the draft in Slack and you read it
+   again as in step 3, without creating another draft.
 5. Run `gh pr checks <pr> --watch --fail-fast --interval 30` alone in a
    background Bash call, and tell the user they can move on. On `no checks
    reported`, run a background `sleep 60` and watch again; after 5 tries,
@@ -38,8 +41,8 @@ and Chrome open until CI ends; if either closes, the draft stays unsent.
 
 6. In separate calls, `gh pr view <pr> --json state,isDraft,headRefOid` must
    show an open, non-Draft PR, `gh pr checks <pr>` must exit 0, and a second
-   `gh pr view` must show the same head. Exit 8 means go back to step 5;
-   anything else means do not send.
+   `gh pr view` must show the same head. Exit 8 or a changed head means go
+   back to step 5; anything else means do not send.
 7. Note the newest message timestamp with `slack_read_channel`. Open the
    channel in a new tab and run the script with the kept values.
 8. Only `not-sent: ...` means nothing was sent. After any other result or
