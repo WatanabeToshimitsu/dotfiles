@@ -11,6 +11,9 @@
   "prepare-compaction": {
     "note": "In Codex, use a task-local handoff file for compaction. Do not write Claude auto-memory or Codex memories without an explicit user request. Follow the host compaction controls; source slash commands are not executable shell commands."
   },
+  "review-ping": {
+    "note": "This skill needs Claude Code's Slack connector, Claude in Chrome, and background Bash re-invocation. In Codex, report it as unavailable; never send the review request with another tool or connector."
+  },
   "ticket": {
     "local_dependencies": {
       "reference.md": ".claude/skills/ticket/reference.md"

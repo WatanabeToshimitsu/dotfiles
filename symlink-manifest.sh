@@ -68,6 +68,7 @@ MANIFEST_CLAUDE_FILES=(
   skills/expand-tool-output/SKILL.md
   skills/prepare-compaction/SKILL.md
   skills/repository-audit/SKILL.md
+  skills/review-ping/SKILL.md
   skills/ticket/SKILL.md
   skills/ticket/reference.example.md
   rules/golang/coding-style.md
