@@ -48,10 +48,14 @@ stays for the user.
 8. Read the newest message with `slack_read_channel` (limit 1) and note its
    timestamp. Open the channel in a new Chrome tab, wait for the composer,
    and run the send script below with the expected values as JSON strings.
-9. Only an explicit `not-sent: ...` result means nothing was sent. After
-   `clicked`, an error, a timeout, or no result, never run the send script
-   again: read the channel with `slack_read_channel` and `oldest` set to the
-   noted timestamp. The sent message is the one new message from the user
+9. Only an explicit `not-sent: ...` result means nothing was sent. On
+   `ignored`, Slack did not take the click, as when the page is still
+   loading: read the channel with `oldest` set to the noted timestamp, and
+   if no new message is there, wait 10 seconds and run the send script once
+   more; a second `ignored` means not sent. After `clicked`, an error, a
+   timeout, or no result, never run the send script again: read the channel
+   with `slack_read_channel` and `oldest` set to the noted timestamp. The
+   sent message is the one new message from the user
    that matches `content`. To compare, parse the message text into a list
    before decoding entities: plain text, `["mention", ID]` for `<@ID|...>`,
    and `["link", URL, label]` for `<URL|label>`, splitting at the first `|`.
@@ -86,10 +90,10 @@ Read:
 })()
 ```
 
-Send:
+Send (it waits up to 5 seconds for Slack to clear the composer):
 
 ```js
-(() => {
+await (async () => {
   const channel = CHANNEL, display = DISPLAY, content = CONTENT;
   const ser = n => n.nodeType === 3 ? [n.data] : n.nodeType !== 1 ? [] : n.dataset.id || n.tagName === "A" ? [[n.tagName.toLowerCase(), n.dataset.url || n.dataset.id || n.getAttribute("href"), n.textContent]] : [...[...n.childNodes].flatMap(ser), ...(n.tagName === "P" ? ["\n"] : [])];
   if (!location.pathname.endsWith("/" + channel)) return "not-sent: wrong channel";
@@ -103,6 +107,10 @@ Send:
   if (inputs[0].innerText.trim() !== display || JSON.stringify(ser(inputs[0])) !== content) return "not-sent: text changed";
   if (buttons[0].disabled) return "not-sent: send disabled";
   buttons[0].click();
-  return "clicked";
+  for (let i = 0; i < 10; i++) {
+    await new Promise(r => setTimeout(r, 500));
+    if (!inputs[0].isConnected || inputs[0].innerText.trim() === "") return "clicked";
+  }
+  return inputs[0].innerText.trim() === display ? "ignored" : "clicked";
 })()
 ```
