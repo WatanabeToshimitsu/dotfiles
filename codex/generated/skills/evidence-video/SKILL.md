@@ -92,5 +92,5 @@ unattached videos attached. When the skill cannot run, report `not run` with
 the reason: no reachable environment, no subagent, login not completed, or
 writes not approved.
 
-Finally remove the mocks and routes, stop the dev server, and leave the
-logged-in browser open until the user says they are done.
+Finally remove the mocks and routes, stop the dev server, and close the
+browser session; `--restore` keeps the login for a later retake.
