@@ -12,11 +12,10 @@ a visible pointer, readable pauses, no dead time. Commands and mock code are in
 ## Required steps
 
 1. **Shot list.** Per scene: the steps, the result that must be visible, and
-   the dev writes one take makes. Ask the user to approve the list. When the
-   task includes delivering the PR and its base repository is `PRIVATE` or
-   `INTERNAL`, attaching the MP4s needs no separate question; otherwise ask
-   whether to attach them to a PR you name, saying that an upload cannot be
-   undone and is readable without sign-in on a public repository. Right before each take that
+   the dev writes one take makes. Ask the user to approve the list. Unless
+   you deliver the PR in a private or internal repository, also ask
+   whether to attach the MP4s to a PR you name; say that an upload cannot be
+   undone and is public on a public repository. Right before each take that
    writes, ask again for that take and its writes, and
    wait for an explicit yes: the automatic permission check can stop a write
    approved only in advance. If it still stops one, report it; never retry it
