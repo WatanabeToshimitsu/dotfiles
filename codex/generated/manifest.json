@@ -1,7 +1,7 @@
 {
   "executables": [],
   "files": {
-    "AGENTS.md": "sha256:30d409ff6c15037a43cf7f2798264ba43556041a53186dab5fcafb8f07080397",
+    "AGENTS.md": "sha256:649988d5d47aa66ef79bcc3555fc4bf93d5e0a4c6c63d1fd285391b1d57899a0",
     "rules/common/github-actions.md": "sha256:dd83e898d6979615d69c358ea9664bb671ca70ff0e3b781ef48ee7ebf8d921a2",
     "rules/common/hooks.md": "sha256:958560e5c011273127d8088a65e73d010bfcc1a787cb3b97385663b0a8d1a57d",
     "rules/common/security.md": "sha256:1713a293faad361f76947974f68f7e51cc01595d79ddab75eb91cc8b078ed3b4",
@@ -23,7 +23,7 @@
     "skills/delivery-workflow/references/recovery.md": "sha256:7722bc30a7779b35d4b756a02fe9f85a29b54962adc8aa20bad61a8766f0b2ee",
     "skills/delivery-workflow/references/scheduled-work.md": "sha256:5bbc3fd68d009bb613d3e8412662a8306cc13404606938f3093d74d92a0bcbad",
     "skills/difit-guided-review/SKILL.md": "sha256:b1b9f8dcca05927ae4f899aecf4ce0913cabe8ee660aab8fdcafb0d688dfecf1",
-    "skills/evidence-video/SKILL.md": "sha256:04917c8e2f410bdd213ea989a8487cd81c8be338d838360f9197a3531f251cab",
+    "skills/evidence-video/SKILL.md": "sha256:e9559ead79babbefb92efc3f5593fdff38639da852da6633726a9a7893872dd3",
     "skills/evidence-video/references/recording.md": "sha256:f9e024b6b12fe5d45530f12f94cab5fa0b54de83dcc5aa3da1f59b3e5aff7653",
     "skills/evidence-video/scripts/trim_idle.py": "sha256:5e81ef32f86ed12911d53331177ad8466eca13ed0dd018a6150be62e3b515c93",
     "skills/expand-tool-output/SKILL.md": "sha256:dea48c29238226b273b40151a34adf4b3ec8c7997857626e4a6c38d348a4cbf8",
@@ -33,7 +33,7 @@
     "skills/ticket/reference.example.md": "sha256:6ec32ff44cb70e980585e31e8ac8b35ab6da243e097f72558ac2253c7987ca58"
   },
   "inputs": {
-    "claude/CLAUDE.md": "sha256:78a912675d1c003946f0a6de8443b08882efb9f7f3b959e17d9966ce50c641ef",
+    "claude/CLAUDE.md": "sha256:1fc93d621217e8710abbc73eea77dd6f31a342297ffac0f82a4453edccaa6993",
     "claude/rules/common/github-actions.md": "sha256:dd83e898d6979615d69c358ea9664bb671ca70ff0e3b781ef48ee7ebf8d921a2",
     "claude/rules/common/hooks.md": "sha256:958560e5c011273127d8088a65e73d010bfcc1a787cb3b97385663b0a8d1a57d",
     "claude/rules/common/security.md": "sha256:1713a293faad361f76947974f68f7e51cc01595d79ddab75eb91cc8b078ed3b4",
@@ -56,7 +56,7 @@
     "claude/skills/delivery-workflow/references/recovery.md": "sha256:7722bc30a7779b35d4b756a02fe9f85a29b54962adc8aa20bad61a8766f0b2ee",
     "claude/skills/delivery-workflow/references/scheduled-work.md": "sha256:5bbc3fd68d009bb613d3e8412662a8306cc13404606938f3093d74d92a0bcbad",
     "claude/skills/difit-guided-review/SKILL.md": "sha256:b1b9f8dcca05927ae4f899aecf4ce0913cabe8ee660aab8fdcafb0d688dfecf1",
-    "claude/skills/evidence-video/SKILL.md": "sha256:04917c8e2f410bdd213ea989a8487cd81c8be338d838360f9197a3531f251cab",
+    "claude/skills/evidence-video/SKILL.md": "sha256:e9559ead79babbefb92efc3f5593fdff38639da852da6633726a9a7893872dd3",
     "claude/skills/evidence-video/references/recording.md": "sha256:f9e024b6b12fe5d45530f12f94cab5fa0b54de83dcc5aa3da1f59b3e5aff7653",
     "claude/skills/evidence-video/scripts/trim_idle.py": "sha256:5e81ef32f86ed12911d53331177ad8466eca13ed0dd018a6150be62e3b515c93",
     "claude/skills/expand-tool-output/SKILL.md": "sha256:2b21b700450c9e673b45da33ae848e45fafb0f251b79917a54d00f3e93ba0e08",
@@ -64,7 +64,7 @@
     "claude/skills/repository-audit/SKILL.md": "sha256:200164ed0c118c771c6ec4ed357059d03d7b96f87a807a88d05ded01cae79f9d",
     "claude/skills/ticket/SKILL.md": "sha256:8145947efdcd04dae54221780bc1610f2e2043b44df47855a6276e7df64d503b",
     "claude/skills/ticket/reference.example.md": "sha256:6ec32ff44cb70e980585e31e8ac8b35ab6da243e097f72558ac2253c7987ca58",
-    "codex/adaptations.md": "sha256:49cd5999b99b0615d668558ff6dacd687d6bee3e874038ec9d7f6b4fb219aada",
+    "codex/adaptations.md": "sha256:da56c74ebf835a9b188ac1d751f790d6b5e1650314369260b56b384f5067a8fb",
     "codex/skill-adaptations.json": "sha256:cf5f4d2e8806f13958c455f2adebe75da560d00a09a137162d97844654f8dd77"
   },
   "local_dependencies": {

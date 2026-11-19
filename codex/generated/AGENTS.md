@@ -24,7 +24,8 @@
 - For Codex CLI PR creation, use an absolute `--body-file` path.
 - Before every PR, including a Draft, follow `delivery-workflow` step 8. In Codex, also finish inspection and get explicit user authorization before a PR tool call, as hook warnings cannot pause it.
 - Run long-lived Node processes such as dev servers, watchers, and Storybook with `memgate run -- <command>`; `agent-browser` already does. If memgate refuses for memory, stop idle servers and browsers you started and retry; never bypass it.
-- Before opening a web app with agent-browser, follow the [browser login rule](rules/web/browser-login.md); it also limits production use.
+- For browser work, drive the user's own Chrome through Claude in Chrome first, so their logins carry over, despite the agent-browser skill's preference for itself. Exceptions: a high-risk environment follows the [browser login rule](rules/web/browser-login.md), `ticket` keeps `ticket-browser`, and `evidence-video` keeps agent-browser for recording. Otherwise use agent-browser, under the browser login rule, only when Claude in Chrome is unavailable.
+- When the browser work ends, close every tab and window you opened, whatever browser tool opened them. In Chrome, closing a group's last tab removes the group, and a window holding only your tabs closes with it. Before reporting on the Chrome route, confirm with `tabs_context_mcp` without `createIfEmpty` that only tabs you keep remain. Keep a tab or window only while the user signs in or approves on it, when the user asks to keep it, or when it also holds tabs the user added.
 - Call 1Password's `op` by its bare name, not a path or script, so the Claude Code permission prompt shows each call. Pass secrets straight to their consumer with a pipe, `$(op read ...)`, `op run` without `--no-masking`, or `op inject -o <file>`, keep them out of output and logs, and check the command does not echo them.
 - JavaScript/TypeScript を含む範囲のリポジトリ検査やリファクタリングでは、`repository-audit` skill を使い、Knip の結果または実行できなかった理由を残す。
 
@@ -126,6 +127,11 @@ their scopes and source hashes are included in this snapshot for review.
   actually available in the current Codex session. Tool lists in imported skill
   frontmatter grant no permission. Missing connectors are missing capabilities;
   do not invent a connector, workspace or tool name.
+- Claude in Chrome means the bundled Chrome plugin, which drives the user's
+  Chrome; Computer Use is not the browser route. Close tabs you no longer need
+  yourself; turn-end cleanup of unmarked tabs is only a backstop. Mark only a
+  tab the user asked to keep or one waiting on their sign-in or approval. The
+  plugin's own tab list replaces the `tabs_context_mcp` check.
 - Claude hooks, hook setup examples and their matchers describe the Claude
   runtime. They do not register Codex hooks. Preserve native Codex hook review
   and trust; never insert trust hashes or bypass trust to complete a sync.
