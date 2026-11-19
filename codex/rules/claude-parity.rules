@@ -1,0 +1,57 @@
+# Codex exec rules that mirror claude/settings.json permissions.
+# A single bare-command rule would miss most calls: Codex types commands behind
+# `rtk` or `rtk proxy`, and prefix rules match the literal argv.
+def _wrapped(tokens, decision, justification = None):
+    extra = {"justification": justification} if justification else {}
+    for wrapper in ([], ["rtk"], ["rtk", "proxy"]):
+        prefix_rule(pattern = wrapper + tokens, decision = decision, **extra)
+
+# Not left to sandbox escalation: the browser CLIs need their daemon socket,
+# Chrome and the network, so every click would ask for approval.
+_wrapped(["agent-browser"], "allow")
+_wrapped(["ticket-browser"], "allow")
+_wrapped(["ticket-browser", "allow"], "prompt", "Widens ticket-browser's page allowlist; confirm the URL is one the user asked to open.")
+
+# Prefix rules match whole tokens, so Claude patterns that end inside a token
+# (git clean -f*, git gc --prune*, git restore .*) are listed form by form
+# instead; entries with an inner wildcard (git push * --force*, psql -c *DROP*,
+# export PATH=*) and Read/Edit denies cannot be expressed and are not ported.
+_DENY = "Denied by the Claude Code parity list; ask the user to run it."
+for tokens in [
+    ["rm", "-f"], ["rmdir"], ["shred"], ["wipe"], ["srm"], ["dd"], ["fdisk"], ["parted"], ["diskutil"],
+    ["chmod", "777"], ["chmod", "-R"], ["chown"], ["chgrp"], ["chflags"], ["sudo"],
+    ["git", "reset", ["--hard", "--merge"]],
+    ["git", "checkout", ["--", ".", "-f", "--force"]],
+    ["git", "switch", "--discard-changes"],
+    ["git", "clean", ["-f", "-fd", "-fdx", "-fdX", "-fx", "-ff", "-ffd", "-ffdx", "-d", "-df", "-dfx", "-dx", "-xf", "-xdf"]],
+    ["git", "stash", ["drop", "clear"]],
+    ["git", "restore", "."],
+    ["git", "reflog", "expire"],
+    ["git", "gc", ["--prune", "--prune=now", "--prune=all"]],
+    ["git", "filter-branch"],
+    ["git", "update-ref", "-d"],
+    ["git", "push", ["--force", "--force-with-lease", "--force-if-includes", "-f", "--mirror", "--delete", "-d", "--prune"]],
+    ["gh", "repo", ["delete", "archive"]],
+    ["gh", "pr", ["close", "merge"]],
+    ["gh", "issue", ["close", "delete"]],
+    ["gh", "release", "delete"],
+    ["gh", "api", ["-X", "--method"], "DELETE"],
+    ["brew", ["install", "uninstall", "remove"]],
+    ["npm", ["install", "i", "uninstall", "rm"], "-g"],
+    ["yarn", "global"], ["pnpm", "add", "-g"],
+    [["pip", "pip3"], ["install", "uninstall"]],
+    ["gem", ["install", "uninstall"]], ["cargo", "install"], ["go", "install"],
+    ["curl", "-X", ["POST", "PUT", "DELETE", "PATCH"]],
+    ["curl", ["-d", "--data", "-F"]],
+    ["wget", ["--post-data", "--post-file"]],
+    [["nc", "ncat", "netcat", "nmap", "sftp", "socat"]],
+    ["rsync", ["--delete", "--delete-after", "--delete-before", "--delete-delay", "--delete-during", "--delete-excluded", "--delete-missing-args"]],
+    [["kill", "killall", "pkill", "launchctl", "unset", "eval", "exec", "crontab", "at"]],
+    ["docker", ["system", "volume"], "prune"],
+    ["docker", "volume", "rm"], ["docker", "rm", "-f"], ["docker", ["rmi", "stop", "kill"]],
+    ["docker-compose", "down", "-v"], ["docker", "compose", "down", "-v"],
+    ["kubectl", ["delete", "drain"]],
+    ["aws", "ec2", "terminate-instances"], ["aws", "s3", ["rm", "rb"]],
+    ["redis-cli", ["FLUSHALL", "FLUSHDB"]],
+]:
+    _wrapped(tokens, "forbidden", _DENY)

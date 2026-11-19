@@ -114,6 +114,13 @@ MANIFEST_CLAUDE_OBSOLETE_FILES=(
   hooks/require-subagent-model.sh
 )
 
+# Codex exec rules (codex/rules/ → ~/.codex/rules/). install.sh copies them:
+# Codex skips symlinks when it loads ~/.codex/rules/*.rules.
+# shellcheck disable=SC2034  # consumed by install.sh / uninstall.sh via source
+MANIFEST_CODEX_RULE_FILES=(
+  claude-parity.rules
+)
+
 # Codex has dynamic skill ownership and an AGENTS.md managed block. The installer
 # records exact links in ~/.codex/dotfiles-sync/state.json, not a glob to delete.
 # shellcheck disable=SC2034  # consumed by install.sh / uninstall.sh
