@@ -44,6 +44,12 @@ or other checkable evidence. Label hypotheses and missing evidence.
 
 Treat authentication, authorization, payments, privacy, destructive migrations, cryptography, and externally visible compatibility as high risk.
 
+The request and its acceptance criteria are the whole bar. Block only on a
+failing run at the reviewed head, a defect a user would hit, including one a
+design would cause, or a high-risk issue with checkable evidence. Report other
+findings in one line each without blocking, and likewise problems the base
+already has unless the change exposes or worsens them.
+
 Do not report style preferences as defects. If no actionable issue remains, say
 so and state what was verified and what was not.
 
