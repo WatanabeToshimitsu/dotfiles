@@ -18,6 +18,8 @@ still run.
 3. Follow the stage contract. Use RED, GREEN, REFACTOR for behavior changes;
    keep refactoring separate from feature behavior.
 4. Run focused checks, fix their cause, and rerun affected checks.
+   When two fixes that rest on one premise fail the same check, write the
+   premise down and test it directly before another fix.
 5. Use `code-review` for each review the stage contract requires.
 6. Self-review the complete final diff for scope and accidental changes.
    Keep related out-of-scope work as proposals instead of implementing it.
