@@ -91,3 +91,4 @@ If it is unreadable, say so, stop dependent goal drafting and handoffs, continue
 - ユーザー向けの文章で PR や issue に触れるときは、番号だけでなく URL をそのまま書く。レビューやマージを頼む場合も、紹介や参照だけの場合も同じ。
 - Verify external documentation before quoting or relying on it and cite its URL or path; match quotes to the original, label paraphrases and inferences, and say when you could not verify.
 - Before saying a tool or service lacks a feature or cannot do something, check its current official docs or the tool itself for that version and environment; report inconclusive checks as unconfirmed.
+- Before reporting or acting on a measured number, find what limits it and rule out that it measured something else. Do not present an unmeasured number as measured or drop required meaning to meet a size limit.
