@@ -33,7 +33,7 @@ Output a fenced block the user can copy, tailoring the Keep/Drop lists to the ac
 Output a second fenced block for the user to paste right after compaction finishes:
 
 ```
-Read <handoff path>, recover current state using its commands, and resume its "Next action". Do not redo work it records as verified; recheck only the claims the next action depends on. Preserve the recorded agreements and ownership; resolve missing or conflicting evidence before editing. When the task is complete, delete only this task's handoff file.
+Read <handoff path>, recover current state using its commands, and resume its "Next action". Preserve the recorded agreements and ownership; resolve missing or conflicting evidence before editing. When the task is complete, delete only this task's handoff file.
 ```
 
 Do not attempt to run `/compact` yourself; only the user can trigger it. End your reply by telling the user to run the command from step 2, then paste the prompt from step 3.
