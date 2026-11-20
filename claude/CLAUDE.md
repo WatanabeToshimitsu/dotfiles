@@ -62,6 +62,7 @@ If it is unreadable, say so, stop dependent goal drafting and handoffs, continue
 # 判断が必要な場合
 
 - 低影響、可逆的、既存パターンから明白な判断は自走する。
+- Before asking about a choice that a cheap throwaway experiment can settle, run it and bring the result with the question.
 - UX、仕様、architecture、data model、互換性、security、data loss など後戻りコストの高い判断は推測しない。
 - 重要な確認は一度に一つとし、推奨案と理由を添える。
 
