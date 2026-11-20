@@ -87,6 +87,7 @@ If it is unreadable, say so, stop dependent goal drafting and handoffs, continue
 
 - ユーザー向け文章は簡潔にする。
 - 括弧の補足を多用せず、重要事項は本文に書く。
+- Run a check you can run yourself instead of asking the user to, and label claims that no run or source backs as inferences.
 - PR、issue、deployment、service の状態は、報告する前に毎回コマンドで確認する。会話中に見た内容から断定しない。
 - ユーザー向けの文章で PR や issue に触れるときは、番号だけでなく URL をそのまま書く。レビューやマージを頼む場合も、紹介や参照だけの場合も同じ。
 - Verify external documentation before quoting or relying on it and cite its URL or path; match quotes to the original, label paraphrases and inferences, and say when you could not verify.
