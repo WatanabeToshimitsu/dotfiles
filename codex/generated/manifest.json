@@ -18,7 +18,7 @@
     "rules/web/security.md": "sha256:7479e59696ecc2a5f538d3fd2c6e732539fb711867ba7a8a4fca6052cd704096",
     "skills/code-review/SKILL.md": "sha256:ef36c4a400351e92085c512905d2a78cb11e45c0b2dc5aad1d4a13b58e0d64fd",
     "skills/delivery-workflow/SKILL.md": "sha256:81eb85f004557d931036b60a4bbc057189b76ec9e2e802c4986086a4a1cfe46e",
-    "skills/delivery-workflow/references/goals.md": "sha256:890e535677ab102cc96e6363edd2bf4ad240e626c6bbd3a4730bb014f93fdaef",
+    "skills/delivery-workflow/references/goals.md": "sha256:d5982487e8e065094ba75fd11271d9984944378f65a4a58c363b737a5d793796",
     "skills/delivery-workflow/references/invocation.md": "sha256:0271138e430b7382be683e631a775f4a59c6ed99b68e3880ab62f923d2cd9874",
     "skills/delivery-workflow/references/recovery.md": "sha256:7722bc30a7779b35d4b756a02fe9f85a29b54962adc8aa20bad61a8766f0b2ee",
     "skills/delivery-workflow/references/scheduled-work.md": "sha256:5bbc3fd68d009bb613d3e8412662a8306cc13404606938f3093d74d92a0bcbad",
@@ -27,7 +27,6 @@
     "skills/evidence-video/references/recording.md": "sha256:f9e024b6b12fe5d45530f12f94cab5fa0b54de83dcc5aa3da1f59b3e5aff7653",
     "skills/evidence-video/scripts/trim_idle.py": "sha256:5e81ef32f86ed12911d53331177ad8466eca13ed0dd018a6150be62e3b515c93",
     "skills/expand-tool-output/SKILL.md": "sha256:dea48c29238226b273b40151a34adf4b3ec8c7997857626e4a6c38d348a4cbf8",
-    "skills/prepare-compaction/SKILL.md": "sha256:d711c8901ad7c43e2dc0c240d4bd259bb920d3d14ee0399261874a0fb97d3d55",
     "skills/repository-audit/SKILL.md": "sha256:200164ed0c118c771c6ec4ed357059d03d7b96f87a807a88d05ded01cae79f9d",
     "skills/review-ping/SKILL.md": "sha256:04592ae3340c55d9879641c4e8b2b2bd7e31c11579c4536f8b80f0b5f8b8ff07",
     "skills/ticket/SKILL.md": "sha256:fac718f1637a9926a9e50fe58c257c18a8424b52c17a05288ecce03aad8ba9bb",
@@ -52,7 +51,7 @@
     "claude/settings.json": "sha256:8d5e6ebf9d2224920d834e4bf32bbd40a4021302ae6bc1a2a0adada3684dc96c",
     "claude/skills/code-review/SKILL.md": "sha256:0cb45a188f2758c1dde2341106e17b66bf492444e46148cdfdf8ce5a08d128a2",
     "claude/skills/delivery-workflow/SKILL.md": "sha256:a55b9c48e66dc9b40efe02432813409b5b50922b3e2001f9bf3ab377299f8688",
-    "claude/skills/delivery-workflow/references/goals.md": "sha256:890e535677ab102cc96e6363edd2bf4ad240e626c6bbd3a4730bb014f93fdaef",
+    "claude/skills/delivery-workflow/references/goals.md": "sha256:d5982487e8e065094ba75fd11271d9984944378f65a4a58c363b737a5d793796",
     "claude/skills/delivery-workflow/references/invocation.md": "sha256:0271138e430b7382be683e631a775f4a59c6ed99b68e3880ab62f923d2cd9874",
     "claude/skills/delivery-workflow/references/recovery.md": "sha256:7722bc30a7779b35d4b756a02fe9f85a29b54962adc8aa20bad61a8766f0b2ee",
     "claude/skills/delivery-workflow/references/scheduled-work.md": "sha256:5bbc3fd68d009bb613d3e8412662a8306cc13404606938f3093d74d92a0bcbad",
@@ -61,13 +60,12 @@
     "claude/skills/evidence-video/references/recording.md": "sha256:f9e024b6b12fe5d45530f12f94cab5fa0b54de83dcc5aa3da1f59b3e5aff7653",
     "claude/skills/evidence-video/scripts/trim_idle.py": "sha256:5e81ef32f86ed12911d53331177ad8466eca13ed0dd018a6150be62e3b515c93",
     "claude/skills/expand-tool-output/SKILL.md": "sha256:2b21b700450c9e673b45da33ae848e45fafb0f251b79917a54d00f3e93ba0e08",
-    "claude/skills/prepare-compaction/SKILL.md": "sha256:2e1def114180603e6ff56d22b110eaee137e327731d74e0bec8dd4d5cbe35ad0",
     "claude/skills/repository-audit/SKILL.md": "sha256:200164ed0c118c771c6ec4ed357059d03d7b96f87a807a88d05ded01cae79f9d",
     "claude/skills/review-ping/SKILL.md": "sha256:1bdcedbd8496b6f2d69c5564ae87562175799badb60cdc5d01af6c21616b6a73",
     "claude/skills/ticket/SKILL.md": "sha256:8145947efdcd04dae54221780bc1610f2e2043b44df47855a6276e7df64d503b",
     "claude/skills/ticket/reference.example.md": "sha256:6ec32ff44cb70e980585e31e8ac8b35ab6da243e097f72558ac2253c7987ca58",
     "codex/adaptations.md": "sha256:da56c74ebf835a9b188ac1d751f790d6b5e1650314369260b56b384f5067a8fb",
-    "codex/skill-adaptations.json": "sha256:d0503a7c1f68765cff8eaaa8c75f53fb77c3655da0b52f0a2dbcb0aa0c414e21"
+    "codex/skill-adaptations.json": "sha256:118c59830d1b1b8bafa5bab9570c78f514b4afdfe229e66ab013f4c8acb66b7b"
   },
   "local_dependencies": {
     "ticket": {
@@ -80,7 +78,6 @@
     "difit-guided-review",
     "evidence-video",
     "expand-tool-output",
-    "prepare-compaction",
     "repository-audit",
     "review-ping",
     "ticket"

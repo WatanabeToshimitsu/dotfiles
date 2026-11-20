@@ -8,9 +8,6 @@
   "expand-tool-output": {
     "note": "This skill can read existing Claude archive IDs only when the local Claude archive helper is installed. It does not enable a Codex compaction hook. If the archive/helper is unavailable, report the missing dependency instead of guessing output."
   },
-  "prepare-compaction": {
-    "note": "In Codex, use a task-local handoff file for compaction. Do not write Claude auto-memory or Codex memories without an explicit user request. Follow the host compaction controls; source slash commands are not executable shell commands."
-  },
   "review-ping": {
     "note": "This skill needs Claude Code's Slack connector, Claude in Chrome, and background Bash re-invocation. In Codex, report it as unavailable; never send the review request with another tool or connector."
   },
