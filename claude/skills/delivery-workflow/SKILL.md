@@ -21,6 +21,10 @@ still run.
    When two fixes that rest on one premise fail the same check, write the
    premise down and test it directly before another fix.
 5. Use `code-review` for each review the stage contract requires.
+   Before D, name the one or two facts the change's safety rests on and prove
+   each: run a script or test that calls the real code when the behavior is
+   executable, otherwise give the most direct check available. Put the
+   commands and output in the packet.
 6. Self-review the complete final diff for scope and accidental changes.
    Keep related out-of-scope work as proposals instead of implementing it.
    Do not add intermediate variables, conversions, or test cases beyond what
