@@ -56,7 +56,9 @@ still run.
    backend-only changes without UI effect. Its login and write approvals still
    apply; record `not run` and the reason in the body when it cannot run.
    Before each PR, including a Draft, prepare its target, title, body, and full
-   outgoing commit range. Inspect them for secrets, personal and confidential
+   outgoing commit range. Unless a PR template or PR skill sets the body, state
+   in it what else the change could affect and why that is safe, and the
+   alternatives a reviewer would ask about. Inspect them for secrets, personal and confidential
    information, and content outside the requested task; report findings and
    uninspected parts. Pattern scans alone do not establish safety. In Claude
    Code, create the PR without separate confirmation when the task includes
