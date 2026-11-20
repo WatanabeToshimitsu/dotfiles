@@ -80,7 +80,7 @@ If it is unreadable, say so, stop dependent goal drafting and handoffs, continue
 # Auto Memory
 
 - `feedback` を記録したら、`metadata` へ `promoted` を書く。値は昇格先のリポジトリ相対パス、または意図的に昇格しない場合は `none`。
-- 昇格先は `CLAUDE.md`、`claude/CLAUDE.md`、`claude/rules/`、`claude/skills/` のいずれか。memory 自体は Claude Code しか読まないため、他のエージェントへ効くのは昇格後。
+- 昇格先は `CLAUDE.md`、`claude/CLAUDE.md`、`claude/rules/`、`claude/skills/`、または指摘を強制するテストか hook（`test/`、`claude/hooks/`）のいずれか。同じ指摘が 2 回以上あり、テストか hook で防げるなら、文章より先にそちらを選ぶ。memory 自体は Claude Code しか読まないため、他のエージェントへ効くのは昇格後。
 - 未昇格の `feedback` は `dotfiles-doctor.sh` が候補として報告する。
 
 # コミュニケーション

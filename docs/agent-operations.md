@@ -98,7 +98,7 @@ claude-sandbox
 
 記憶の保存にはClaude Code標準のAuto Memoryを使っており、同じリポジトリのworktree間で共有されます。
 
-このリポジトリ独自の仕組みは、学びを共通ルールに反映したかどうかの管理です。エージェントはfeedback形式の記憶に`metadata.promoted`を記録し、`CLAUDE.md`・ルール・スキルへの反映先、または反映しない判断を残します。doctorはこの情報から反映待ちを報告します。
+このリポジトリ独自の仕組みは、学びを共通ルールに反映したかどうかの管理です。エージェントはfeedback形式の記憶に`metadata.promoted`を記録し、`CLAUDE.md`・ルール・スキル・テスト・hookへの反映先、または反映しない判断を残します。doctorはこの情報から反映待ちを報告します。
 
 今後も守ってほしい好みや方針は、エージェントに伝えてください。[`claude/AUTO-MEMORY.md`](../claude/AUTO-MEMORY.md)は、この独自の管理方法を説明する資料です。
 
