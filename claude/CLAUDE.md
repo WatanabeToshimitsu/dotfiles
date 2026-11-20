@@ -76,6 +76,7 @@ If it is unreadable, say so, stop dependent goal drafting and handoffs, continue
 - サブエージェントからは結論、関連箇所、リスク、検証結果だけを受け取る。
 - 大量ログは要約またはファイルへ退避し、main conversation に戻さない。
 - 同じタスクの履歴が実作業を妨げる場合だけ `/compact`、無関係なタスクへ移る場合だけ `/clear` を短く提案する。
+- After compaction or when picking up another session's work, do not redo work recorded as verified; recheck only the claims the next action depends on.
 
 # Auto Memory
 
