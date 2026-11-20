@@ -66,7 +66,6 @@ MANIFEST_CLAUDE_FILES=(
   skills/evidence-video/references/recording.md
   skills/evidence-video/scripts/trim_idle.py
   skills/expand-tool-output/SKILL.md
-  skills/prepare-compaction/SKILL.md
   skills/repository-audit/SKILL.md
   skills/review-ping/SKILL.md
   skills/ticket/SKILL.md
@@ -112,6 +111,7 @@ MANIFEST_CLAUDE_OBSOLETE_FILES=(
   rules/typescript/testing.md
   skills/eli5/SKILL.md
   skills/eli15/SKILL.md
+  skills/prepare-compaction/SKILL.md
   hooks/require-subagent-model.sh
 )
 

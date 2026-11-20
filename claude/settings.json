@@ -351,8 +351,7 @@
     "difit": "user-invocable-only",
     "lucian-uxui": "off",
     "vercel-react-best-practices": "off",
-    "find-skills": "off",
-    "prepare-compaction": "off"
+    "find-skills": "off"
   },
   "hooks": {
     "Notification": [
