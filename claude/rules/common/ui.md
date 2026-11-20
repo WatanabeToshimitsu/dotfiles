@@ -7,6 +7,10 @@ paths:
 
 Applies when creating or changing a user interface.
 
+For a change meant to keep the look, capture baseline screenshots of the
+affected states before editing and compare by image diff. Never edit the
+baseline to make a diff pass.
+
 Avoid unnecessary secondary labels and descriptions. Let the layout do the
 explaining.
 
