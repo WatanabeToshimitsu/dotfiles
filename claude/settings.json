@@ -455,7 +455,8 @@
     "typescript-lsp@claude-plugins-official": false,
     "scene-tag@scene-tag-annotator": true,
     "ponytail@ponytail": true,
-    "swift-lsp@claude-plugins-official": true
+    "swift-lsp@claude-plugins-official": true,
+    "common-compute-cluster@hdl-agent-plugins": true
   },
   "extraKnownMarketplaces": {
     "claude-powerline": {
@@ -541,5 +542,6 @@
       "Treat credentials, personal data, confidential business data, and regulated data as sensitive; public paste and gist services are outside the trust boundary unless explicitly approved",
       "Treat remote targets or infrastructure whose name contains prod or production as sensitive"
     ]
-  }
+  },
+  "advisorModel": "fable"
 }
