@@ -12,18 +12,17 @@ a visible pointer, readable pauses, no dead time. Commands and mock code are in
 ## Required steps
 
 1. **Shot list.** Per scene: the steps, the result that must be visible, and
-   the dev writes one take makes. Ask the user to approve the list. Unless
-   you deliver the PR in a private or internal repository, also ask
+   the dev writes one take makes. Unless
+   you deliver the PR in a private or internal repository, ask
    whether to attach the MP4s to a PR you name; say that an upload cannot be
-   undone and is public on a public repository. Right before each take that
-   writes, ask again for that take and its writes, and
-   wait for an explicit yes: the automatic permission check can stop a write
-   approved only in advance. If it still stops one, report it; never retry it
-   another way.
+   undone and is public on a public repository. If the automatic permission
+   check stops a write, report it; never retry it another way.
 2. **Directories.** Final MP4s go to one deliverable directory outside the
    repository. Raw takes, contact sheets, and frames go to a separate work
    directory; only Attach's `body.md` joins the MP4s.
-3. **Browser.** Start the dev server with `memgate run -- <dev command>`. Pass
+3. **Browser.** Start the dev server with
+   `memgate run --port <port> -- <dev command>`; it waits up to an hour for
+   another checkout to free the port. Pass
    `--session <name> --restore <key> --headed --idle-timeout 0` on every
    browser command; other launch options relaunch the browser and lose the
    login. The lead signs in as the browser login rule says; when it falls back,
@@ -34,9 +33,8 @@ a visible pointer, readable pauses, no dead time. Commands and mock code are in
    with a network abort route on that URL as a guard. Prove the mock with the
    probe in the reference before recording; it never reaches the server.
 5. **Record in a subagent** with an explicit model that can run shell commands,
-   so the main thread stays readable. Hand it the shot list, the takes the
-   user has permitted, session name, directories, and this skill. It returns
-   before any other writing take, never logs in, never closes the browser, and
+   so the main thread stays readable. Hand it the shot list, session name,
+   directories, and this skill. It never logs in, never closes the browser, and
    never retakes without the lead.
 6. **Take rules.** `record start <raw>.mp4 --cursor`. Move with `get box` then
    `mouse move <x> <y> --duration 600-900 --steps 30-40`; press with
@@ -66,8 +64,10 @@ way before reporting; never forward a subagent's claim unverified.
       data are on screen.
 
 On a failure, re-edit first. Retake only when content is missing, at most twice
-per scene, and only after the user approves that retake and its writes. After
-two retakes, report the failure instead.
+per scene. After two retakes, report the failure instead.
+
+Once the lead's check passes, remove the mocks and routes, stop the dev server,
+and close the browser session; `--restore` keeps the login for a later retake.
 
 ## Attach
 
@@ -89,9 +89,7 @@ never upload again.
 Per scene: file path, length, what it shows, the dev writes it made, and how
 any failure was mocked. Add one sentence for the PR's Evidence note. Without
 attach authority, the user attaches the videos, and a PR body never calls
-unattached videos attached. When the skill cannot run, report `not run` with
-the reason: no reachable environment, no subagent, login not completed, or
-writes not approved.
-
-Finally remove the mocks and routes, stop the dev server, and close the
-browser session; `--restore` keeps the login for a later retake.
+unattached videos attached. When the skill cannot run, ask the user in the
+session with the reason: no reachable environment, the port still taken after
+the wait, no subagent, login not completed, or a write the permission check
+stopped. Never write the reason in a PR.
