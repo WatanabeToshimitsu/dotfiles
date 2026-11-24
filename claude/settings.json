@@ -351,7 +351,9 @@
     "difit": "user-invocable-only",
     "lucian-uxui": "off",
     "vercel-react-best-practices": "off",
-    "find-skills": "off"
+    "find-skills": "off",
+    "gh-stack": "user-invocable-only",
+    "prompt-review": "off"
   },
   "hooks": {
     "Notification": [
@@ -455,7 +457,7 @@
     "typescript-lsp@claude-plugins-official": false,
     "scene-tag@scene-tag-annotator": true,
     "ponytail@ponytail": true,
-    "swift-lsp@claude-plugins-official": true,
+    "swift-lsp@claude-plugins-official": false,
     "common-compute-cluster@hdl-agent-plugins": true
   },
   "extraKnownMarketplaces": {
