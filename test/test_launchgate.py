@@ -13,10 +13,10 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-SCRIPT = Path(__file__).resolve().parents[1] / ".shell-utils/memgate"
-LOADER = importlib.machinery.SourceFileLoader("memgate", str(SCRIPT))
-memgate = importlib.util.module_from_spec(importlib.util.spec_from_loader("memgate", LOADER))
-LOADER.exec_module(memgate)
+SCRIPT = Path(__file__).resolve().parents[1] / ".shell-utils/launchgate"
+LOADER = importlib.machinery.SourceFileLoader("launchgate", str(SCRIPT))
+launchgate = importlib.util.module_from_spec(importlib.util.spec_from_loader("launchgate", LOADER))
+LOADER.exec_module(launchgate)
 GIB = 1 << 30
 ME = os.getpid()
 
@@ -25,7 +25,7 @@ class Exec(Exception):
     pass
 
 
-class MemgateTests(unittest.TestCase):
+class LaunchgateTests(unittest.TestCase):
     def setUp(self):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
@@ -34,17 +34,17 @@ class MemgateTests(unittest.TestCase):
         self.sizes = {}
         self.free = 0
         self.swapins = 0
-        self.patch(memgate, "LEDGER_DIR", self.root / "run")
-        self.patch(memgate, "PEAKS", self.root / "state/peaks.json")
-        self.patch(memgate, "INTERVAL", 0)
-        self.patch(memgate, "ENFORCE", True)
-        self.patch(memgate, "SWAP_ALLOWANCE", 0)
-        self.patch(memgate, "processes", lambda: dict(self.table))
-        self.patch(memgate, "footprint", lambda pid: self.sizes.get(pid, 0))
-        self.patch(memgate, "memory", lambda: (self.free, self.swapins))
-        self.patch(memgate.subprocess, "Popen", self.spawn)
+        self.patch(launchgate, "LEDGER_DIR", self.root / "run")
+        self.patch(launchgate, "PEAKS", self.root / "state/peaks.json")
+        self.patch(launchgate, "INTERVAL", 0)
+        self.patch(launchgate, "ENFORCE", True)
+        self.patch(launchgate, "SWAP_ALLOWANCE", 0)
+        self.patch(launchgate, "processes", lambda: dict(self.table))
+        self.patch(launchgate, "footprint", lambda pid: self.sizes.get(pid, 0))
+        self.patch(launchgate, "memory", lambda: (self.free, self.swapins))
+        self.patch(launchgate.subprocess, "Popen", self.spawn)
         (self.root / "run").mkdir(mode=0o700)
-        memgate.save(self.root / "run/swapins.json", [[time.time() - 60, 0]])
+        launchgate.save(self.root / "run/swapins.json", [[time.time() - 60, 0]])
 
     def patch(self, target, name, value):
         patcher = patch.object(target, name, value)
@@ -67,7 +67,7 @@ class MemgateTests(unittest.TestCase):
         stderr = io.StringIO()
         with redirect_stderr(stderr):
             try:
-                memgate.admit(key, wait, **options)
+                launchgate.admit(key, wait, **options)
             except SystemExit as error:
                 return error.code, stderr.getvalue()
         return 0, stderr.getvalue()
@@ -75,34 +75,34 @@ class MemgateTests(unittest.TestCase):
     def test_estimate_is_the_measured_peak_or_the_larger_of_floor_and_the_largest_peak_in_the_repository(self):
         a, b = json.dumps(["/r/.git", "", ["a"]]), json.dumps(["/r/.git", "", ["b"]])
         elsewhere = json.dumps(["/other/.git", "", ["c"]])
-        self.assertEqual(memgate.estimate({}, a), 2 * GIB)
-        self.assertEqual(memgate.estimate({b: 3 * GIB}, a), 3 * GIB)
-        self.assertEqual(memgate.estimate({b: GIB}, a), 2 * GIB)
-        self.assertEqual(memgate.estimate({a: GIB // 2, b: 3 * GIB}, a), GIB // 2)
-        self.assertEqual(memgate.estimate({elsewhere: 5 * GIB}, a), 2 * GIB)
-        self.assertEqual(memgate.estimate({elsewhere: 5 * GIB, "agent-browser": 4 * GIB}, "web"), 2 * GIB)
+        self.assertEqual(launchgate.estimate({}, a), 2 * GIB)
+        self.assertEqual(launchgate.estimate({b: 3 * GIB}, a), 3 * GIB)
+        self.assertEqual(launchgate.estimate({b: GIB}, a), 2 * GIB)
+        self.assertEqual(launchgate.estimate({a: GIB // 2, b: 3 * GIB}, a), GIB // 2)
+        self.assertEqual(launchgate.estimate({elsewhere: 5 * GIB}, a), 2 * GIB)
+        self.assertEqual(launchgate.estimate({elsewhere: 5 * GIB, "agent-browser": 4 * GIB}, "web"), 2 * GIB)
 
     def test_swapin_rate_needs_a_baseline_old_enough_and_ignores_a_counter_reset(self):
         now = 1000.0
-        self.assertEqual(memgate.swapin_rate([], now, 50), (None, None))
-        self.assertEqual(memgate.swapin_rate([[now - 1, 0]], now, 50), (None, None))
-        self.assertEqual(memgate.swapin_rate([[now - 10, 100], [now - 5, 150]], now, 600), (50.0, 10.0))
-        self.assertEqual(memgate.swapin_rate([[now - 10, 900]], now, 100), (0.0, 10.0))
+        self.assertEqual(launchgate.swapin_rate([], now, 50), (None, None))
+        self.assertEqual(launchgate.swapin_rate([[now - 1, 0]], now, 50), (None, None))
+        self.assertEqual(launchgate.swapin_rate([[now - 10, 100], [now - 5, 150]], now, 600), (50.0, 10.0))
+        self.assertEqual(launchgate.swapin_rate([[now - 10, 900]], now, 100), (0.0, 10.0))
 
     def test_samples_are_pruned_to_the_window(self):
         now = time.time()
-        memgate.save(self.root / "run/swapins.json", [[now - 500, 0], [now - 100, 1000], [now + 50, 9]])
-        self.assertEqual(memgate.add_sample(now, 3000), (20.0, 100.0))
-        self.assertEqual(memgate.load(self.root / "run/swapins.json", []), [[now - 100, 1000], [now, 3000]])
+        launchgate.save(self.root / "run/swapins.json", [[now - 500, 0], [now - 100, 1000], [now + 50, 9]])
+        self.assertEqual(launchgate.add_sample(now, 3000), (20.0, 100.0))
+        self.assertEqual(launchgate.load(self.root / "run/swapins.json", []), [[now - 100, 1000], [now, 3000]])
 
     def test_swap_allowance_applies_only_while_swapin_is_slow(self):
-        self.patch(memgate, "SWAP_ALLOWANCE", 4 * GIB)
+        self.patch(launchgate, "SWAP_ALLOWANCE", 4 * GIB)
         self.free = 2.5 * GIB
-        self.swapins = 60 * memgate.SWAPIN_LIMIT // 2
+        self.swapins = 60 * launchgate.SWAPIN_LIMIT // 2
         self.assertEqual(self.admit("a")[0], 0)
         self.assertEqual(self.events()[-1]["allowance"], 4 * GIB)
         (self.root / "run/ledger.json").unlink()
-        self.swapins += 60 * memgate.SWAPIN_LIMIT * 4
+        self.swapins += 60 * launchgate.SWAPIN_LIMIT * 4
         code, stderr = self.admit("b")
         self.assertEqual(code, 75)
         self.assertEqual(self.events()[-1]["allowance"], 0)
@@ -110,7 +110,7 @@ class MemgateTests(unittest.TestCase):
 
     def test_first_launch_without_a_recent_sample_waits_once_for_a_baseline(self):
         (self.root / "run/swapins.json").unlink()
-        self.patch(memgate, "INTERVAL", 2)
+        self.patch(launchgate, "INTERVAL", 2)
         clock = [1000.0]
         sleeps = []
 
@@ -118,7 +118,7 @@ class MemgateTests(unittest.TestCase):
             sleeps.append(seconds)
             clock[0] += seconds
 
-        self.patch(memgate, "time", SimpleNamespace(time=lambda: clock[0], monotonic=lambda: clock[0], sleep=sleep))
+        self.patch(launchgate, "time", SimpleNamespace(time=lambda: clock[0], monotonic=lambda: clock[0], sleep=sleep))
         self.free = 4 * GIB
         self.swapins = 2 * GIB
         self.assertEqual(self.admit("a")[0], 0)
@@ -144,7 +144,7 @@ class MemgateTests(unittest.TestCase):
             {**stale, "target": [500, "s-500"], "watcher": [501, "s-501"]},
             {**stale, "target": [502, "s-502"], "watcher": [500, "reused"]},
         ]
-        memgate.save(self.root / "run/ledger.json", entries)
+        launchgate.save(self.root / "run/ledger.json", entries)
         self.assertEqual(self.admit("a")[0], 75)
         del self.table[500]
         self.assertEqual(self.admit("a")[0], 0)
@@ -154,7 +154,7 @@ class MemgateTests(unittest.TestCase):
         self.free = GIB
         self.table[700] = (1, "s-700", "tsserver")
         self.sizes[700] = 6 * GIB
-        memgate.save(self.root / "run/ledger.json", [
+        launchgate.save(self.root / "run/ledger.json", [
             {"key": "dev", "estimate": GIB, "target": [700, "s-700"], "watcher": [0, None], "pidfile": None}])
         code, stderr = self.admit("a", wait=0.05)
         self.assertEqual(code, 75)
@@ -163,12 +163,12 @@ class MemgateTests(unittest.TestCase):
         self.assertIn("6.0 GiB pid 700 tsserver", stderr)
 
     def test_busy_ledger_lock_fails_at_the_deadline_only_when_enforcing(self):
-        self.patch(memgate, "LOCK_WAIT", 0)
+        self.patch(launchgate, "LOCK_WAIT", 0)
         with open(self.root / "run/lock", "a") as lock:
-            memgate.fcntl.flock(lock, memgate.fcntl.LOCK_EX)
+            launchgate.fcntl.flock(lock, launchgate.fcntl.LOCK_EX)
             for enforce, expected in ((True, 75), (False, 0)):
                 with self.subTest(enforce=enforce):
-                    memgate.ENFORCE = enforce
+                    launchgate.ENFORCE = enforce
                     pid = os.fork()
                     if pid == 0:
                         os._exit(self.admit("a")[0])
@@ -178,7 +178,7 @@ class MemgateTests(unittest.TestCase):
         self.assertTrue(all("id" in event for event in self.events()))
 
     def test_observe_mode_launches_a_short_command_silently_and_records_the_decision(self):
-        self.patch(memgate, "ENFORCE", False)
+        self.patch(launchgate, "ENFORCE", False)
         self.free = 2.5 * GIB
         self.swapins = 600
         self.assertEqual(self.admit("a", wait=900), (0, ""))
@@ -198,7 +198,7 @@ class MemgateTests(unittest.TestCase):
     def test_enforce_mode_records_how_long_a_launch_waited(self):
         self.free = GIB
         waits = iter([GIB, 4 * GIB])
-        self.patch(memgate, "memory", lambda: (next(waits), 0))
+        self.patch(launchgate, "memory", lambda: (next(waits), 0))
         self.assertEqual(self.admit("a", wait=60)[0], 0)
         event = self.events()[-1]
         self.assertEqual((event["mode"], event["verdict"], event["short0"]), ("enforce", "admit", False))
@@ -244,20 +244,20 @@ class MemgateTests(unittest.TestCase):
         for preset, expected in ((None, 3 * GIB), (4 * GIB, 4 * GIB)):
             with self.subTest(preset=preset):
                 if preset:
-                    memgate.save(self.root / "state/peaks.json", {"k": preset})
+                    launchgate.save(self.root / "state/peaks.json", {"k": preset})
                 entry = {"key": "k", "estimate": 2 * GIB, "target": [100, "s-100"],
                          "watcher": [ME, "s-me"], "pidfile": None, "id": [100, "s-100"]}
-                memgate.save(self.root / "run/ledger.json", [entry])
+                launchgate.save(self.root / "run/ledger.json", [entry])
                 steps = iter(timeline)
                 during = []
 
                 def processes():
-                    during.append(memgate.load(self.root / "state/peaks.json", {}).get("k"))
+                    during.append(launchgate.load(self.root / "state/peaks.json", {}).get("k"))
                     table, self.sizes = next(steps)
                     return dict(table)
 
-                with patch.object(memgate, "processes", processes):
-                    memgate.watch(entry)
+                with patch.object(launchgate, "processes", processes):
+                    launchgate.watch(entry)
                 self.assertEqual(set(during), {preset})
                 self.assertEqual(json.loads((self.root / "state/peaks.json").read_text())["k"], expected)
                 self.assertEqual(self.ledger(), [])
@@ -265,12 +265,12 @@ class MemgateTests(unittest.TestCase):
                                                      "key": "k", "peak": 3 * GIB})
 
     def test_short_launch_is_sampled_until_it_would_have_fit(self):
-        self.patch(memgate, "SAMPLE_EVERY", 0)
+        self.patch(launchgate, "SAMPLE_EVERY", 0)
         other = {"key": "o", "estimate": 2 * GIB, "target": [300, "s-300"], "watcher": [301, "s-301"],
                  "pidfile": None, "id": [300, "s-300"]}
         entry = {"key": "k", "estimate": 2 * GIB, "target": [100, "s-100"], "watcher": [ME, "s-me"],
                  "pidfile": None, "id": [100, "s-100"], "probe": {"need": 2 * GIB, "wait": 900}}
-        memgate.save(self.root / "run/ledger.json", [other, entry])
+        launchgate.save(self.root / "run/ledger.json", [other, entry])
         running = {100: (1, "s-100", "node"), 300: (1, "s-300", "node"), 301: (1, "s-301", "python"),
                    ME: (1, "s-me", "python")}
         timeline = [(GIB, {100: GIB}), (2 * GIB, {100: GIB}), (4 * GIB, {100: GIB}), (4 * GIB, {100: GIB})]
@@ -283,8 +283,8 @@ class MemgateTests(unittest.TestCase):
                 return {ME: (1, "s-me", "python")}
             return dict(running)
 
-        with patch.object(memgate, "processes", processes):
-            memgate.watch(entry)
+        with patch.object(launchgate, "processes", processes):
+            launchgate.watch(entry)
         samples = [event for event in self.events() if event["event"] == "sample"]
         self.assertEqual([(s["free"], s["own"], s["held"], s["met"]) for s in samples],
                          [(GIB, GIB, 2 * GIB, False), (2 * GIB, GIB, 2 * GIB, False), (4 * GIB, GIB, 2 * GIB, True)])
@@ -293,16 +293,16 @@ class MemgateTests(unittest.TestCase):
         self.assertEqual(self.events()[-1]["event"], "end")
 
     def test_short_launch_sampling_stops_at_the_wait_limit(self):
-        self.patch(memgate, "SAMPLE_EVERY", 0)
+        self.patch(launchgate, "SAMPLE_EVERY", 0)
         entry = {"key": "k", "estimate": 2 * GIB, "target": [100, "s-100"], "watcher": [ME, "s-me"],
                  "pidfile": None, "id": [100, "s-100"], "probe": {"need": 2 * GIB, "wait": 0}}
-        memgate.save(self.root / "run/ledger.json", [entry])
+        launchgate.save(self.root / "run/ledger.json", [entry])
         steps = iter([{100: (1, "s-100", "node"), ME: (1, "s-me", "python")}] * 3 + [{ME: (1, "s-me", "python")}])
-        memgate.save(self.root / "run/swapins.json", [])
-        with patch.object(memgate, "processes", lambda: dict(next(steps))):
-            memgate.watch(entry)
+        launchgate.save(self.root / "run/swapins.json", [])
+        with patch.object(launchgate, "processes", lambda: dict(next(steps))):
+            launchgate.watch(entry)
         self.assertEqual([event["event"] for event in self.events()], ["sample", "end"])
-        self.assertEqual(len(memgate.load(self.root / "run/swapins.json", [])), 3)
+        self.assertEqual(len(launchgate.load(self.root / "run/swapins.json", [])), 3)
 
     def test_watcher_follows_children_that_orphans_start_later(self):
         timeline = [
@@ -312,22 +312,22 @@ class MemgateTests(unittest.TestCase):
         ]
         entry = {"key": "k", "estimate": GIB, "target": [100, "s-100"], "watcher": [ME, "s-me"], "pidfile": None,
                  "id": [100, "s-100"]}
-        memgate.save(self.root / "run/ledger.json", [entry])
+        launchgate.save(self.root / "run/ledger.json", [entry])
         steps = iter(timeline)
 
         def processes():
             table, self.sizes = next(steps)
             return dict(table)
 
-        with patch.object(memgate, "processes", processes):
-            memgate.watch(entry)
+        with patch.object(launchgate, "processes", processes):
+            launchgate.watch(entry)
         self.assertEqual(json.loads((self.root / "state/peaks.json").read_text())["k"], 3 * GIB)
 
     def test_browser_watcher_follows_the_daemon(self):
         pidfile = self.root / "default.pid"
         entry = {"key": "agent-browser", "estimate": 2 * GIB, "target": [100, "s-100"],
                  "watcher": [ME, "s-me"], "pidfile": str(pidfile), "id": [100, "s-100"]}
-        memgate.save(self.root / "run/ledger.json", [entry])
+        launchgate.save(self.root / "run/ledger.json", [entry])
         daemon = {200: (1, "s-200", "agent-browser-d"), 201: (200, "s-201", "Google Chrome")}
         timeline = [
             ({100: (1, "s-100", "agent-browser"), ME: (100, "s-me", "python")}, {100: GIB}),
@@ -345,8 +345,8 @@ class MemgateTests(unittest.TestCase):
                 seen.append([e["target"] for e in self.ledger()])
             return dict(table)
 
-        with patch.object(memgate, "processes", processes):
-            memgate.watch(entry)
+        with patch.object(launchgate, "processes", processes):
+            launchgate.watch(entry)
         self.assertEqual(seen[-1], [[200, "s-200"]])
         self.assertEqual(json.loads((self.root / "state/peaks.json").read_text())["agent-browser"], 3 * GIB)
         self.assertEqual(self.ledger(), [])
@@ -361,16 +361,16 @@ class MemgateTests(unittest.TestCase):
         def admit(key, wait, ready=None, pidfile=None):
             self.assertEqual(wait, 100)
             calls.append(pidfile)
-            if ready(memgate.processes()):
+            if ready(launchgate.processes()):
                 calls[-1] = "ready"
 
         def execv(path, argv):
             raise Exec(argv[1:])
 
-        self.patch(memgate, "admit", admit)
-        self.patch(memgate.os, "execv", execv)
-        self.patch(memgate, "real_browser", lambda: "/bin/agent-browser")
-        self.patch(memgate.Path, "home", lambda: home)
+        self.patch(launchgate, "admit", admit)
+        self.patch(launchgate.os, "execv", execv)
+        self.patch(launchgate, "real_browser", lambda: "/bin/agent-browser")
+        self.patch(launchgate.Path, "home", lambda: home)
         environment = patch.dict(os.environ, {}, clear=True)
         environment.start()
         self.addCleanup(environment.stop)
@@ -390,7 +390,7 @@ class MemgateTests(unittest.TestCase):
             with self.subTest(args=args):
                 calls.clear()
                 with self.assertRaises(Exec) as ran:
-                    memgate.browser(args)
+                    launchgate.browser(args)
                 self.assertEqual(ran.exception.args[0], args)
                 self.assertEqual(calls, [expected] if expected else [])
 
@@ -400,22 +400,22 @@ class MemgateTests(unittest.TestCase):
         fake.write_text("#!/bin/sh\n")
         fake.chmod(0o755)
         with patch.dict(os.environ, {"PATH": f"{SCRIPT.parent}{os.pathsep}{fake.parent}"}):
-            self.assertEqual(memgate.real_browser(), str(fake))
+            self.assertEqual(launchgate.real_browser(), str(fake))
 
     def claim(self, port, wait=0):
         stderr = io.StringIO()
         with redirect_stderr(stderr):
             try:
-                memgate.claim(port, wait)
+                launchgate.claim(port, wait)
             except SystemExit as error:
                 return error.code, stderr.getvalue()
         return 0, stderr.getvalue()
 
     def test_port_claim_waits_out_live_leases_and_other_listeners_then_leases_the_port(self):
-        self.patch(memgate, "ENFORCE", False)
+        self.patch(launchgate, "ENFORCE", False)
         self.table[50] = (1, "s-50", "node")
         self.table[70] = (1, "s-70", "node")
-        memgate.save(self.root / "run/ports.json", {"8080": [50, "s-50"], "9090": [60, "s-60"]})
+        launchgate.save(self.root / "run/ports.json", {"8080": [50, "s-50"], "9090": [60, "s-60"]})
         rounds = iter([[], [70], []])
 
         def listeners(port):
@@ -424,21 +424,21 @@ class MemgateTests(unittest.TestCase):
                 del self.table[50]
             return found
 
-        self.patch(memgate, "listeners", listeners)
+        self.patch(launchgate, "listeners", listeners)
         code, stderr = self.claim(8080, wait=60)
         self.assertEqual(code, 0)
         self.assertEqual(json.loads((self.root / "run/ports.json").read_text()), {"8080": [ME, "s-me"]})
-        self.assertEqual(stderr, "memgate: waiting up to 60s for port 8080, held by pid 50 node\n")
+        self.assertEqual(stderr, "launchgate: waiting up to 60s for port 8080, held by pid 50 node\n")
 
     def test_port_claim_honours_a_lease_taken_while_it_waited_for_the_lock(self):
-        real, rounds = memgate.locked, []
+        real, rounds = launchgate.locked, []
 
         @contextmanager
         def racing(*args):
             with real(*args):
                 if not rounds:
                     self.table[50] = (1, "s-50", "node")
-                    memgate.save(self.root / "run/ports.json", {"8080": [50, "s-50"]})
+                    launchgate.save(self.root / "run/ports.json", {"8080": [50, "s-50"]})
                 rounds.append(1)
                 yield
 
@@ -447,17 +447,17 @@ class MemgateTests(unittest.TestCase):
                 self.table.pop(50, None)
             return []
 
-        self.patch(memgate, "locked", racing)
-        self.patch(memgate, "listeners", listeners)
+        self.patch(launchgate, "locked", racing)
+        self.patch(launchgate, "listeners", listeners)
         code, stderr = self.claim(8080, wait=60)
         self.assertEqual((code, len(rounds)), (0, 2))
         self.assertIn("held by pid 50 node", stderr)
         self.assertEqual(json.loads((self.root / "run/ports.json").read_text()), {"8080": [ME, "s-me"]})
 
     def test_port_claim_gives_up_when_the_ledger_lock_stays_held(self):
-        self.patch(memgate, "listeners", lambda port: [])
+        self.patch(launchgate, "listeners", lambda port: [])
         with open(self.root / "run/lock", "a") as lock:
-            memgate.fcntl.flock(lock, memgate.fcntl.LOCK_EX)
+            launchgate.fcntl.flock(lock, launchgate.fcntl.LOCK_EX)
             pid = os.fork()
             if pid == 0:
                 os._exit(self.claim(8080)[0])
@@ -474,21 +474,21 @@ class MemgateTests(unittest.TestCase):
                 raise outcome
             return SimpleNamespace(returncode=outcome[0], stdout=outcome[1], stderr=outcome[2])
 
-        self.patch(memgate.subprocess, "run", run)
-        self.assertEqual([memgate.listeners(8080) for _ in range(5)], [[70], [], None, None, None])
+        self.patch(launchgate.subprocess, "run", run)
+        self.assertEqual([launchgate.listeners(8080) for _ in range(5)], [[70], [], None, None, None])
 
     def test_port_claim_never_leases_while_listeners_are_unknown(self):
-        self.patch(memgate, "listeners", lambda port: None)
-        self.assertEqual(self.claim(8080), (75, "memgate: port 8080 stayed in use for 0s, held by unreadable listeners\n"))
+        self.patch(launchgate, "listeners", lambda port: None)
+        self.assertEqual(self.claim(8080), (75, "launchgate: port 8080 stayed in use for 0s, held by unreadable listeners\n"))
         self.assertFalse((self.root / "run/ports.json").exists())
 
     def test_port_claim_times_out_naming_the_holder(self):
         self.table[70] = (1, "s-70", "node")
-        self.patch(memgate, "listeners", lambda port: [70])
-        self.assertEqual(self.claim(8080), (75, "memgate: port 8080 stayed in use for 0s, held by pid 70 node\n"))
+        self.patch(launchgate, "listeners", lambda port: [70])
+        self.assertEqual(self.claim(8080), (75, "launchgate: port 8080 stayed in use for 0s, held by pid 70 node\n"))
 
     def test_port_claim_without_a_ledger_still_checks_the_listener(self):
-        self.patch(memgate, "listeners", lambda port: [])
+        self.patch(launchgate, "listeners", lambda port: [])
         (self.root / "run/swapins.json").unlink()
         (self.root / "run").rmdir()
         (self.root / "run").write_text("")
@@ -502,10 +502,10 @@ class MemgateTests(unittest.TestCase):
         def execvp(file, argv):
             raise Exec(argv)
 
-        self.patch(memgate, "admit", lambda key, wait: calls.append((key, wait)))
-        self.patch(memgate, "claim", lambda port, wait: calls.append(("port", port, wait)))
-        self.patch(memgate.os, "execvp", execvp)
-        self.patch(memgate, "repository", lambda: ("/r/.git", "web/"))
+        self.patch(launchgate, "admit", lambda key, wait: calls.append((key, wait)))
+        self.patch(launchgate, "claim", lambda port, wait: calls.append(("port", port, wait)))
+        self.patch(launchgate.os, "execvp", execvp)
+        self.patch(launchgate, "repository", lambda: ("/r/.git", "web/"))
         for args, expected in (
             (["--key", "web", "--wait", "5", "--", "npm", "run", "dev"], [("web", 5.0)]),
             (["--", "npm", "run", "dev"], [(json.dumps(["/r/.git", "web/", ["npm", "run", "dev"]]), 900.0)]),
@@ -514,30 +514,30 @@ class MemgateTests(unittest.TestCase):
             with self.subTest(args=args):
                 calls.clear()
                 with self.assertRaises(Exec) as ran:
-                    memgate.run(args)
+                    launchgate.run(args)
                 self.assertEqual(ran.exception.args[0], ["npm", "run", "dev"])
                 self.assertEqual(calls, expected)
         for args in ([], ["npm"], ["--key", "web"], ["--"], ["--wait", "soon", "--", "npm"],
                      ["--port", "http", "--", "npm"], ["--port", "0", "--", "npm"], ["--port", "65536", "--", "npm"]):
             with self.subTest(args=args), redirect_stderr(io.StringIO()):
-                self.assertRaises(SystemExit, memgate.run, args)
+                self.assertRaises(SystemExit, launchgate.run, args)
 
     def test_run_reports_a_missing_command_without_a_traceback(self):
-        self.patch(memgate, "admit", lambda key, wait: None)
-        self.patch(memgate, "repository", lambda: ("/r/.git", ""))
+        self.patch(launchgate, "admit", lambda key, wait: None)
+        self.patch(launchgate, "repository", lambda: ("/r/.git", ""))
         stderr = io.StringIO()
         with redirect_stderr(stderr), self.assertRaises(SystemExit) as ran:
-            memgate.run(["--", "memgate-test-missing-command"])
+            launchgate.run(["--", "launchgate-test-missing-command"])
         self.assertEqual(ran.exception.code, 127)
         self.assertEqual(stderr.getvalue().count("\n"), 1)
 
 
 class PlatformTests(unittest.TestCase):
     def test_probes_read_this_process_and_system_memory(self):
-        table = memgate.processes()
+        table = launchgate.processes()
         self.assertEqual(table[ME][0], os.getppid())
-        self.assertGreater(memgate.footprint(ME), 0)
-        free, swapins = memgate.memory()
+        self.assertGreater(launchgate.footprint(ME), 0)
+        free, swapins = launchgate.memory()
         self.assertGreater(free, 0)
         self.assertGreaterEqual(swapins, 0)
 
@@ -546,9 +546,9 @@ class PlatformTests(unittest.TestCase):
         server.bind(("::1", 0))
         server.listen()
         port = server.getsockname()[1]
-        self.assertEqual(memgate.listeners(port), [ME])
+        self.assertEqual(launchgate.listeners(port), [ME])
         server.close()
-        self.assertEqual(memgate.listeners(port), [])
+        self.assertEqual(launchgate.listeners(port), [])
 
     def test_repository_is_shared_by_worktrees_and_keeps_the_subdirectory(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -565,7 +565,7 @@ class PlatformTests(unittest.TestCase):
                     previous = os.getcwd()
                     os.chdir(cwd)
                     try:
-                        seen.append(memgate.repository())
+                        seen.append(launchgate.repository())
                     finally:
                         os.chdir(previous)
         common = str(root / "main/.git")

@@ -1,2 +1,2 @@
 #!/bin/sh
-exec "${0%/*}/memgate" browser "$@"
+exec "${0%/*}/launchgate" browser "$@"

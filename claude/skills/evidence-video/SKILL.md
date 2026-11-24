@@ -21,7 +21,7 @@ a visible pointer, readable pauses, no dead time. Commands and mock code are in
    repository. Raw takes, contact sheets, and frames go to a separate work
    directory; only Attach's `body.md` joins the MP4s.
 3. **Browser.** Start the dev server with
-   `memgate run --port <port> -- <dev command>`; it waits up to an hour for
+   `launchgate run --port <port> -- <dev command>`; it waits up to an hour for
    another checkout to free the port. Pass
    `--session <name> --restore <key> --headed --idle-timeout 0` on every
    browser command; other launch options relaunch the browser and lose the

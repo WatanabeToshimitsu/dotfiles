@@ -201,7 +201,7 @@ if commands.ticket_state or (
 elif commands.forbidden or (commands.shell_text and LEGACY_PATTERN.search(command)):
     reason = "Do not git-add all files. Specify the file name(s) to add."
 elif background and commands.node_launch:
-    reason = "Start long-running Node processes through the memory gate: memgate run -- <command>"
+    reason = "Start long-running Node processes through the launch gate: launchgate run -- <command>"
 if reason:
     print(json.dumps({"hookSpecificOutput": {
         "hookEventName": "PreToolUse",

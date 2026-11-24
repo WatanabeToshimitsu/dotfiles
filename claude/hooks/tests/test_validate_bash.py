@@ -226,7 +226,7 @@ class ValidateBashTests(unittest.TestCase):
             with self.subTest(command=command):
                 self.assertEqual(self.decision(command), "allow")
 
-    def test_background_node_launches_go_through_memgate(self):
+    def test_background_node_launches_go_through_launchgate(self):
         launches = [
             "npm run dev", "pnpm storybook", "npx vite --port 5173",
             "PORT=3000 node server.js", "cd app && yarn dev",
@@ -241,9 +241,9 @@ class ValidateBashTests(unittest.TestCase):
                 self.assertEqual(self.decision(command, background=True), "deny")
                 self.assertEqual(self.decision(command), "allow")
         allowed = [
-            "memgate run -- npm run dev",
-            "memgate run --key web -- pnpm storybook",
-            "memgate run --port 8080 -- pnpm dev",
+            "launchgate run -- npm run dev",
+            "launchgate run --key web -- pnpm storybook",
+            "launchgate run --port 8080 -- pnpm dev",
             "sleep 30", "git status", "python3 -m http.server",
         ]
         for command in allowed:
