@@ -10,12 +10,12 @@ logged-in browser after an hour of inactivity.
 ## Browser and login
 
 ```bash
-memgate run --port <port> -- <dev command>   # background; agent-browser passes through memgate itself
+launchgate run --port <port> -- <dev command>   # background; agent-browser passes through launchgate itself
 ab open <app url>
 ```
 
 Open the app only after your own server's output shows it is ready, not when
-the URL answers: while memgate waits, the port still serves another checkout.
+the URL answers: while launchgate waits, the port still serves another checkout.
 
 If a login form appears, the lead signs in as the browser login rule says. When
 it falls back, ask the user to log in in that window and to say when they are
