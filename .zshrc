@@ -84,7 +84,7 @@ setopt vi
 unsetopt beep
 unsetopt completealiases      # こいつがONだとaliasに補完が付かない
 
-chpwd() { command -v lsd &>/dev/null && lsd || ls; }
+chpwd() { [[ -t 1 ]] || return 0; command -v lsd &>/dev/null && lsd || ls; }
 
 zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
 zstyle ':fzf-tab:*' switch-group ',' '.'
