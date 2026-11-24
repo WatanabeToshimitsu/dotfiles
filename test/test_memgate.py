@@ -3,11 +3,12 @@ import importlib.util
 import io
 import json
 import os
+import socket
 import subprocess
 import tempfile
 import time
 import unittest
-from contextlib import redirect_stderr
+from contextlib import contextmanager, redirect_stderr
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -401,6 +402,82 @@ class MemgateTests(unittest.TestCase):
         with patch.dict(os.environ, {"PATH": f"{SCRIPT.parent}{os.pathsep}{fake.parent}"}):
             self.assertEqual(memgate.real_browser(), str(fake))
 
+    def claim(self, port, wait=0):
+        stderr = io.StringIO()
+        with redirect_stderr(stderr):
+            try:
+                memgate.claim(port, wait)
+            except SystemExit as error:
+                return error.code, stderr.getvalue()
+        return 0, stderr.getvalue()
+
+    def test_port_claim_waits_out_live_leases_and_other_listeners_then_leases_the_port(self):
+        self.patch(memgate, "ENFORCE", False)
+        self.table[50] = (1, "s-50", "node")
+        self.table[70] = (1, "s-70", "node")
+        memgate.save(self.root / "run/ports.json", {"8080": [50, "s-50"], "9090": [60, "s-60"]})
+        rounds = iter([[], [70], []])
+
+        def listeners(port):
+            found = next(rounds)
+            if found:
+                del self.table[50]
+            return found
+
+        self.patch(memgate, "listeners", listeners)
+        code, stderr = self.claim(8080, wait=60)
+        self.assertEqual(code, 0)
+        self.assertEqual(json.loads((self.root / "run/ports.json").read_text()), {"8080": [ME, "s-me"]})
+        self.assertEqual(stderr, "memgate: waiting up to 60s for port 8080, held by pid 50 node\n")
+
+    def test_port_claim_honours_a_lease_taken_while_it_waited_for_the_lock(self):
+        real, rounds = memgate.locked, []
+
+        @contextmanager
+        def racing(*args):
+            with real(*args):
+                if not rounds:
+                    self.table[50] = (1, "s-50", "node")
+                    memgate.save(self.root / "run/ports.json", {"8080": [50, "s-50"]})
+                rounds.append(1)
+                yield
+
+        def listeners(port):
+            if rounds:
+                self.table.pop(50, None)
+            return []
+
+        self.patch(memgate, "locked", racing)
+        self.patch(memgate, "listeners", listeners)
+        code, stderr = self.claim(8080, wait=60)
+        self.assertEqual((code, len(rounds)), (0, 2))
+        self.assertIn("held by pid 50 node", stderr)
+        self.assertEqual(json.loads((self.root / "run/ports.json").read_text()), {"8080": [ME, "s-me"]})
+
+    def test_port_claim_gives_up_when_the_ledger_lock_stays_held(self):
+        self.patch(memgate, "listeners", lambda port: [])
+        with open(self.root / "run/lock", "a") as lock:
+            memgate.fcntl.flock(lock, memgate.fcntl.LOCK_EX)
+            pid = os.fork()
+            if pid == 0:
+                os._exit(self.claim(8080)[0])
+            self.assertEqual(os.waitstatus_to_exitcode(os.waitpid(pid, 0)[1]), 75)
+        self.assertFalse((self.root / "run/ports.json").exists())
+
+    def test_port_claim_times_out_naming_the_holder(self):
+        self.table[70] = (1, "s-70", "node")
+        self.patch(memgate, "listeners", lambda port: [70])
+        self.assertEqual(self.claim(8080), (75, "memgate: port 8080 stayed in use for 0s, held by pid 70 node\n"))
+
+    def test_port_claim_without_a_ledger_still_checks_the_listener(self):
+        self.patch(memgate, "listeners", lambda port: [])
+        (self.root / "run/swapins.json").unlink()
+        (self.root / "run").rmdir()
+        (self.root / "run").write_text("")
+        code, stderr = self.claim(8080)
+        self.assertEqual(code, 0)
+        self.assertIn("port leases disabled", stderr)
+
     def test_run_admits_the_command_and_execs_it(self):
         calls = []
 
@@ -408,19 +485,22 @@ class MemgateTests(unittest.TestCase):
             raise Exec(argv)
 
         self.patch(memgate, "admit", lambda key, wait: calls.append((key, wait)))
+        self.patch(memgate, "claim", lambda port, wait: calls.append(("port", port, wait)))
         self.patch(memgate.os, "execvp", execvp)
         self.patch(memgate, "repository", lambda: ("/r/.git", "web/"))
-        for args, key, wait in (
-            (["--key", "web", "--wait", "5", "--", "npm", "run", "dev"], "web", 5.0),
-            (["--", "npm", "run", "dev"], json.dumps(["/r/.git", "web/", ["npm", "run", "dev"]]), 900.0),
+        for args, expected in (
+            (["--key", "web", "--wait", "5", "--", "npm", "run", "dev"], [("web", 5.0)]),
+            (["--", "npm", "run", "dev"], [(json.dumps(["/r/.git", "web/", ["npm", "run", "dev"]]), 900.0)]),
+            (["--port", "8080", "--key", "web", "--", "npm", "run", "dev"], [("port", 8080, 3600.0), ("web", 900.0)]),
         ):
             with self.subTest(args=args):
                 calls.clear()
                 with self.assertRaises(Exec) as ran:
                     memgate.run(args)
                 self.assertEqual(ran.exception.args[0], ["npm", "run", "dev"])
-                self.assertEqual(calls, [(key, wait)])
-        for args in ([], ["npm"], ["--key", "web"], ["--"], ["--wait", "soon", "--", "npm"]):
+                self.assertEqual(calls, expected)
+        for args in ([], ["npm"], ["--key", "web"], ["--"], ["--wait", "soon", "--", "npm"],
+                     ["--port", "http", "--", "npm"], ["--port", "0", "--", "npm"], ["--port", "65536", "--", "npm"]):
             with self.subTest(args=args), redirect_stderr(io.StringIO()):
                 self.assertRaises(SystemExit, memgate.run, args)
 
@@ -442,6 +522,15 @@ class PlatformTests(unittest.TestCase):
         free, swapins = memgate.memory()
         self.assertGreater(free, 0)
         self.assertGreaterEqual(swapins, 0)
+
+    def test_listeners_see_an_ipv6_loopback_server(self):
+        server = socket.socket(socket.AF_INET6)
+        server.bind(("::1", 0))
+        server.listen()
+        port = server.getsockname()[1]
+        self.assertEqual(memgate.listeners(port), [ME])
+        server.close()
+        self.assertEqual(memgate.listeners(port), [])
 
     def test_repository_is_shared_by_worktrees_and_keeps_the_subdirectory(self):
         with tempfile.TemporaryDirectory() as directory:

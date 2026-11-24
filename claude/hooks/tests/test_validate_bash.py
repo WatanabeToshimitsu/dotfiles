@@ -243,6 +243,7 @@ class ValidateBashTests(unittest.TestCase):
         allowed = [
             "memgate run -- npm run dev",
             "memgate run --key web -- pnpm storybook",
+            "memgate run --port 8080 -- pnpm dev",
             "sleep 30", "git status", "python3 -m http.server",
         ]
         for command in allowed:

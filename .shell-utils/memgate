@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Start memory-heavy commands only when available memory covers their estimate.
 
-memgate run [--key KEY] [--wait SECONDS] -- COMMAND...
+memgate run [--port PORT] [--key KEY] [--wait SECONDS] -- COMMAND...
+  --port waits up to an hour for other checkouts' servers to free PORT, then holds it for COMMAND.
 memgate browser ARGS...   (called by the agent-browser shim)
 """
 import ctypes
@@ -21,6 +22,7 @@ MARGIN = GIB
 SWAPIN_LIMIT = 1 << 20
 ENFORCE = False
 RUN_WAIT = 900.0
+PORT_WAIT = 3600.0
 BROWSER_WAIT = 100.0
 LOCK_WAIT = 5.0
 INTERVAL = 2
@@ -40,7 +42,7 @@ VALUE_OPTIONS = {
     "--restore-check-fn", "--restore-check-text", "--restore-check-url", "--restore-save", "--screenshot-dir",
     "--screenshot-format", "--screenshot-quality", "--session", "--session-name", "--state", "--user-agent",
     "-d", "--depth", "-p", "--provider", "-s", "--selector"}
-USAGE = "usage: memgate run [--key KEY] [--wait SECONDS] -- COMMAND..."
+USAGE = "usage: memgate run [--port PORT] [--key KEY] [--wait SECONDS] -- COMMAND..."
 
 
 class Busy(Exception):
@@ -449,12 +451,55 @@ def browser(args):
     os.execv(real, [real, *args])
 
 
+def listeners(port):
+    try:
+        result = subprocess.run(["lsof", "-nP", f"-iTCP:{port}", "-sTCP:LISTEN", "-t"],
+                                capture_output=True, text=True, timeout=10)
+    except OSError as error:
+        sys.exit(f"memgate: --port needs lsof ({error.strerror})")
+    return sorted({int(pid) for pid in result.stdout.split()})
+
+
+def claim(port, wait):
+    path, deadline, waiting = LEDGER_DIR / "ports.json", time.monotonic() + wait, False
+    while True:
+        held = []
+        try:
+            with locked(deadline):
+                table, held = processes(), listeners(port)
+                leases = {key: lease for key, lease in load(path, {}).items() if alive(table, lease)}
+                if str(port) in leases:
+                    held.append(leases[str(port)][0])
+                elif not held:
+                    me = os.getpid()
+                    save(path, {**leases, str(port): [me, table[me][1]]})
+                    return
+        except Busy:
+            print(f"memgate: {LEDGER_DIR / 'lock'} stayed locked for {wait:.0f}s", file=sys.stderr)
+            sys.exit(75)
+        except OSError as error:
+            table, held = processes(), listeners(port)
+            if not held:
+                print(f"memgate: port leases disabled ({error}); checked listeners only", file=sys.stderr)
+                return
+        holders = ", ".join(f"pid {pid} {table[pid][2] if pid in table else '?'}" for pid in held)
+        if time.monotonic() >= deadline:
+            print(f"memgate: port {port} stayed in use for {wait:.0f}s, held by {holders}", file=sys.stderr)
+            sys.exit(75)
+        if not waiting:
+            print(f"memgate: waiting up to {wait:.0f}s for port {port}, held by {holders}", file=sys.stderr)
+            waiting = True
+        time.sleep(INTERVAL)
+
+
 def run(args):
-    key, wait = None, RUN_WAIT
-    while len(args) > 1 and args[0] in ("--key", "--wait"):
+    key, wait, port = None, RUN_WAIT, None
+    while len(args) > 1 and args[0] in ("--key", "--wait", "--port"):
         if args[0] == "--key":
             key = args[1]
-        elif re.fullmatch(r"\d+(\.\d+)?", args[1]):
+        elif args[0] == "--port" and args[1].isdigit() and 0 < int(args[1]) < 65536:
+            port = int(args[1])
+        elif args[0] == "--wait" and re.fullmatch(r"\d+(\.\d+)?", args[1]):
             wait = float(args[1])
         else:
             sys.exit(USAGE)
@@ -462,6 +507,9 @@ def run(args):
     if args[:1] != ["--"] or len(args) < 2:
         sys.exit(USAGE)
     command = args[1:]
+    # Why not after admit: a memory reservation would sit idle for the whole port wait.
+    if port is not None:
+        claim(port, PORT_WAIT)
     admit(key or json.dumps([*repository(), command]), wait)
     try:
         os.execvp(command[0], command)
