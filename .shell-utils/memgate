@@ -453,24 +453,28 @@ def browser(args):
 
 def listeners(port):
     try:
-        result = subprocess.run(["lsof", "-nP", f"-iTCP:{port}", "-sTCP:LISTEN", "-t"],
+        result = subprocess.run(["lsof", "-nPw", f"-iTCP:{port}", "-sTCP:LISTEN", "-t"],
                                 capture_output=True, text=True, timeout=10)
     except OSError as error:
         sys.exit(f"memgate: --port needs lsof ({error.strerror})")
+    except subprocess.TimeoutExpired:
+        return None
+    # Why not trust exit 1 alone: lsof also exits 1 on errors, which then show only on stderr.
+    if result.returncode not in (0, 1) or result.stderr.strip():
+        return None
     return sorted({int(pid) for pid in result.stdout.split()})
 
 
 def claim(port, wait):
     path, deadline, waiting = LEDGER_DIR / "ports.json", time.monotonic() + wait, False
     while True:
-        held = []
+        lease = None
         try:
             with locked(deadline):
                 table, held = processes(), listeners(port)
-                leases = {key: lease for key, lease in load(path, {}).items() if alive(table, lease)}
-                if str(port) in leases:
-                    held.append(leases[str(port)][0])
-                elif not held:
+                leases = {key: entry for key, entry in load(path, {}).items() if alive(table, entry)}
+                lease = leases.get(str(port))
+                if held == [] and not lease:
                     me = os.getpid()
                     save(path, {**leases, str(port): [me, table[me][1]]})
                     return
@@ -479,10 +483,12 @@ def claim(port, wait):
             sys.exit(75)
         except OSError as error:
             table, held = processes(), listeners(port)
-            if not held:
+            if held == []:
                 print(f"memgate: port leases disabled ({error}); checked listeners only", file=sys.stderr)
                 return
-        holders = ", ".join(f"pid {pid} {table[pid][2] if pid in table else '?'}" for pid in held)
+        holders = ", ".join([f"pid {pid} {table[pid][2] if pid in table else '?'}" for pid in
+                             (held or []) + ([lease[0]] if lease else [])] +
+                            (["unreadable listeners"] if held is None else []))
         if time.monotonic() >= deadline:
             print(f"memgate: port {port} stayed in use for {wait:.0f}s, held by {holders}", file=sys.stderr)
             sys.exit(75)

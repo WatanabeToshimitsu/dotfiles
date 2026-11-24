@@ -464,6 +464,24 @@ class MemgateTests(unittest.TestCase):
             self.assertEqual(os.waitstatus_to_exitcode(os.waitpid(pid, 0)[1]), 75)
         self.assertFalse((self.root / "run/ports.json").exists())
 
+    def test_listeners_are_unknown_when_lsof_fails_or_times_out(self):
+        outcomes = iter([(0, "70\n70\n", ""), (1, "", ""), (1, "", "lsof: can't open /dev/kmem\n"), (2, "", ""),
+                         subprocess.TimeoutExpired("lsof", 10)])
+
+        def run(argv, **_):
+            outcome = next(outcomes)
+            if isinstance(outcome, Exception):
+                raise outcome
+            return SimpleNamespace(returncode=outcome[0], stdout=outcome[1], stderr=outcome[2])
+
+        self.patch(memgate.subprocess, "run", run)
+        self.assertEqual([memgate.listeners(8080) for _ in range(5)], [[70], [], None, None, None])
+
+    def test_port_claim_never_leases_while_listeners_are_unknown(self):
+        self.patch(memgate, "listeners", lambda port: None)
+        self.assertEqual(self.claim(8080), (75, "memgate: port 8080 stayed in use for 0s, held by unreadable listeners\n"))
+        self.assertFalse((self.root / "run/ports.json").exists())
+
     def test_port_claim_times_out_naming_the_holder(self):
         self.table[70] = (1, "s-70", "node")
         self.patch(memgate, "listeners", lambda port: [70])
