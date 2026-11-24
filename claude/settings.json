@@ -347,6 +347,11 @@
     "disableBypassPermissionsMode": "disable"
   },
   "model": "opus",
+  "attribution": {
+    "commit": "",
+    "pr": "",
+    "sessionUrl": false
+  },
   "skillOverrides": {
     "difit": "user-invocable-only",
     "lucian-uxui": "off",
