@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Claude Code hook: show a session's goal and the user's task in the herdr sidebar.
 
-On Stop, reads the two status lines that end a reply and reports them to the session's herdr pane.
-On UserPromptSubmit, clears the task and the next step, since the user has just acted.
+On Stop, reads the two status lines that end a reply, reports them to the session's herdr pane
+and workspace, and names the workspace after the goal. On UserPromptSubmit, clears the status, since the user
+has just acted.
 Try it: echo '{"last_assistant_message": "目的: x ─ いま: y\\nユーザーのタスク: なし"}' | python3 herdr-session-status.py
 """
 
@@ -11,19 +12,74 @@ import os
 import re
 import subprocess
 import sys
+import unicodedata
 
 SOURCE = "claude:session-status"
 GOAL = re.compile(r"^目的[:：]\s*(.+?)\s+[─—–-]\s+いま[:：]\s*(.+)$")
 TASK = re.compile(r"^ユーザーのタスク[:：]\s*(.+)$")
+# A Spaces status row holds this many columns at the sidebar width .config/herdr/config.toml pins.
+ROW_COLUMNS = 26
 
 
-def report(kind, target, *tokens):
-    subprocess.run(
-        [os.environ.get("HERDR_BIN_PATH", "herdr"), kind, "report-metadata", target, "--source", SOURCE, *tokens],
+def herdr(*args):
+    result = subprocess.run(
+        [os.environ.get("HERDR_BIN_PATH", "herdr"), *args],
         capture_output=True,
+        text=True,
         timeout=3,
         check=True,
     )
+    return json.loads(result.stdout)["result"] if result.stdout.strip() else {}
+
+
+def report(pane, **tokens):
+    # An empty value clears the token, and herdr drops a sidebar row that has no value.
+    args = [arg for name, value in tokens.items() for arg in ("--token", f"{name}={value}")]
+    # The workspace shows the status in the Spaces panel; the pane copy feeds the agent picker.
+    # shortcut: agents sharing a workspace overwrite each other there, report per pane rows if that hurts
+    targets = [("pane", pane), ("workspace", os.environ.get("HERDR_WORKSPACE_ID"))]
+    for kind, target in targets:
+        if target:
+            herdr(kind, "report-metadata", target, "--source", SOURCE, *args)
+
+
+def project(cwd):
+    """The repository's name, also from one of its worktrees; the directory name outside git."""
+    command = ["git", "-C", cwd, "rev-parse", "--path-format=absolute", "--git-common-dir"]
+    common = subprocess.run(command, capture_output=True, text=True, timeout=3).stdout.strip()
+    # A worktree's own directory is named after its branch, so the shared .git locates the repo.
+    # shortcut: a submodule or a bare repository's worktree shows its directory name, read --show-toplevel if they come up
+    return os.path.basename(os.path.dirname(common) if os.path.basename(common) == ".git" else cwd)
+
+
+def sidebar_rows(text):
+    """Wrap to three sidebar rows; the last keeps the rest, which herdr truncates."""
+    rows, start, columns = [], 0, 0
+    for index, char in enumerate(text):
+        # shortcut: an emoji joined by ZWJ can split across rows, upgrade to grapheme clusters if tasks carry them
+        wide = unicodedata.east_asian_width(char) in "WF"
+        width = 0 if unicodedata.combining(char) else 2 if wide else 1
+        if columns + width > ROW_COLUMNS and len(rows) < 2:
+            rows.append(text[start:index])
+            start, columns = index, 0
+        columns += width
+    rows.append(text[start:])
+    return rows + [""] * (3 - len(rows))
+
+
+def name_workspace(workspace, name, cwd):
+    info = herdr("workspace", "get", workspace)["workspace"]
+    label, tokens = info["label"], info.get("tokens") or {}
+    # herdr does not record who set a label. Only its default, the directory name, and the
+    # names this hook recorded as its own are replaced; any other label is one the user typed.
+    own = (os.path.basename(cwd), tokens.get("autoname"), tokens.get("autoname_prev"))
+    if info["pane_count"] != 1 or label not in own or label == name:
+        return
+    # Recorded before the rename, with the label being replaced: if either call then fails,
+    # the label is still one of the recorded names and the next stop can finish the job.
+    marker = ("--token", f"autoname={name}", "--token", f"autoname_prev={label}")
+    herdr("workspace", "report-metadata", workspace, "--source", SOURCE, *marker)
+    herdr("workspace", "rename", workspace, name)
 
 
 def main():
@@ -31,8 +87,9 @@ def main():
     pane = os.environ.get("HERDR_PANE_ID")
     if os.environ.get("HERDR_ENV") != "1" or not pane or data.get("agent_id"):
         return
+    cwd = data.get("cwd") or ""
     if data.get("hook_event_name") == "UserPromptSubmit":
-        report("pane", pane, "--clear-token", "task", "--clear-token", "now")
+        report(pane, project=project(cwd), task="", task2="", task3="", now="")
         return
 
     lines = [line.strip() for line in (data.get("last_assistant_message") or "").rstrip().splitlines()]
@@ -45,14 +102,12 @@ def main():
     name, step, task = goal.group(1).strip(), goal.group(2).strip(), task.group(1).strip()
 
     if task.rstrip("。") == "なし":
-        status = ["--clear-token", "task", "--token", f"now={step}"]
+        report(pane, project=project(cwd), task="", task2="", task3="", now=step)
     else:
-        status = ["--token", f"task={task}", "--clear-token", "now"]
-    report("pane", pane, "--token", f"name={name}", *status)
-    # The workspace label is left alone: herdr does not record who set it, so a rename
-    # could overwrite a name the user typed. The name goes out as a display token instead.
+        first, second, third = sidebar_rows(task)
+        report(pane, project=project(cwd), task=first, task2=second, task3=third, now="")
     if workspace := os.environ.get("HERDR_WORKSPACE_ID"):
-        report("workspace", workspace, "--token", f"name={name}")
+        name_workspace(workspace, name, cwd)
 
 
 if __name__ == "__main__":

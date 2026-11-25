@@ -32,24 +32,34 @@ switch_workspace = "cmd+1..9"
 # Start with the sidebar collapsed to the compact status rail; prefix+b expands it
 sidebar_start_collapsed = true
 show_agent_labels_on_pane_borders = true
-hide_tab_bar_when_single_tab = true
-# Wide enough, once expanded, to read the status lines the Stop hook reports
-sidebar_width = 44
-sidebar_max_width = 60
+# The tab row stays visible so tab_bar_right can list the sessions that wait on the user
+hide_tab_bar_when_single_tab = false
+tab_bar_right = [
+  { type = "command", command = """"${HERDR_BIN_PATH}" workspace list | jq -r '[.result.workspaces[] | select((.tokens.task // "") != "") | .label] | if length == 0 then "" else (["ユーザーのタスク数 \\(length)"] + .) | join(" / ") end'""", interval_seconds = 5, timeout_seconds = 2 },
+]
+# Pinned, because herdr otherwise scales the width with the workspace names and the status
+# rows below are wrapped for exactly this width (ROW_COLUMNS in the hook)
+sidebar_width = 32
+sidebar_min_width = 32
+sidebar_max_width = 32
 
-# $name, $task and $now come from claude/hooks/herdr-session-status.py; a missing value disappears
-[ui.sidebar.agents]
+# $project, $task* and $now come from claude/hooks/herdr-session-status.py; a row with no
+# value disappears. $project, the repository or directory name, stands in for the branch.
+# $task*, what the user must do, is tokyo-night-day's orange: yellow is unreadable on white.
+# cmd+shift+a shows the full text of the highlighted agent.
+[ui.sidebar.spaces]
 rows = [
-  ["state_icon", "$name", { token = "workspace", dim = true }, { token = "agent", dim = true }],
-  [{ token = "$task", bold = true }],
+  ["state_icon", "workspace"],
+  [{ token = "$project", dim = true }, "git_status"],
+  [{ token = "$task", fg = "#b15c00", bold = true }],
+  [{ token = "$task2", fg = "#b15c00", bold = true }],
+  [{ token = "$task3", fg = "#b15c00", bold = true }],
   [{ token = "$now", dim = true }],
 ]
 
-[ui.sidebar.spaces]
-rows = [
-  ["state_icon", "$name", "workspace"],
-  ["branch", "git_status"],
-]
+# One row per agent: this panel keeps its full height and the Spaces panel scrolls in what is left
+[ui.sidebar.agents]
+rows = [["state_icon", "workspace", { token = "agent", dim = true }]]
 
 [experimental]
 # Make prefix commands register even while Japanese IME is active (macOS only)

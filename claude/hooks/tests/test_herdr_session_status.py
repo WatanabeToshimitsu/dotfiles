@@ -10,15 +10,17 @@ import unittest
 
 SCRIPT = Path(__file__).resolve().parents[1] / "herdr-session-status.py"
 
-# Stands in for herdr: logs each argv, and fails when the test asks it to.
+# Stands in for herdr: logs each argv, answers `workspace get` from a fixture, fails on request.
 FAKE_HERDR = """#!/usr/bin/env python3
 import json, os, sys
 with open(os.environ["FAKE_HERDR_LOG"], "a") as log:
     log.write(json.dumps(sys.argv[1:], ensure_ascii=False) + "\\n")
+if sys.argv[1:3] == ["workspace", "get"]:
+    print(json.dumps({"result": {"workspace": json.loads(os.environ["FAKE_HERDR_WORKSPACE"])}}))
 sys.exit(int(os.environ.get("FAKE_HERDR_EXIT", "0")))
 """
 
-REPLY = "PR を作成しました。\n\n目的: 状態表示 herdr ─ いま: レビュー待ち\nユーザーのタスク: PR の差分を確認する"
+REPLY = "PR を作成しました。\n\n目的: 状態表示 herdr ─ いま: レビュー待ち\nユーザーのタスク: PR の差分を見て、マージしてよいか返事をする"
 
 
 class HerdrSessionStatusTest(unittest.TestCase):
@@ -38,10 +40,15 @@ class HerdrSessionStatusTest(unittest.TestCase):
             "FAKE_HERDR_LOG": str(self.log),
         }
 
-    def run_hook(self, reply=REPLY, **payload):
+    def run_hook(self, reply=REPLY, label="dotfiles", tokens=None, pane_count=1, **payload):
+        self.env["FAKE_HERDR_WORKSPACE"] = json.dumps(
+            {"label": label, "pane_count": pane_count, "tokens": tokens or {}}
+        )
         result = subprocess.run(
             [sys.executable, str(SCRIPT)],
-            input=json.dumps({"hook_event_name": "Stop", "last_assistant_message": reply, **payload}),
+            input=json.dumps(
+                {"hook_event_name": "Stop", "last_assistant_message": reply, "cwd": "/repos/dotfiles", **payload}
+            ),
             env=self.env,
             capture_output=True,
             text=True,
@@ -52,39 +59,63 @@ class HerdrSessionStatusTest(unittest.TestCase):
             return []
         return [json.loads(line) for line in self.log.read_text(encoding="utf-8").splitlines()]
 
-    def pane_report(self, calls):
-        return next(call for call in calls if call[:3] == ["pane", "report-metadata", "w1:p1"])
+    def status(self, calls, target=("pane", "w1:p1")):
+        """The status token values reported to the pane, or to another target, by name."""
+        reports = [call for call in calls if (call[0], call[2]) == target and call[1] == "report-metadata"]
+        call = next(call for call in reports if any(arg.startswith("task=") for arg in call))
+        tokens = dict(arg.split("=", 1) for arg in call if "=" in arg)
+        self.project = tokens.pop("project", None)
+        return tokens
 
-    def test_reports_the_name_and_the_users_task_and_clears_the_next_step(self) -> None:
-        call = self.pane_report(self.run_hook())
+    def renames(self, calls):
+        return [call for call in calls if call[:2] == ["workspace", "rename"]]
 
-        self.assertIn("name=状態表示 herdr", call)
-        self.assertIn("task=PR の差分を確認する", call)
-        self.assertEqual(call[call.index("--clear-token") + 1], "now")
+    def markers(self, calls):
+        """The names each workspace report records as this hook's own."""
+        reports = [call for call in calls if call[:2] == ["workspace", "report-metadata"]]
+        tokens = [dict(arg.split("=", 1) for arg in call if "=" in arg) for call in reports]
+        return [token for token in tokens if "autoname" in token]
 
-    def test_reports_the_next_step_when_nothing_is_asked_of_the_user(self) -> None:
-        call = self.pane_report(self.run_hook("目的: 状態表示 herdr ─ いま: CI の結果待ち\nユーザーのタスク: なし"))
-
-        self.assertIn("now=CI の結果待ち", call)
-        self.assertEqual(call[call.index("--clear-token") + 1], "task")
-
-    def test_reports_a_task_that_only_begins_with_the_reserved_word(self) -> None:
-        call = self.pane_report(self.run_hook("目的: 状態表示 herdr ─ いま: 設定待ち\nユーザーのタスク: なしに変更して保存する"))
-
-        self.assertIn("task=なしに変更して保存する", call)
-
-    def test_reports_the_name_to_the_workspace(self) -> None:
-        calls = self.run_hook()
-
-        self.assertIn(
-            ["workspace", "report-metadata", "w1", "--source", "claude:session-status", "--token", "name=状態表示 herdr"],
-            calls,
+    def test_reports_the_users_task_wrapped_to_the_sidebar(self) -> None:
+        self.assertEqual(
+            self.status(self.run_hook()),
+            {
+                "task": "PR の差分を見て、マージし",
+                "task2": "てよいか返事をする",
+                "task3": "",
+                "now": "",
+            },
         )
 
-    def test_reads_status_lines_wrapped_in_a_code_fence(self) -> None:
-        call = self.pane_report(self.run_hook("```\n目的: 状態表示 herdr ─ いま: 完了\nユーザーのタスク: なし\n```"))
+    def test_keeps_the_rest_of_a_long_task_on_the_third_row(self) -> None:
+        status = self.status(
+            self.run_hook("目的: 状態表示 herdr ─ いま: 確認待ち\nユーザーのタスク: " + "あ" * 13 + "い" * 13 + "う" * 20)
+        )
 
-        self.assertIn("now=完了", call)
+        self.assertEqual((status["task"], status["task2"], status["task3"]), ("あ" * 13, "い" * 13, "う" * 20))
+
+    def test_keeps_a_combining_mark_on_the_row_of_its_base_character(self) -> None:
+        status = self.status(
+            self.run_hook("目的: 状態表示 herdr ─ いま: 確認待ち\nユーザーのタスク: " + "あ" * 12 + "か\u3099" + "い")
+        )
+
+        self.assertEqual((status["task"], status["task2"]), ("あ" * 12 + "か\u3099", "い"))
+
+    def test_reports_the_next_step_when_nothing_is_asked_of_the_user(self) -> None:
+        self.assertEqual(
+            self.status(self.run_hook("目的: 状態表示 herdr ─ いま: CI の結果待ち\nユーザーのタスク: なし")),
+            {"task": "", "task2": "", "task3": "", "now": "CI の結果待ち"},
+        )
+
+    def test_reports_a_task_that_only_begins_with_the_reserved_word(self) -> None:
+        status = self.status(self.run_hook("目的: 状態表示 herdr ─ いま: 設定待ち\nユーザーのタスク: なしに変更して保存する"))
+
+        self.assertEqual(status["task"], "なしに変更して保存する")
+
+    def test_reads_status_lines_wrapped_in_a_code_fence(self) -> None:
+        status = self.status(self.run_hook("```\n目的: 状態表示 herdr ─ いま: 完了\nユーザーのタスク: なし\n```"))
+
+        self.assertEqual(status["now"], "完了")
 
     def test_keeps_the_previous_status_when_the_reply_has_no_status_lines(self) -> None:
         self.assertEqual(self.run_hook("了解です。"), [])
@@ -101,22 +132,90 @@ class HerdrSessionStatusTest(unittest.TestCase):
     def test_clears_the_status_when_the_user_sends_a_prompt(self) -> None:
         calls = self.run_hook(hook_event_name="UserPromptSubmit", last_assistant_message=None)
 
-        self.assertEqual(
-            calls,
-            [
-                [
-                    "pane",
-                    "report-metadata",
-                    "w1:p1",
-                    "--source",
-                    "claude:session-status",
-                    "--clear-token",
-                    "task",
-                    "--clear-token",
-                    "now",
-                ]
-            ],
-        )
+        cleared = {"task": "", "task2": "", "task3": "", "now": ""}
+        self.assertEqual((self.status(calls), self.status(calls, ("workspace", "w1"))), (cleared, cleared))
+        self.assertEqual(len(calls), 2)
+
+    def test_reports_the_same_status_to_the_workspace(self) -> None:
+        calls = self.run_hook()
+
+        self.assertEqual(self.status(calls, ("workspace", "w1")), self.status(calls))
+
+    def git(self, *args):
+        identity = ("-c", "user.name=t", "-c", "user.email=t@example.com", "-c", "commit.gpgsign=false")
+        subprocess.run(["git", *identity, *args], check=True, capture_output=True)
+
+    def test_reports_the_repository_name_as_the_project(self) -> None:
+        repo = Path(self.env["FAKE_HERDR_LOG"]).parent / "my-repo"
+        self.git("init", "-q", str(repo))
+        (repo / "src").mkdir()
+
+        self.status(self.run_hook(cwd=str(repo / "src")))
+
+        self.assertEqual(self.project, "my-repo")
+
+    def test_reports_the_main_repository_name_from_a_worktree(self) -> None:
+        root = Path(self.env["FAKE_HERDR_LOG"]).parent
+        self.git("init", "-q", str(root / "my-repo"))
+        self.git("-C", str(root / "my-repo"), "commit", "-q", "--allow-empty", "-m", "init")
+        self.git("-C", str(root / "my-repo"), "worktree", "add", "-q", str(root / "topic-branch"))
+
+        self.status(self.run_hook(cwd=str(root / "topic-branch")))
+
+        self.assertEqual(self.project, "my-repo")
+
+    def test_reports_the_directory_name_as_the_project_outside_a_repository(self) -> None:
+        plain = Path(self.env["FAKE_HERDR_LOG"]).parent / "notes"
+        plain.mkdir()
+
+        self.status(self.run_hook(cwd=str(plain)))
+
+        self.assertEqual(self.project, "notes")
+
+    def test_reports_the_project_when_the_user_sends_a_prompt(self) -> None:
+        self.status(self.run_hook(hook_event_name="UserPromptSubmit", last_assistant_message=None))
+
+        self.assertEqual(self.project, "dotfiles")
+
+    def test_names_a_workspace_that_still_has_its_default_label(self) -> None:
+        calls = self.run_hook(label="dotfiles")
+
+        self.assertEqual(self.renames(calls), [["workspace", "rename", "w1", "状態表示 herdr"]])
+        self.assertEqual(self.markers(calls), [{"autoname": "状態表示 herdr", "autoname_prev": "dotfiles"}])
+
+    def test_records_its_names_before_it_renames(self) -> None:
+        """A rename that fails after the record leaves a label the next stop still recognises."""
+        kinds = [call[1] for call in self.run_hook(label="dotfiles") if call[0] == "workspace"]
+
+        self.assertEqual(kinds[-3:], ["get", "report-metadata", "rename"])
+
+    def test_renames_a_workspace_whose_last_rename_failed(self) -> None:
+        calls = self.run_hook(label="古い名前", tokens={"autoname": "届かなかった名前", "autoname_prev": "古い名前"})
+
+        self.assertEqual(self.renames(calls), [["workspace", "rename", "w1", "状態表示 herdr"]])
+
+    def test_renames_a_workspace_it_named_before(self) -> None:
+        calls = self.run_hook(label="古い名前", tokens={"autoname": "古い名前"})
+
+        self.assertEqual(self.renames(calls), [["workspace", "rename", "w1", "状態表示 herdr"]])
+
+    def test_does_not_adopt_a_typed_label_that_equals_the_goal(self) -> None:
+        calls = self.run_hook(label="状態表示 herdr", tokens={})
+
+        self.assertEqual((self.renames(calls), self.markers(calls)), ([], []))
+
+    def test_keeps_a_label_the_user_typed(self) -> None:
+        calls = self.run_hook(label="11/27 以降マージ", tokens={"autoname": "古い名前"})
+
+        self.assertEqual((self.renames(calls), self.markers(calls)), ([], []))
+
+    def test_keeps_the_label_of_a_workspace_with_several_panes(self) -> None:
+        self.assertEqual(self.renames(self.run_hook(pane_count=2)), [])
+
+    def test_does_not_rename_to_the_label_it_already_has(self) -> None:
+        calls = self.run_hook(label="状態表示 herdr", tokens={"autoname": "状態表示 herdr"})
+
+        self.assertEqual(self.renames(calls), [])
 
     def test_does_nothing_outside_herdr(self) -> None:
         del self.env["HERDR_ENV"]
