@@ -21,6 +21,10 @@ export CC="/usr/lib/ccache/gcc"
 export CXX="/usr/lib/ccache/g++"
 export CCACHE_DIR="/Users/kz86n/.cache/ccache/"
 
+path_dedup
+
+# headroom install start/stop moves this block to the end of the file; keep it last.
+
 # >>> headroom persistent env >>>
 export HEADROOM_PORT="8787"
 export HEADROOM_HOST="127.0.0.1"
@@ -36,5 +40,3 @@ export ANTHROPIC_BASE_URL="http://127.0.0.1:8787"
 export ENABLE_TOOL_SEARCH="true"
 export OPENAI_BASE_URL="http://127.0.0.1:8787/v1"
 # <<< headroom persistent env <<<
-
-path_dedup

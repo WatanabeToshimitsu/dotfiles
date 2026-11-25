@@ -273,6 +273,17 @@ command -v zoxide &>/dev/null && eval "$(zoxide init zsh)"
 # Machine-specific config (work/private hosts etc.) — never tracked in this repo
 [ -f ~/.zshrc.local ] && source ~/.zshrc.local
 
+# Tell me when the proxy configured below is down, instead of letting Claude Code
+# and Codex fail against a dead ANTHROPIC_BASE_URL.
+source ~/.shell-utils/headroom-proxy-check.zsh
+headroom_proxy_check
+
+# `-U path` only applies on array assignment; the scalar `export PATH=` prepends
+# above bypass it.
+path=($path)
+
+# headroom install start/stop moves this block to the end of the file; keep it last.
+
 # >>> headroom persistent env >>>
 export HEADROOM_PORT="8787"
 export HEADROOM_HOST="127.0.0.1"
@@ -288,12 +299,3 @@ export ANTHROPIC_BASE_URL="http://127.0.0.1:8787"
 export ENABLE_TOOL_SEARCH="true"
 export OPENAI_BASE_URL="http://127.0.0.1:8787/v1"
 # <<< headroom persistent env <<<
-
-# Tell me when the proxy configured above is down, instead of letting Claude Code
-# and Codex fail against a dead ANTHROPIC_BASE_URL.
-source ~/.shell-utils/headroom-proxy-check.zsh
-headroom_proxy_check
-
-# `-U path` only applies on array assignment; the scalar `export PATH=` prepends
-# above bypass it.
-path=($path)
