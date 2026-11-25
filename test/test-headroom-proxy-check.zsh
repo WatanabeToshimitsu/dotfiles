@@ -45,4 +45,17 @@ if _headroom_proxy_reachable 1; then
   fail "port 1 reported as reachable"
 fi
 
+# headroom install start/stop/restart removes its env block and re-appends it,
+# writing through the home symlinks into this checkout; a file already in that
+# shape comes out byte-identical. Mirrors headroom/install/providers.py.
+python3 - "$REPO_DIR"/{.zshrc,.bashrc,.profile} <<'PY' || fail "headroom would rewrite an rc file"
+import pathlib, re, sys
+block = re.compile(r"# >>> headroom persistent env >>>.*?# <<< headroom persistent env <<<", re.S)
+for path in map(pathlib.Path, sys.argv[1:]):
+    text = path.read_text()
+    rewritten = block.sub("", text).strip() + "\n\n" + block.search(text).group(0) + "\n"
+    if rewritten != text:
+        sys.exit(f"{path.name}: headroom env block is not last")
+PY
+
 print "headroom proxy check tests: ok"
