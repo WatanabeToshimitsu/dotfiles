@@ -16,7 +16,10 @@ the main dotfiles checkout and a linked worktree while user hooks were excluded.
 
 Auto memory is visible only to Claude Code. A `feedback` memory reaches the other
 agents that read [`../CLAUDE.md`](../CLAUDE.md) only once it is promoted into
-`CLAUDE.md`, `claude/CLAUDE.md`, `claude/rules/`, or a skill in `claude/skills/`.
+`CLAUDE.md`, `claude/CLAUDE.md`, `claude/rules/`, a skill in `claude/skills/`,
+or a test or hook under `test/` or `claude/hooks/` that enforces it. When the
+same correction recurs and a test or hook can enforce it, promote it there
+before writing more text.
 
 Record where a memory was promoted in its own frontmatter, next to `type`:
 

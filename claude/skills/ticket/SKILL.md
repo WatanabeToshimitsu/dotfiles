@@ -38,9 +38,15 @@ together with the user instead of guessing values.
 - Before each command the launcher closes every tab but the one it works
   in; do not keep other pages open in the ticket window.
 - Screenshots also capture the sidebar's recent pages; prefer
-  `snapshot -s <selector>` and screenshot only to check layout.
+  `snapshot -s <selector>` and screenshot only to check layout. For page
+  bodies, use `snapshot -s .notion-page-content`.
 - On board views, locate the elements you need with `find role ...` or
   `find text ...` instead of snapshotting the whole view.
+- Notion renders a page body as it comes into view. To reach a section
+  near the end, such as the evidence field, run
+  `scrollintoview '.notion-page-content > div:last-child'` and snapshot
+  the body again until the section appears; `scroll` may leave the body
+  where it is. Click and type into its blocks by their snapshot refs.
 - Press only plain editing and navigation keys: Enter, Escape, Tab,
   Backspace, Delete, Home, End, and the arrows.
 - Write Notion page text with `click` then `type`: `fill` changes the
@@ -61,7 +67,8 @@ together with the user instead of guessing values.
 
 - **Task start (implicit)**: work that warrants a ticket — a feature, fix,
   or investigation with a deliverable — runs the create workflow. Skip
-  trivial questions, throwaway experiments, and dotfiles/personal chores.
+  trivial questions, throwaway experiments, dotfiles/personal chores, and
+  work whose branch already has `ticketUrl`.
 - **Pull request created (implicit)**: run the evidence workflow.
 - **Explicit**: `/ticket create`, `/ticket link <ticket URL>`,
   `/ticket evidence`.
@@ -74,11 +81,17 @@ together with the user instead of guessing values.
    bodies, so the raw result lists unrelated tickets.
 2. Present plausible candidates. Link to an existing ticket only on user
    confirmation — a false match is worse than a duplicate.
-3. Propose compactly (title, type, one-line scope, granularity) following
-   "Granularity and body" below, and wait for approval. Prior in-session
-   agreement on a task breakdown does NOT count as ticket-granularity
-   approval: always re-confirm the granularity at creation time — session
-   decomposition and ticket granularity are different decisions.
+3. Create a ticket without asking only when all of these hold: the work
+   is in a team repository from reference.md or the user ran
+   `/ticket create`; step 1 found no plausible candidate; the current
+   branch has no `ticketUrl`; and the request or task breakdown needs no
+   other new ticket. Report its title, Jira key, and board URL in the same
+   turn. Otherwise propose compactly (title, type, one-line scope,
+   granularity) following "Granularity and body" below, and wait for
+   approval. When a request or task breakdown needs more than one new
+   ticket, ask before creating the first, even across runs and after
+   in-session agreement on the breakdown — session decomposition and
+   ticket granularity are different decisions.
 4. Reuse whichever side step 2 confirmed and create only what is
    missing. Create the Jira issue first when reference.md says the
    template wants one, with only the fields reference.md lists.
@@ -144,10 +157,13 @@ Evidence workflow, after a pull request is created:
 
 ## Status
 
-When work on a linked ticket starts, set the board status to the "in
-progress" value without asking, and propose the matching Jira transition
-in the same message. Propose every other status change, on the board or
-in Jira, together with the Jira update and apply it on approval.
+When work starts on a linked ticket still at its not-started status, set
+the board status to the "in progress" value without asking. Apply the
+matching Jira transition without asking when the issue is assigned to
+the user and still at its not-started status, and propose it otherwise.
+Leave a side that is already in progress unchanged without asking.
+Propose every other status change, on the board or in Jira, together
+with the Jira update and apply it on approval.
 Use the status buttons reference.md lists when the template has them.
 
 ## Granularity and body
@@ -185,10 +201,11 @@ PRs usually land under one ticket.
 
 - The team Notion workspace is reached only through `ticket-browser` and
   only on the pages listed under "Browser rules".
-- Ticket creation and every Jira write require explicit user approval,
-  including Jira transitions at the start of work. Exempt: the evidence
-  append on the board and in Jira, and the board's start-of-work status.
-- One Jira issue per approved ticket; never bulk-create speculatively.
+- Every board or Jira write requires explicit user approval except
+  creating and filling, in the same run, the ticket create step 3 allows
+  without asking, the evidence append on the board and in Jira, and the
+  start-of-work statuses "Status" allows.
+- One Jira issue per ticket; never bulk-create speculatively.
 - Keep concrete identifiers in reference.md, never in this file: it is
   published in a public repository.
 - If searches or MCP calls fail twice, stop and report.
