@@ -113,6 +113,6 @@ git -C <main> diff --cached --quiet &&
 git -C <main> diff --quiet --diff-filter=DT &&
 s=$(git -C <main> stash create) &&
 t=$(git -C <main> merge-tree --write-tree --merge-base=HEAD "$o" "${s:-HEAD}") &&
-git -C <main> cat-file -p "$t:claude/settings.json" | jq -se 'length == 1 and (.[0] | type == "object")' >/dev/null &&
+git -C <main> cat-file -p "${t}:claude/settings.json" | jq -se 'length == 1 and (.[0] | type == "object")' >/dev/null &&
 git -C <main> merge --ff-only --autostash --no-overwrite-ignore "$o"
 ```
