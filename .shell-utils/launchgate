@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Start memory-heavy commands only when available memory covers their estimate.
+"""Start long-lived commands only once the local resources they share with parallel sessions are free.
 
-memgate run [--key KEY] [--wait SECONDS] -- COMMAND...
-memgate browser ARGS...   (called by the agent-browser shim)
+launchgate run [--port PORT] [--key KEY] [--wait SECONDS] -- COMMAND...
+  Memory: waits until available memory covers the command's estimate; observe-only while ENFORCE is False.
+  --port: waits up to an hour for other checkouts' servers to free PORT, then holds it for COMMAND; always enforced.
+launchgate browser ARGS...   (called by the agent-browser shim)
 """
 import ctypes
 import fcntl
@@ -21,12 +23,14 @@ MARGIN = GIB
 SWAPIN_LIMIT = 1 << 20
 ENFORCE = False
 RUN_WAIT = 900.0
+PORT_WAIT = 3600.0
 BROWSER_WAIT = 100.0
 LOCK_WAIT = 5.0
 INTERVAL = 2
 SAMPLE_EVERY = 10
 WINDOW = 120
 RATE_SPAN = 2
+# Why not rename these paths with the command: recorded peaks and decisions, and live reservations, stay there.
 LEDGER_DIR = Path(f"/tmp/memgate-{os.getuid()}")
 PEAKS = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/state") / "memgate/peaks.json"
 BROWSER_KEY = "agent-browser"
@@ -40,7 +44,7 @@ VALUE_OPTIONS = {
     "--restore-check-fn", "--restore-check-text", "--restore-check-url", "--restore-save", "--screenshot-dir",
     "--screenshot-format", "--screenshot-quality", "--session", "--session-name", "--state", "--user-agent",
     "-d", "--depth", "-p", "--provider", "-s", "--selector"}
-USAGE = "usage: memgate run [--key KEY] [--wait SECONDS] -- COMMAND..."
+USAGE = "usage: launchgate run [--port PORT] [--key KEY] [--wait SECONDS] -- COMMAND..."
 
 
 class Busy(Exception):
@@ -233,7 +237,7 @@ def reserve(key, need, table, pidfile, probe):
 
 
 def report(key, need, free, held, allowance, ledger, table):
-    lines = [f"memgate: {key} needs {gib(need)} but {gib(free)} is available "
+    lines = [f"launchgate: {key} needs {gib(need)} but {gib(free)} is available "
              f"with {gib(allowance)} of swap allowed, {gib(held)} reserved and a {gib(MARGIN)} margin."]
     lines += [f"  reserved {gib(entry['estimate'])} pid {entry['target'][0]} {entry['key']}" for entry in ledger]
     lines.append("  largest processes:")
@@ -247,7 +251,7 @@ def measure():
     try:
         return memory()
     except (OSError, ValueError, AttributeError, KeyError, subprocess.SubprocessError) as error:
-        print(f"memgate: cannot read available memory ({error}); starting without a check", file=sys.stderr)
+        print(f"launchgate: cannot read available memory ({error}); starting without a check", file=sys.stderr)
         return None
 
 
@@ -290,12 +294,12 @@ def admit(key, wait, ready=lambda table: False, pidfile=None):
             log({"event": "busy", "id": [os.getpid(), None], "key": key, "waited": time.monotonic() - started})
             if not ENFORCE:
                 return
-            print(f"memgate: {LEDGER_DIR / 'lock'} stayed locked for {wait:.0f}s", file=sys.stderr)
+            print(f"launchgate: {LEDGER_DIR / 'lock'} stayed locked for {wait:.0f}s", file=sys.stderr)
             sys.exit(75)
         except OSError as error:
             if not shared:
                 raise
-            print(f"memgate: reservations disabled ({error}); checking memory only", file=sys.stderr)
+            print(f"launchgate: reservations disabled ({error}); checking memory only", file=sys.stderr)
             shared = False
             continue
         if decision and (decision["verdict"] == "admit" or not ENFORCE):
@@ -306,7 +310,7 @@ def admit(key, wait, ready=lambda table: False, pidfile=None):
             report(key, need, free, held, allowance, ledger, table)
             sys.exit(75)
         if decision and not waiting:
-            print(f"memgate: waiting up to {wait:.0f}s for {gib(need)} of memory", file=sys.stderr)
+            print(f"launchgate: waiting up to {wait:.0f}s for {gib(need)} of memory", file=sys.stderr)
             waiting = True
         time.sleep(INTERVAL)
 
@@ -428,7 +432,7 @@ def real_browser():
         candidate = Path(directory) / "agent-browser"
         if os.access(candidate, os.X_OK) and candidate.resolve() != shim:
             return str(candidate)
-    sys.exit("memgate: agent-browser not found on PATH")
+    sys.exit("launchgate: agent-browser not found on PATH")
 
 
 def browser(args):
@@ -449,12 +453,61 @@ def browser(args):
     os.execv(real, [real, *args])
 
 
+def listeners(port):
+    try:
+        result = subprocess.run(["lsof", "-nPw", f"-iTCP:{port}", "-sTCP:LISTEN", "-t"],
+                                capture_output=True, text=True, timeout=10)
+    except OSError as error:
+        sys.exit(f"launchgate: --port needs lsof ({error.strerror})")
+    except subprocess.TimeoutExpired:
+        return None
+    # Why not trust exit 1 alone: lsof also exits 1 on errors, which then show only on stderr.
+    if result.returncode not in (0, 1) or result.stderr.strip():
+        return None
+    return sorted({int(pid) for pid in result.stdout.split()})
+
+
+def claim(port, wait):
+    path, deadline, waiting = LEDGER_DIR / "ports.json", time.monotonic() + wait, False
+    while True:
+        lease = None
+        try:
+            with locked(deadline):
+                table, held = processes(), listeners(port)
+                leases = {key: entry for key, entry in load(path, {}).items() if alive(table, entry)}
+                lease = leases.get(str(port))
+                if held == [] and not lease:
+                    me = os.getpid()
+                    save(path, {**leases, str(port): [me, table[me][1]]})
+                    return
+        except Busy:
+            print(f"launchgate: {LEDGER_DIR / 'lock'} stayed locked for {wait:.0f}s", file=sys.stderr)
+            sys.exit(75)
+        except OSError as error:
+            table, held = processes(), listeners(port)
+            if held == []:
+                print(f"launchgate: port leases disabled ({error}); checked listeners only", file=sys.stderr)
+                return
+        holders = ", ".join([f"pid {pid} {table[pid][2] if pid in table else '?'}" for pid in
+                             (held or []) + ([lease[0]] if lease else [])] +
+                            (["unreadable listeners"] if held is None else []))
+        if time.monotonic() >= deadline:
+            print(f"launchgate: port {port} stayed in use for {wait:.0f}s, held by {holders}", file=sys.stderr)
+            sys.exit(75)
+        if not waiting:
+            print(f"launchgate: waiting up to {wait:.0f}s for port {port}, held by {holders}", file=sys.stderr)
+            waiting = True
+        time.sleep(INTERVAL)
+
+
 def run(args):
-    key, wait = None, RUN_WAIT
-    while len(args) > 1 and args[0] in ("--key", "--wait"):
+    key, wait, port = None, RUN_WAIT, None
+    while len(args) > 1 and args[0] in ("--key", "--wait", "--port"):
         if args[0] == "--key":
             key = args[1]
-        elif re.fullmatch(r"\d+(\.\d+)?", args[1]):
+        elif args[0] == "--port" and args[1].isdigit() and 0 < int(args[1]) < 65536:
+            port = int(args[1])
+        elif args[0] == "--wait" and re.fullmatch(r"\d+(\.\d+)?", args[1]):
             wait = float(args[1])
         else:
             sys.exit(USAGE)
@@ -462,11 +515,14 @@ def run(args):
     if args[:1] != ["--"] or len(args) < 2:
         sys.exit(USAGE)
     command = args[1:]
+    # Why not after admit: a memory reservation would sit idle for the whole port wait.
+    if port is not None:
+        claim(port, PORT_WAIT)
     admit(key or json.dumps([*repository(), command]), wait)
     try:
         os.execvp(command[0], command)
     except OSError as error:
-        print(f"memgate: cannot run {command[0]}: {error.strerror}", file=sys.stderr)
+        print(f"launchgate: cannot run {command[0]}: {error.strerror}", file=sys.stderr)
         sys.exit(127)
 
 

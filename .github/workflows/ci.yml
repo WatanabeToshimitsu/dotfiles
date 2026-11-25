@@ -62,8 +62,8 @@ jobs:
         run: python3 -B -m unittest discover -s test -p 'test_trim_idle.py'
       - name: Test Codex configuration sync
         run: python3 -B -m unittest discover -s test -p 'test_codex_sync.py'
-      - name: Test memory gate
-        run: python3 -B -m unittest discover -s test -p 'test_memgate.py'
+      - name: Test launch gate
+        run: python3 -B -m unittest discover -s test -p 'test_launchgate.py'
       - name: Test worktree garbage collection
         run: bash test/test-worktree-gc.sh
 
@@ -168,8 +168,8 @@ jobs:
         run: python3 -B -m unittest discover -s test -p 'test_trim_idle.py'
       - name: Test Codex configuration sync
         run: python3 -B -m unittest discover -s test -p 'test_codex_sync.py'
-      - name: Test memory gate
-        run: python3 -B -m unittest discover -s test -p 'test_memgate.py'
+      - name: Test launch gate
+        run: python3 -B -m unittest discover -s test -p 'test_launchgate.py'
       - name: Test worktree garbage collection
         run: bash test/test-worktree-gc.sh
 
