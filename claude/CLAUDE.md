@@ -66,6 +66,7 @@ If it is unreadable, say so, stop dependent goal drafting and handoffs, continue
 - Before asking about a choice that a cheap throwaway experiment can settle, run it and bring the result with the question.
 - UX、仕様、architecture、data model、互換性、security、data loss など後戻りコストの高い判断は推測しない。
 - 重要な確認は一度に一つとし、推奨案と理由を添える。
+- When you ask the user to decide, state what the choice turns on for each option, such as cost, risk, size of change, or the source it rests on. Cut research and review history that does not bear on that choice; keep sources and unverified points, and when you ask approval for a draft, show the draft and any translation of it in full.
 
 # モデルとコンテキスト
 
