@@ -38,9 +38,15 @@ together with the user instead of guessing values.
 - Before each command the launcher closes every tab but the one it works
   in; do not keep other pages open in the ticket window.
 - Screenshots also capture the sidebar's recent pages; prefer
-  `snapshot -s <selector>` and screenshot only to check layout.
+  `snapshot -s <selector>` and screenshot only to check layout. For page
+  bodies, use `snapshot -s .notion-page-content`.
 - On board views, locate the elements you need with `find role ...` or
   `find text ...` instead of snapshotting the whole view.
+- Notion renders a page body as it comes into view. To reach a section
+  near the end, such as the evidence field, run
+  `scrollintoview '.notion-page-content > div:last-child'` and snapshot
+  the body again until the section appears; `scroll` may leave the body
+  where it is. Click and type into its blocks by their snapshot refs.
 - Press only plain editing and navigation keys: Enter, Escape, Tab,
   Backspace, Delete, Home, End, and the arrows.
 - Write Notion page text with `click` then `type`: `fill` changes the
