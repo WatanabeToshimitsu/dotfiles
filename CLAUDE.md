@@ -97,3 +97,22 @@ git worktree list
 git worktree remove <path>
 git branch -d <branch>
 ```
+
+The main checkout, `<main>` below, backs `~/.claude` through symlinks, so it is
+often dirty with CLI-written settings or edits a merged PR already carries. Sync
+it after a merge with this chain instead of discarding files or asking the user
+to; for this checkout only, it replaces the delivery-workflow rule against
+stashing a dirty default branch. The chain merges only after a dry run of the
+autostash merges cleanly and leaves a JSON object. If any step fails, stop and
+report instead of trying another route.
+
+```bash
+git -C <main> fetch origin &&
+o=$(git -C <main> rev-parse origin/main) &&
+git -C <main> diff --cached --quiet &&
+git -C <main> diff --quiet --diff-filter=DT &&
+s=$(git -C <main> stash create) &&
+t=$(git -C <main> merge-tree --write-tree --merge-base=HEAD "$o" "${s:-HEAD}") &&
+git -C <main> cat-file -p "$t:claude/settings.json" | jq -se 'length == 1 and (.[0] | type == "object")' >/dev/null &&
+git -C <main> merge --ff-only --autostash --no-overwrite-ignore "$o"
+```
