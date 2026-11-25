@@ -5,6 +5,11 @@
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "MAX_MCP_OUTPUT_TOKENS": "10000"
   },
+  "attribution": {
+    "commit": "",
+    "pr": "",
+    "sessionUrl": false
+  },
   "permissions": {
     "allow": [
       "Bash(npm run test:*)",
@@ -346,12 +351,7 @@
     "defaultMode": "auto",
     "disableBypassPermissionsMode": "disable"
   },
-  "model": "opus",
-  "attribution": {
-    "commit": "",
-    "pr": "",
-    "sessionUrl": false
-  },
+  "model": "opus[1m]",
   "skillOverrides": {
     "difit": "user-invocable-only",
     "lucian-uxui": "off",
@@ -525,6 +525,7 @@
       "effortLevel": "xhigh"
     }
   },
+  "advisorModel": "fable",
   "askUserQuestionTimeout": "never",
   "autoUpdatesChannel": "latest",
   "tui": "fullscreen",
@@ -550,6 +551,5 @@
       "Treat credentials, personal data, confidential business data, and regulated data as sensitive; public paste and gist services are outside the trust boundary unless explicitly approved",
       "Treat remote targets or infrastructure whose name contains prod or production as sensitive"
     ]
-  },
-  "advisorModel": "fable"
+  }
 }
