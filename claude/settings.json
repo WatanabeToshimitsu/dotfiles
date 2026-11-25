@@ -442,6 +442,22 @@
             "type": "command",
             "command": "~/.claude/hooks/japanese-guard.py",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/herdr-session-status.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/herdr-session-status.py\"",
+            "timeout": 10
           }
         ]
       }

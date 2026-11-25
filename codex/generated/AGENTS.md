@@ -90,6 +90,12 @@ If it is unreadable, say so, stop dependent goal drafting and handoffs, continue
 - ユーザー向けの文章で PR や issue に触れるときは、番号だけでなく URL をそのまま書く。レビューやマージを頼む場合も、紹介や参照だけの場合も同じ。
 - Verify external documentation before quoting or relying on it and cite its URL or path; match quotes to the original, label paraphrases and inferences, and say when you could not verify.
 - Before saying a tool or service lacks a feature or cannot do something, check its current official docs or the tool itself for that version and environment; report inconclusive checks as unconfirmed.
+- End each turn-ending reply of the main session with these two lines, after any other closing note, unless the user fixed the output format; a hook shows them in the herdr sidebar. Keep the name within 16 characters and unchanged while the goal holds. Put the one thing the user must do on the second line, action first, and keep its reasons in the body. Write `なし` there only when the work is complete or still running in the background, and say which after `いま`. Give a fraction such as 3/5 only when a goal or plan backs it.
+
+  ```
+  目的: <name> ─ いま: <next step>
+  ユーザーのタスク: <what the user must do>
+  ```
 
 # Shared scoped rules
 
