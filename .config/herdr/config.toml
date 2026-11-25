@@ -33,6 +33,23 @@ switch_workspace = "cmd+1..9"
 sidebar_start_collapsed = true
 show_agent_labels_on_pane_borders = true
 hide_tab_bar_when_single_tab = true
+# Wide enough, once expanded, to read the status lines the Stop hook reports
+sidebar_width = 44
+sidebar_max_width = 60
+
+# $name, $task and $now come from claude/hooks/herdr-session-status.py; a missing value disappears
+[ui.sidebar.agents]
+rows = [
+  ["state_icon", "$name", { token = "workspace", dim = true }, { token = "agent", dim = true }],
+  [{ token = "$task", bold = true }],
+  [{ token = "$now", dim = true }],
+]
+
+[ui.sidebar.spaces]
+rows = [
+  ["state_icon", "$name", "workspace"],
+  ["branch", "git_status"],
+]
 
 [experimental]
 # Make prefix commands register even while Japanese IME is active (macOS only)

@@ -49,6 +49,7 @@ MANIFEST_CLAUDE_FILES=(
   hooks/_shell_parser.py
   hooks/remote-mutation-guard.py
   hooks/japanese-guard.py
+  hooks/herdr-session-status.py
   rules/common/github-actions.md
   rules/common/hooks.md
   rules/common/security.md
