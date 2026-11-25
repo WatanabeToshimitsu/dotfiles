@@ -23,7 +23,7 @@ skills; run `difit --help` first and use only the flags it lists.
    the view matches the PR diff:
 
    ```bash
-   memgate run -- <difit-command> HEAD origin/<base> --merge-base --background --no-open \
+   launchgate run -- <difit-command> HEAD origin/<base> --merge-base --background --no-open \
      --comment '<json>' --comment '<json>'
    ```
 

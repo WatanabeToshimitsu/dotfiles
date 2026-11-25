@@ -44,6 +44,8 @@ jobs:
         run: zsh -f test/test-git-branch-prune.zsh
       - name: Test gco worktree jump
         run: zsh -f test/test-git-checkout-worktree.zsh
+      - name: Test chpwd terminal guard
+        run: zsh -f test/test-chpwd-tty-guard.zsh
       - name: Test Claude sandbox canary
         run: bash test/test-claude-sandbox.sh
       - name: Test ticket browser launcher
@@ -60,8 +62,8 @@ jobs:
         run: python3 -B -m unittest discover -s test -p 'test_trim_idle.py'
       - name: Test Codex configuration sync
         run: python3 -B -m unittest discover -s test -p 'test_codex_sync.py'
-      - name: Test memory gate
-        run: python3 -B -m unittest discover -s test -p 'test_memgate.py'
+      - name: Test launch gate
+        run: python3 -B -m unittest discover -s test -p 'test_launchgate.py'
       - name: Test worktree garbage collection
         run: bash test/test-worktree-gc.sh
 
@@ -156,6 +158,8 @@ jobs:
         run: zsh -f test/test-git-branch-prune.zsh
       - name: Test gco worktree jump
         run: zsh -f test/test-git-checkout-worktree.zsh
+      - name: Test chpwd terminal guard
+        run: zsh -f test/test-chpwd-tty-guard.zsh
       - name: Test read-only Loop snapshot
         run: python3 -B -m unittest discover -s test -p 'test_loop_snapshot.py'
       - name: Test bounded repair supervisor without model calls
@@ -164,8 +168,8 @@ jobs:
         run: python3 -B -m unittest discover -s test -p 'test_trim_idle.py'
       - name: Test Codex configuration sync
         run: python3 -B -m unittest discover -s test -p 'test_codex_sync.py'
-      - name: Test memory gate
-        run: python3 -B -m unittest discover -s test -p 'test_memgate.py'
+      - name: Test launch gate
+        run: python3 -B -m unittest discover -s test -p 'test_launchgate.py'
       - name: Test worktree garbage collection
         run: bash test/test-worktree-gc.sh
 

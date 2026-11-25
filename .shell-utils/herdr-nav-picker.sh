@@ -3,6 +3,8 @@
 #   ws - pick a workspace and focus it   (cmd+shift+w)
 #   ag - pick an agent and focus its pane (cmd+shift+a)
 # Picker keys: j/k or arrows = move, l/space/enter = attach, h/q/esc = cancel
+# The agent picker marks agents that wait on the user with "!" and shows the highlighted
+# agent's full status below the list (reported by claude/hooks/herdr-session-status.py).
 set -u
 
 HERDR_BIN="${HERDR_BIN_PATH:-herdr}"
@@ -24,14 +26,21 @@ d = json.load(sys.stdin)["result"]
 for a in d["agents"]:
     mark = "*" if a["focused"] else " "
     title = a.get("terminal_title_stripped") or a["agent"]
-    print("%s\t%s %s: %s (%s)" % (a["pane_id"], mark, a["agent"], title, a["agent_status"]))
+    t = a.get("tokens") or {}
+    task = t.get("task", "") + t.get("task2", "") + t.get("task3", "")
+    status = "ユーザーのタスク: " + task if task else "いま: " + t["now"] if t.get("now") else ""
+    flag = " !" if task else ""
+    print("%s\t%s %s: %s (%s)%s\t%s" % (a["pane_id"], mark, a["agent"], title, a["agent_status"], flag, status))
 '
 }
 
 mode="${1:-ws}"
 case "$mode" in
-  ws) items="$(list_ws)" prompt='workspaces> ' ;;
-  ag) items="$(list_ag)" prompt='agents> ' ;;
+  ws) items="$(list_ws)" prompt='workspaces> ' preview=() ;;
+  ag)
+    items="$(list_ag)" prompt='agents> '
+    preview=(--preview 'printf "%s\n" {3}' --preview-window='down,4,wrap')
+    ;;
   *)
     echo "usage: $0 [ws|ag]" >&2
     exit 2
@@ -39,7 +48,7 @@ case "$mode" in
 esac
 
 sel="$(printf '%s\n' "$items" | fzf --disabled --no-info --layout=reverse \
-  --prompt="$prompt" --delimiter='\t' --with-nth=2.. \
+  --prompt="$prompt" --delimiter='\t' --with-nth=2 ${preview[@]+"${preview[@]}"} \
   --bind 'j:down,k:up,l:accept,space:accept,h:abort,q:abort')" || exit 0
 id="${sel%%$'\t'*}"
 

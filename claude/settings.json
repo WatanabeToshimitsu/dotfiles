@@ -5,6 +5,11 @@
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "MAX_MCP_OUTPUT_TOKENS": "10000"
   },
+  "attribution": {
+    "commit": "",
+    "pr": "",
+    "sessionUrl": false
+  },
   "permissions": {
     "allow": [
       "Bash(npm run test:*)",
@@ -346,12 +351,14 @@
     "defaultMode": "auto",
     "disableBypassPermissionsMode": "disable"
   },
-  "model": "opus",
+  "model": "opus[1m]",
   "skillOverrides": {
     "difit": "user-invocable-only",
     "lucian-uxui": "off",
     "vercel-react-best-practices": "off",
-    "find-skills": "off"
+    "find-skills": "off",
+    "gh-stack": "user-invocable-only",
+    "prompt-review": "off"
   },
   "hooks": {
     "Notification": [
@@ -435,6 +442,22 @@
             "type": "command",
             "command": "~/.claude/hooks/japanese-guard.py",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/herdr-session-status.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/herdr-session-status.py\"",
+            "timeout": 10
           }
         ]
       }
@@ -455,7 +478,8 @@
     "typescript-lsp@claude-plugins-official": false,
     "scene-tag@scene-tag-annotator": true,
     "ponytail@ponytail": true,
-    "swift-lsp@claude-plugins-official": true
+    "swift-lsp@claude-plugins-official": false,
+    "common-compute-cluster@hdl-agent-plugins": true
   },
   "extraKnownMarketplaces": {
     "claude-powerline": {
@@ -517,6 +541,7 @@
       "effortLevel": "xhigh"
     }
   },
+  "advisorModel": "fable",
   "askUserQuestionTimeout": "never",
   "autoUpdatesChannel": "latest",
   "tui": "fullscreen",
@@ -534,7 +559,9 @@
       "Bash(agent-browser:*) for routine browser automation in a trusted workspace",
       "Bash(npx:*) for an existing project's configured toolchain; package installation still requires approval",
       "Routine repository inspection, tests, lint, builds, named-file staging, commits, and non-force pushes to an existing repository remote; the same policy applies through rtk/rtk proxy and git -C. Force pushes and remote deletion remain denied.",
-      "Read-only gh api, curl, and git config queries for the current task may run automatically; writes, credential access, and changes to security settings still require risk evaluation. Never interpret a read permission as permission to publish or mutate remote state."
+      "Read-only gh api, curl, and git config queries for the current task may run automatically; writes, credential access, and changes to security settings still require risk evaluation. Never interpret a read permission as permission to publish or mutate remote state.",
+      "Cross-family review via Codex: as a routine step in any repository the user works in, the user approves sending a review packet to the local OpenAI Codex CLI (`codex exec`, also through `rtk proxy` or a time-limit wrapper such as `timeout` or `perl -e 'alarm N; exec @ARGV'`) run with `--sandbox read-only` for review only. This applies only when the session's earlier actions show the packet was assembled from task-necessary review material, such as diffs, design notes, and check output, with no secrets, credentials, `.env` contents, personal data, or whole-repository copies, and no further repository content is supplied during the review. Sensitivity is still judged from the current repository. Other `codex exec` modes, including write-capable sandboxes, and other external AI services still require risk evaluation.",
+      "Post-merge cleanup: once `gh` in this session shows the task's PR merged, the user approves removing that task's own worktree with non-forced `git worktree remove` and its local branch with `git branch -d`, also through rtk/rtk proxy and git -C. Forced removal, `git branch -D`, `rm` of checkout directories, and remote branch deletion still require risk evaluation."
     ],
     "environment": [
       "Trust and repository scope must come from the current repository's own remote and project configuration; never reuse another repository's trust assumptions",

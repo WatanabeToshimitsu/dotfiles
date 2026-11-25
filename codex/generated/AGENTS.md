@@ -23,11 +23,12 @@
 - Give `git push` a literal absolute repo path, such as `rtk proxy git -C /absolute/repo push origin topic`, even when `workdir` is set; Codex shell hooks may see only the command and session cwd.
 - For Codex CLI PR creation, use an absolute `--body-file` path.
 - Before every PR, including a Draft, follow `delivery-workflow` step 8. In Codex, also finish inspection and get explicit user authorization before a PR tool call, as hook warnings cannot pause it.
-- Run long-lived Node processes such as dev servers, watchers, and Storybook with `memgate run -- <command>`; `agent-browser` already does. If memgate refuses for memory, stop idle servers and browsers you started and retry; never bypass it.
+- Run long-lived Node processes such as dev servers, watchers, and Storybook with `launchgate run -- <command>`; `agent-browser` already does. Give a dev server its port with `--port <port>`; launchgate waits up to an hour for another checkout's server to free it, so do not ask first, and stop your server when your check ends. If launchgate refuses for memory, stop idle servers and browsers you started and retry; never bypass it.
 - For browser work, drive the user's own Chrome through Claude in Chrome first, so their logins carry over, despite the agent-browser skill's preference for itself. Exceptions: a high-risk environment follows the [browser login rule](rules/web/browser-login.md), `ticket` keeps `ticket-browser`, and `evidence-video` keeps agent-browser for recording. Otherwise use agent-browser, under the browser login rule, only when Claude in Chrome is unavailable.
 - When the browser work ends, close every tab and window you opened, whatever browser tool opened them. In Chrome, closing a group's last tab removes the group, and a window holding only your tabs closes with it. Before reporting on the Chrome route, confirm with `tabs_context_mcp` without `createIfEmpty` that only tabs you keep remain. Keep a tab or window only while the user signs in or approves on it, when the user asks to keep it, or when it also holds tabs the user added.
 - Call 1Password's `op` by its bare name, not a path or script, so the Claude Code permission prompt shows each call. Pass secrets straight to their consumer with a pipe, `$(op read ...)`, `op run` without `--no-masking`, or `op inject -o <file>`, keep them out of output and logs, and check the command does not echo them.
 - JavaScript/TypeScript を含む範囲のリポジトリ検査やリファクタリングでは、`repository-audit` skill を使い、Knip の結果または実行できなかった理由を残す。
+- Before asking the user to merge a change they will see outside a web UI, such as a terminal sidebar or status line, show it running on their own screen and wait for their look.
 
 詳細な手順とレビュー基準は `delivery-workflow` と `code-review` skill に従う。
 
@@ -94,6 +95,12 @@ If it is unreadable, say so, stop dependent goal drafting and handoffs, continue
 - Verify external documentation before quoting or relying on it and cite its URL or path; match quotes to the original, label paraphrases and inferences, and say when you could not verify.
 - Before saying a tool or service lacks a feature or cannot do something, check its current official docs or the tool itself for that version and environment; report inconclusive checks as unconfirmed.
 - Before reporting or acting on a measured number, find what limits it and rule out that it measured something else. Do not present an unmeasured number as measured or drop required meaning to meet a size limit.
+- End each turn-ending reply of the main session with these two lines, after any other closing note, unless the user fixed the output format; a hook shows them in the herdr sidebar. Keep the name within 20 columns, ten full-width characters, and unchanged while the goal holds; it becomes the workspace name. Put the one thing the user must do on the second line, action first, and keep its reasons in the body. Write `なし` there only when the work is complete or still running in the background, and say which after `いま`. Give a fraction such as 3/5 only when a goal or plan backs it.
+
+  ```
+  目的: <name> ─ いま: <next step>
+  ユーザーのタスク: <what the user must do>
+  ```
 
 # Shared scoped rules
 

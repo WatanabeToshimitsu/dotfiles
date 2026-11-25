@@ -53,8 +53,8 @@ still run.
 8. When the change alters what a reviewer can see or do in a running web UI,
    run the `evidence-video` skill before drafting the PR, whichever skill
    creates it, and put its Evidence note in the body. Skip docs-only and
-   backend-only changes without UI effect. Its login and write approvals still
-   apply; record `not run` and the reason in the body when it cannot run.
+   backend-only changes without UI effect. Its login approval still applies;
+   when it cannot run, ask the user in the session, not in the body.
    Before each PR, including a Draft, prepare its target, title, body, and full
    outgoing commit range. Unless a PR template or PR skill sets the body, state
    in it what else the change could affect and why that is safe, and the
@@ -73,10 +73,10 @@ still run.
    evidence videos as `evidence-video` describes. After creating a PR, run
    the `ticket` skill's evidence workflow when that skill is available.
 9. After live confirmation that this task's PR is merged, clean up only its
-   local worktree and branch when cleanup is authorized. Verify their HEAD
-   still matches the merged PR HEAD. Keep checkouts with dirty, untracked,
-   or ignored files, active writers, shared use, another owner, or unknown
-   ownership or activity; report why.
+   local worktree and branch without asking; the user authorized it in advance.
+   Verify their HEAD still matches the merged PR HEAD. Keep checkouts with
+   dirty, untracked, or ignored files, active writers, shared use, another
+   owner, or unknown ownership or activity; report why.
    Use existing cleanup tools only when they preserve these checks, through
    supported managed-worktree archival or non-forced removal. Delete a local
    branch only after it is no longer checked out and `git branch -d` accepts
