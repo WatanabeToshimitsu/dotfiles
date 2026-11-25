@@ -61,7 +61,8 @@ together with the user instead of guessing values.
 
 - **Task start (implicit)**: work that warrants a ticket — a feature, fix,
   or investigation with a deliverable — runs the create workflow. Skip
-  trivial questions, throwaway experiments, and dotfiles/personal chores.
+  trivial questions, throwaway experiments, dotfiles/personal chores, and
+  work whose branch already has `ticketUrl`.
 - **Pull request created (implicit)**: run the evidence workflow.
 - **Explicit**: `/ticket create`, `/ticket link <ticket URL>`,
   `/ticket evidence`.
