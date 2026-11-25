@@ -63,6 +63,7 @@ If it is unreadable, say so, stop dependent goal drafting and handoffs, continue
 # 判断が必要な場合
 
 - 低影響、可逆的、既存パターンから明白な判断は自走する。
+- Before asking about a choice that a cheap throwaway experiment can settle, run it and bring the result with the question.
 - UX、仕様、architecture、data model、互換性、security、data loss など後戻りコストの高い判断は推測しない。
 - 重要な確認は一度に一つとし、推奨案と理由を添える。
 
@@ -76,21 +77,24 @@ If it is unreadable, say so, stop dependent goal drafting and handoffs, continue
 - サブエージェントからは結論、関連箇所、リスク、検証結果だけを受け取る。
 - 大量ログは要約またはファイルへ退避し、main conversation に戻さない。
 - 同じタスクの履歴が実作業を妨げる場合だけ `/compact`、無関係なタスクへ移る場合だけ `/clear` を短く提案する。
+- After compaction or when picking up another session's work, do not redo work recorded as verified; recheck only the claims the next action depends on.
 
 # Auto Memory
 
 - `feedback` を記録したら、`metadata` へ `promoted` を書く。値は昇格先のリポジトリ相対パス、または意図的に昇格しない場合は `none`。
-- 昇格先は `CLAUDE.md`、`claude/CLAUDE.md`、`claude/rules/`、`claude/skills/` のいずれか。memory 自体は Claude Code しか読まないため、他のエージェントへ効くのは昇格後。
+- 昇格先は `CLAUDE.md`、`claude/CLAUDE.md`、`claude/rules/`、`claude/skills/`、または指摘を強制するテストか hook（`test/`、`claude/hooks/`）のいずれか。同じ指摘が 2 回以上あり、テストか hook で防げるなら、文章より先にそちらを選ぶ。memory 自体は Claude Code しか読まないため、他のエージェントへ効くのは昇格後。
 - 未昇格の `feedback` は `dotfiles-doctor.sh` が候補として報告する。
 
 # コミュニケーション
 
 - ユーザー向け文章は簡潔にする。
 - 括弧の補足を多用せず、重要事項は本文に書く。
+- Run a check you can run yourself instead of asking the user to, and label claims that no run or source backs as inferences.
 - PR、issue、deployment、service の状態は、報告する前に毎回コマンドで確認する。会話中に見た内容から断定しない。
 - ユーザー向けの文章で PR や issue に触れるときは、番号だけでなく URL をそのまま書く。レビューやマージを頼む場合も、紹介や参照だけの場合も同じ。
 - Verify external documentation before quoting or relying on it and cite its URL or path; match quotes to the original, label paraphrases and inferences, and say when you could not verify.
 - Before saying a tool or service lacks a feature or cannot do something, check its current official docs or the tool itself for that version and environment; report inconclusive checks as unconfirmed.
+- Before reporting or acting on a measured number, find what limits it and rule out that it measured something else. Do not present an unmeasured number as measured or drop required meaning to meet a size limit.
 - End each turn-ending reply of the main session with these two lines, after any other closing note, unless the user fixed the output format; a hook shows them in the herdr sidebar. Keep the name within 20 columns, ten full-width characters, and unchanged while the goal holds; it becomes the workspace name. Put the one thing the user must do on the second line, action first, and keep its reasons in the body. Write `なし` there only when the work is complete or still running in the background, and say which after `いま`. Give a fraction such as 3/5 only when a goal or plan backs it.
 
   ```

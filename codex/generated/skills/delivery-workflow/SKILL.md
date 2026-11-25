@@ -18,7 +18,13 @@ still run.
 3. Follow the stage contract. Use RED, GREEN, REFACTOR for behavior changes;
    keep refactoring separate from feature behavior.
 4. Run focused checks, fix their cause, and rerun affected checks.
+   When two fixes that rest on one premise fail the same check, write the
+   premise down and test it directly before another fix.
 5. Use `code-review` for each review the stage contract requires.
+   Before D, name the one or two facts the change's safety rests on and prove
+   each: run a script or test that calls the real code when the behavior is
+   executable, otherwise give the most direct check available. Put the
+   commands and output in the packet.
 6. Self-review the complete final diff for scope and accidental changes.
    Keep related out-of-scope work as proposals instead of implementing it.
    Do not add intermediate variables, conversions, or test cases beyond what
@@ -50,7 +56,9 @@ still run.
    backend-only changes without UI effect. Its login approval still applies;
    when it cannot run, ask the user in the session, not in the body.
    Before each PR, including a Draft, prepare its target, title, body, and full
-   outgoing commit range. Inspect them for secrets, personal and confidential
+   outgoing commit range. Unless a PR template or PR skill sets the body, state
+   in it what else the change could affect and why that is safe, and the
+   alternatives a reviewer would ask about. Inspect them for secrets, personal and confidential
    information, and content outside the requested task; report findings and
    uninspected parts. Pattern scans alone do not establish safety. In Claude
    Code, create the PR without separate confirmation when the task includes
