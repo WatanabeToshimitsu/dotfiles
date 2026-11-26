@@ -35,7 +35,7 @@ show_agent_labels_on_pane_borders = true
 # The tab row stays visible so tab_bar_right can list the sessions that wait on the user
 hide_tab_bar_when_single_tab = false
 tab_bar_right = [
-  { type = "command", command = """"${HERDR_BIN_PATH}" workspace list | jq -r '[.result.workspaces[] | select((.tokens.task // "") != "") | .label] | if length == 0 then "" else (["ユーザーのタスク数 \\(length)"] + .) | join(" / ") end'""", interval_seconds = 5, timeout_seconds = 2 },
+  { type = "command", command = """"${HERDR_BIN_PATH}" workspace list | jq -r '[.result.workspaces[] | select((.tokens.task // "") != "") | .label] | if length == 0 then "" else "タスク待ちのセッション \\(length): " + join(" / ") end'""", interval_seconds = 5, timeout_seconds = 2 },
 ]
 # Pinned, because herdr otherwise scales the width with the workspace names and the status
 # rows below are wrapped for exactly this width (ROW_COLUMNS in the hook)
