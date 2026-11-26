@@ -18,7 +18,8 @@ try:
     if not (parser_dir / "_shell_parser.py").is_file():
         raise ImportError
     from _shell_parser import (LenientParser, ShellParser, UNMODELED_SHELL, UnsupportedShell,
-                               command_words, python_sources, shell_script, spawned_commands)
+                               SHELL_PROGRAMS, command_words, python_sources, shell_script,
+                               spawned_commands)
 except ImportError:
     print("Required shell parser is unavailable", file=sys.stderr)
     raise SystemExit(2)
@@ -128,16 +129,19 @@ def classify_words(words):
     if not words:
         return "continue", {}
     text, modeled = shell_script(words)
-    if modeled and text is not None:
+    if words[0] in SHELL_PROGRAMS:
+        # Why not the -c text alone: the scanner this replaced read the word after any option
+        # holding a "c", so every word is read as shell text to keep what it stopped.
+        results = [classify_shell(word) for word in words[1:]]
+        if not modeled and KEYWORD_FALLBACK.search(" ".join(words)):
+            results.append(("deny", {"reason": OPAQUE_REASON}))
+        found = [result for result in results if result != ("continue", {})]
+        denied = next((result for result in found if result[0] == "deny"), None)
+        if denied or len(found) > 1:
+            return denied or ("deny", {"reason": OPAQUE_REASON})
+        return found[0] if found else ("continue", {})
+    if text is not None:
         return classify_shell(text)
-    if not modeled:
-        # Why not trust one word: an unmodeled option or a script file can make the shell run
-        # another word, so any word that would be stopped as shell text stops the command.
-        for word in words[1:]:
-            decision, detail = classify_shell(word)
-            if decision == "deny":
-                return decision, detail
-        return ("deny", {"reason": OPAQUE_REASON}) if KEYWORD_FALLBACK.search(" ".join(words)) else ("continue", {})
     if words[0] == "git":
         index = 1
         configs = []

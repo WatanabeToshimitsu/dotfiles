@@ -680,6 +680,10 @@ class RemoteMutationGuardSpellingTest(unittest.TestCase):
             ("bash -oc '" + self.FORCE + "' true", "deny"),
             ("bash x.sh -c '" + self.FORCE + "'", "deny"),
             ("bash -- -c 'git -C'", "deny"),
+            ("bash --norc '-- ; " + self.FORCE + "' -c true", "deny"),
+            ("bash -o pipefail -c 'gh pr cre\"\"ate --title t --body b'", "pr"),
+            ("bash -c 'git status' 'gh pr create --title t --body b'", "pr"),
+            ("bash -c 'gh pr create --title t --body b' 'git push origin main'", "deny"),
             ("bash -o pipefail -c ls", "continue"),
         ])
 
