@@ -46,6 +46,8 @@ jobs:
         run: zsh -f test/test-git-checkout-worktree.zsh
       - name: Test chpwd terminal guard
         run: zsh -f test/test-chpwd-tty-guard.zsh
+      - name: Test shell procedures in bash and zsh
+        run: python3 -B -m unittest discover -s test -p 'test_shell_procedures.py'
       - name: Test Claude sandbox canary
         run: bash test/test-claude-sandbox.sh
       - name: Test ticket browser launcher
@@ -160,6 +162,8 @@ jobs:
         run: zsh -f test/test-git-checkout-worktree.zsh
       - name: Test chpwd terminal guard
         run: zsh -f test/test-chpwd-tty-guard.zsh
+      - name: Test shell procedures in bash and zsh
+        run: python3 -B -m unittest discover -s test -p 'test_shell_procedures.py'
       - name: Test read-only Loop snapshot
         run: python3 -B -m unittest discover -s test -p 'test_loop_snapshot.py'
       - name: Test evidence video trimming
