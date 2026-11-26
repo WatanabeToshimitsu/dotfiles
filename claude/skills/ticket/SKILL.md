@@ -103,7 +103,13 @@ together with the user instead of guessing values.
    back and names the URL; confirm it with the user, `allow` it, and
    continue with that page instead of creating another. Then read the URL
    with `get url`, open the page by itself, set the title first, and fill
-   the properties and the template's sections. Title: `<Jira number>. <title>`
+   the properties and the template's sections. Properties reference.md
+   lists as required must not stay empty, whichever template was used:
+   the views the user works in filter on them. Set an empty one to the
+   value reference.md gives, or report it in the same turn when
+   reference.md gives none. Read them back from the page before reporting
+   the ticket; if one cannot be set, report as step 6 does.
+   Title: `<Jira number>. <title>`
    when a Jira issue exists (the digits of the issue key), otherwise
    `X. <title>`. When a Jira issue is added later, rewrite the `X.` prefix.
 6. If a step fails, report what already exists: the Jira issue key, the

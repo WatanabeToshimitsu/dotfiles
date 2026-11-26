@@ -37,8 +37,8 @@
     "skills/kintai/scripts/teamspirit.js": "sha256:f842178a85cbc6e8e5274e95efb08f37440cf6f5258782a158eb3aeabfdb6b1c",
     "skills/repository-audit/SKILL.md": "sha256:200164ed0c118c771c6ec4ed357059d03d7b96f87a807a88d05ded01cae79f9d",
     "skills/review-ping/SKILL.md": "sha256:04592ae3340c55d9879641c4e8b2b2bd7e31c11579c4536f8b80f0b5f8b8ff07",
-    "skills/ticket/SKILL.md": "sha256:23ae01dbda005c94ced444dc677d0b1e15f8cb8e1320fa61f77bd4caf650a16c",
-    "skills/ticket/reference.example.md": "sha256:6ec32ff44cb70e980585e31e8ac8b35ab6da243e097f72558ac2253c7987ca58"
+    "skills/ticket/SKILL.md": "sha256:0da93748fd038f2ea0dfddeac39f495245b52f26dd167518969ed345b9b648ac",
+    "skills/ticket/reference.example.md": "sha256:95089b30008d87b42ce025ef3ad58286cad93af815899a42c4ebe3bad50827e0"
   },
   "inputs": {
     "claude/CLAUDE.md": "sha256:168253d65a9a7c853945d58a896dffcc9a53f7af0bb8facd96ae230e81f6f03a",
@@ -76,8 +76,8 @@
     "claude/skills/kintai/scripts/teamspirit.js": "sha256:f842178a85cbc6e8e5274e95efb08f37440cf6f5258782a158eb3aeabfdb6b1c",
     "claude/skills/repository-audit/SKILL.md": "sha256:200164ed0c118c771c6ec4ed357059d03d7b96f87a807a88d05ded01cae79f9d",
     "claude/skills/review-ping/SKILL.md": "sha256:1bdcedbd8496b6f2d69c5564ae87562175799badb60cdc5d01af6c21616b6a73",
-    "claude/skills/ticket/SKILL.md": "sha256:aae041aa0c89c6c4b3c50f7d3ed47459d1fd2e94e0da4e1575e08c583b3375ec",
-    "claude/skills/ticket/reference.example.md": "sha256:6ec32ff44cb70e980585e31e8ac8b35ab6da243e097f72558ac2253c7987ca58",
+    "claude/skills/ticket/SKILL.md": "sha256:0bc102a2415dfabe2fe477f41a96753a14bebce364164274b2213448d1cb9ffd",
+    "claude/skills/ticket/reference.example.md": "sha256:95089b30008d87b42ce025ef3ad58286cad93af815899a42c4ebe3bad50827e0",
     "codex/adaptations.md": "sha256:afa22c2360e9d06a5b2f075481adccfbdd2efa4204a9903ba80177f36a6044e6",
     "codex/skill-adaptations.json": "sha256:66847301549e15240e6692e783a9bd7cfaab70108f6baf409e98f8e33c411b7c"
   },
