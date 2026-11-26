@@ -7,6 +7,7 @@ programs shows that the operation really ran.
 """
 
 import contextlib
+import hashlib
 import importlib.util
 import io
 import itertools
@@ -165,6 +166,7 @@ class GuardPropertyTest(unittest.TestCase):
         spec.loader.exec_module(cls.guard)
         cls.program = validate_bash_program()
         cls.counts = {}
+        cls.found = {}
 
         cls.families = [
             Family("stage-all", {
@@ -235,25 +237,28 @@ class GuardPropertyTest(unittest.TestCase):
         return cls.guard.classify_shell(command)[0]
 
     def misses(self, family):
-        cases = family.cases()
-        self.counts[family.name] = len(cases)
-        found = []
-        for case in cases:
-            command = family.command(case)
-            if family.missed(family.hook(command)) and self.performs(family, case, command):
-                found.append(case)
-        return found
+        if family.name not in self.found:
+            cases = family.cases()
+            self.counts[family.name] = len(cases)
+            self.found[family.name] = [
+                case for case in cases
+                if family.missed(family.hook(family.command(case)))
+                and self.performs(family, case, family.command(case))]
+        return self.found[family.name]
 
-    @staticmethod
-    def explained(family, case):
-        return any(all(case[dimension] in values for dimension, values in record.items())
-                   for _, record in KNOWN_MISSES.get(family.name, []))
-
-    @staticmethod
-    def recorded(family):
-        for cause, record in KNOWN_MISSES.get(family.name, []):
-            for values in itertools.product(*record.values()):
-                yield cause, dict(family.baseline, **dict(zip(record, values)))
+    def grouped(self, family):
+        """Misses by recorded cause, each as a count and a digest of its commands."""
+        groups = {cause: [] for cause, _, _ in KNOWN_MISSES.get(family.name, [])}
+        groups[None] = []
+        for case in self.misses(family):
+            cause = next((cause for cause, records, _ in KNOWN_MISSES.get(family.name, [])
+                          if any(all(case[dimension] in values for dimension, values in record.items())
+                                 for record in records)), None)
+            groups[cause].append(family.command(case))
+        unexplained = groups.pop(None)
+        digest = {cause: f"{len(commands)} {hashlib.sha256(chr(10).join(sorted(commands)).encode()).hexdigest()[:12]}"
+                  for cause, commands in groups.items()}
+        return unexplained, digest
 
     def test_in_process_runner_matches_the_hook_script(self):
         for command in ["git add -A", "git add README.md", "bash -c 'git add .'"]:
@@ -270,24 +275,15 @@ class GuardPropertyTest(unittest.TestCase):
     def test_operations_run_by_a_shell_are_stopped_except_recorded_misses(self):
         for family in self.families:
             with self.subTest(family=family.name):
-                unexplained = [family.command(case) for case in self.misses(family)
-                               if not self.explained(family, case)]
+                unexplained, digest = self.grouped(family)
                 self.assertEqual(unexplained, [])
-
-    def test_recorded_misses_still_run_and_pass_the_hook(self):
-        for family in self.families:
-            for cause, case in self.recorded(family):
-                command = family.command(case)
-                with self.subTest(family=family.name, cause=cause, command=command):
-                    self.assertTrue(family.missed(family.hook(command)))
-                    self.assertTrue(self.performs(family, case, command))
+                self.assertEqual(digest, {cause: recorded
+                                          for cause, _, recorded in KNOWN_MISSES.get(family.name, [])})
 
     @unittest.expectedFailure
-    def test_recorded_misses_are_stopped(self):
-        for family in self.families:
-            for _, case in self.recorded(family):
-                command = family.command(case)
-                self.assertFalse(family.missed(family.hook(command)), command)
+    def test_operations_run_by_a_shell_are_always_stopped(self):
+        self.assertEqual({family.name: len(self.misses(family)) for family in self.families},
+                         {family.name: 0 for family in self.families})
 
     def test_operations_quoted_as_data_are_not_stopped(self):
         for family in self.families:
@@ -310,34 +306,37 @@ RESERVED = ["! {X}", "{ {X}; }", "if true; then {X}; fi", "for i in 1; do {X}; d
             "while true; do {X}; break; done"]
 SHELL_TEXT = ["bash -c '{X}'", "sh -c '{X}'", "zsh -c '{X}'", "eval '{X}'", "echo `{X}`"]
 
-# Each entry names one cause and the generated values that reach it. Every
-# combination listed must still be a miss, and every miss must match an entry.
+# Each cause lists the generated values that reach it, then the count and
+# digest of the misses it explains, so a new, fixed or swapped miss fails.
 KNOWN_MISSES = {
     "stage-all": [
-        ("all-files pathspec other than '.'", {"operation": ["./", ":/"]}),
-        ("git option the parser does not skip", {"git_option": ["--no-pager ", "-P "]}),
-        ("git option the parser does not skip",
-         {"git_option": ["--git-dir=.git "], "operation": ["-vA"]}),
-        ("wrapper before git", {"prefix": WRAPPERS, "operation": ["-vA"]}),
-        ("wrapper before git", {"prefix": WRAPPERS, "git_option": SKIPPED_GIT_OPTIONS}),
-        ("wrapper before git",
-         {"prefix": WRAPPERS, "operation": ["."], "composition": ['echo "$({X})"']}),
-        ("reserved word or function around git",
-         {"composition": RESERVED + ["f() { {X}; }; f"], "operation": ["-vA"]}),
-        ("reserved word or function around git",
-         {"composition": RESERVED + ["f() { {X}; }; f"], "git_option": SKIPPED_GIT_OPTIONS}),
-        ("text run by another shell", {"composition": SHELL_TEXT, "operation": ["-vA", "."]}),
-        ("text run by another shell",
-         {"composition": SHELL_TEXT, "git_option": SKIPPED_GIT_OPTIONS}),
+        ("all-files pathspec other than '.'", [{"operation": ["./", ":/"]}], "215 2ecca9fd3320"),
+        ("git option the parser does not skip", [
+            {"git_option": ["--no-pager ", "-P "]},
+            {"git_option": ["--git-dir=.git "], "operation": ["-vA"]},
+        ], "157 04e6b2cdfb3f"),
+        ("wrapper before git", [
+            {"prefix": WRAPPERS, "operation": ["-vA"]},
+            {"prefix": WRAPPERS, "git_option": SKIPPED_GIT_OPTIONS},
+            {"prefix": WRAPPERS, "operation": ["."], "composition": ['echo "$({X})"']},
+        ], "173 7f62300b0783"),
+        ("reserved word or function around git", [
+            {"composition": RESERVED + ["f() { {X}; }; f"], "operation": ["-vA"]},
+            {"composition": RESERVED + ["f() { {X}; }; f"], "git_option": SKIPPED_GIT_OPTIONS},
+        ], "39 b81da1ec0117"),
+        ("text run by another shell", [
+            {"composition": SHELL_TEXT, "operation": ["-vA", "."]},
+            {"composition": SHELL_TEXT, "git_option": SKIPPED_GIT_OPTIONS},
+        ], "39 f7953eb48c1e"),
     ],
     "force-push": [
-        ("reserved word before the command", {"composition": RESERVED}),
-        ("eval", {"composition": ["eval '{X}'"]}),
+        ("reserved word before the command", [{"composition": RESERVED}], "240 4326dd5fb4a8"),
+        ("eval", [{"composition": ["eval '{X}'"]}], "48 b9d1dc7f759b"),
     ],
     "create-pr": [
-        ("gh pr new alias", {"operation": ["gh pr new --title t --body b"]}),
-        ("reserved word before the command", {"composition": RESERVED}),
-        ("eval", {"composition": ["eval '{X}'"]}),
+        ("gh pr new alias", [{"operation": ["gh pr new --title t --body b"]}], "88 4a4d1f267562"),
+        ("reserved word before the command", [{"composition": RESERVED}], "144 d87d63d3c5a8"),
+        ("eval", [{"composition": ["eval '{X}'"]}], "28 629d0be39e09"),
     ],
 }
 
