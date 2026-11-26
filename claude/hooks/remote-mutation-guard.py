@@ -17,7 +17,8 @@ sys.path.insert(0, str(parser_dir))
 try:
     if not (parser_dir / "_shell_parser.py").is_file():
         raise ImportError
-    from _shell_parser import LenientParser, ShellParser, UNMODELED_SHELL, UnsupportedShell
+    from _shell_parser import (LenientParser, ShellParser, UNMODELED_SHELL, UnsupportedShell,
+                               python_sources, spawned_commands)
 except ImportError:
     print("Required shell parser is unavailable", file=sys.stderr)
     raise SystemExit(2)
@@ -32,7 +33,7 @@ class ShellWords(ShellParser):
 
     def finish(self, arguments):
         if arguments:
-            self.commands.append(list(arguments))
+            self.commands.append(arguments)
 
 
 RESERVED_WORDS = {"!", "{", "}", "do", "done", "then", "else", "elif", "fi", "if", "while", "until"}
@@ -292,6 +293,8 @@ def lenient_decision(command):
         raise UnsupportedShell()
     parsed = LenientWords(command)
     parsed.parse()
+    if spawned_publication(parsed):
+        return "deny", {"reason": OPAQUE_REASON}
     for words in parsed.commands:
         program = unwrap(words)
         while program[:1] and program[0] in RESERVED_WORDS:
@@ -337,6 +340,12 @@ def classify_unparsed(command):
         return ("deny", {"reason": OPAQUE_REASON}) if KEYWORD_FALLBACK.search(command) else ("continue", {})
 
 
+def spawned_publication(parsed):
+    """Report publication launched from Python code, which the guard cannot inspect."""
+    return any(classify_unparsed(text)[0] == "deny" for source in python_sources(parsed, parsed.commands)
+               for text in spawned_commands(source))
+
+
 def classify_shell(command):
     if not isinstance(command, str):
         return "deny", {"reason": OPAQUE_REASON}
@@ -345,6 +354,8 @@ def classify_shell(command):
         parsed.parse()
     except (UnsupportedShell, RecursionError):
         return classify_unparsed(command)
+    if spawned_publication(parsed):
+        return "deny", {"reason": OPAQUE_REASON}
     result = ("continue", {})
     pushes = []
     for words in parsed.commands:

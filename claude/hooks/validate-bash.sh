@@ -71,7 +71,8 @@ sys.path.insert(0, str(parser_dir))
 try:
     if not (parser_dir / "_shell_parser.py").is_file():
         raise ImportError
-    from _shell_parser import LenientParser, ShellParser, UNMODELED_SHELL, UnsupportedShell
+    from _shell_parser import (LenientParser, ShellParser, UNMODELED_SHELL, UnsupportedShell,
+                               python_sources, spawned_commands)
 except ImportError:
     print("Required shell parser is unavailable", file=sys.stderr)
     raise SystemExit(2)
@@ -89,10 +90,12 @@ class Commands(ShellParser):
         self.unknown = False
         self.shell_text = False
         self.node_launch = False
+        self.argvs = []
 
     def finish(self, arguments):
         if not arguments:
             return
+        self.argvs.append(arguments)
         if Path(launched_program(arguments) or "").name in NODE_LAUNCHERS:
             self.node_launch = True
         if arguments[0] in {"cd", "pushd", "popd"}:
@@ -161,6 +164,15 @@ class LenientCommands(LenientParser, Commands):
     """Apply the same policy to commands located in text Commands rejects."""
 
 
+def stages_all(text):
+    spawned = Commands(text)
+    try:
+        spawned.parse()
+    except (UnsupportedShell, RecursionError):
+        return bool(LEGACY_PATTERN.search(text))
+    return spawned.forbidden or (spawned.shell_text and bool(LEGACY_PATTERN.search(text)))
+
+
 try:
     payload = json.load(sys.stdin)
     if payload.get("tool_name") != "Bash":
@@ -174,12 +186,12 @@ try:
 except (ValueError, AttributeError):
     sys.exit(0)
 
-commands = Commands(command)
+commands = parsed = Commands(command)
 try:
     commands.parse()
 except (UnsupportedShell, RecursionError):
     commands.unknown = True
-    lenient = LenientCommands(command)
+    lenient = parsed = LenientCommands(command)
     try:
         if UNMODELED_SHELL.search(command):
             raise UnsupportedShell()
@@ -198,7 +210,9 @@ if commands.ticket_state or (
             TICKET_STATE.search(command) or
             (DIRECTORY_CHANGE.search(command) and RELATIVE_PATH_OPTION.search(command)))):
     reason = "Use ticket-browser for the ticket browser session and profile."
-elif commands.forbidden or (commands.shell_text and LEGACY_PATTERN.search(command)):
+elif commands.forbidden or (commands.shell_text and LEGACY_PATTERN.search(command)) or (
+        any(stages_all(text) for source in python_sources(parsed, parsed.argvs)
+            for text in spawned_commands(source))):
     reason = "Do not git-add all files. Specify the file name(s) to add."
 elif background and commands.node_launch:
     reason = "Start long-running Node processes through the launch gate: launchgate run -- <command>"

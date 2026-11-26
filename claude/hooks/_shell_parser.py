@@ -1,6 +1,9 @@
 """Parse hook command text without executing it; callers supply finish policy."""
 
+import ast
+from pathlib import Path
 import re
+import shlex
 
 
 class UnsupportedShell(ValueError):
@@ -11,6 +14,8 @@ class ShellParser:
     def __init__(self, source):
         self.source = source
         self.index = 0
+        self.heredoc_bodies = []
+        self.writes = []
 
     def word(self):
         value = []
@@ -52,9 +57,15 @@ class ShellParser:
             raise UnsupportedShell()
         return "".join(value), quoted
 
+    def record_heredoc(self, owner, start, end, strip_tabs):
+        body = self.source[start:end]
+        self.heredoc_bodies.append((owner, re.sub(r"(?m)^\t+", "", body) if strip_tabs else body))
+
     def heredocs(self, pending):
-        for delimiter, strip_tabs, quoted in pending:
+        for delimiter, strip_tabs, quoted, owner in pending:
+            start = self.index
             while self.index < len(self.source):
+                line_start = self.index
                 end = self.source.find("\n", self.index)
                 if end < 0:
                     end = len(self.source)
@@ -62,6 +73,7 @@ class ShellParser:
                 self.index = min(end + 1, len(self.source))
                 candidate = line.lstrip("\t") if strip_tabs else line
                 if candidate == delimiter:
+                    self.record_heredoc(owner, start, line_start, strip_tabs)
                     break
                 # Unquoted heredocs can execute substitutions, even for cat.
                 if not quoted and ("$" in line or "`" in line or "\\" in line):
@@ -107,7 +119,9 @@ class ShellParser:
                     self.index += 1
                 target, quoted = self.word()
                 if operator in {"<<", "<<-"}:
-                    pending.append((target, operator == "<<-", quoted))
+                    pending.append((target, operator == "<<-", quoted, arguments))
+                elif operator in {">", ">>"}:
+                    self.writes.append((arguments, target, operator))
             else:
                 argument, _ = self.word()
                 arguments.append(argument)
@@ -119,6 +133,79 @@ class ShellParser:
 REDIRECT = re.compile(r"<<<|<<-|<<|<>|<&|<|>>|>&|>")
 ANSI_C = re.compile(r"'((?:[^'\\]|\\.)*)'?", re.S)
 UNMODELED_SHELL = re.compile(r"=~|\(\(|\$\{#?(?!#)[^}#]*(?:[#\s'\"<>()`;&|\\]|\$\{)")
+PYTHON = re.compile(r"python[0-9.]*$")
+LAUNCHERS = {"env", "command", "exec", "nohup", "time", "timeout", "nice", "sudo", "rtk", "proxy", "uv", "run"}
+SPAWNS = {"subprocess": {"run", "call", "check_call", "check_output", "Popen", "getoutput", "getstatusoutput"},
+          "os": {"system", "popen"}}
+
+
+def python_sources(parser, argvs):
+    """Yield the Python source each python command in argvs runs: its -c text, a script this text writes, or its stdin heredoc."""
+    files = {}
+    for writer, target, operator in parser.writes:
+        body = "".join(body for owner, body in parser.heredoc_bodies if owner is writer)
+        files[Path(target)] = (files.get(Path(target), "") if operator == ">>" else "") + body
+    for argv in argvs:
+        words = list(argv)
+        if re.match(r"command -\w*[vV]", " ".join(words[:2])):
+            continue
+        while words and (words[0] in LAUNCHERS or "=" in words[0] or re.match(r"[-\d]", words[0])):
+            words.pop(0)
+        if not words or not PYTHON.match(Path(words[0]).name):
+            continue
+        mode, rest = "stdin", iter(words[1:])
+        for word in rest:
+            if re.fullmatch(r"-\w*[cm]", word):
+                mode = word[-1]
+                break
+            if word in {"-W", "-X"}:
+                next(rest, None)
+            elif word == "-" or not word.startswith("-"):
+                mode = "stdin" if word == "-" else word
+                break
+        if mode == "c":
+            yield next(rest, "")
+        elif mode == "stdin":
+            yield from (body for owner, body in parser.heredoc_bodies if owner is argv)
+        elif mode != "m" and Path(mode) in files:
+            yield files[Path(mode)]
+
+
+def spawned_commands(source):
+    """Yield the shell text of each subprocess or os call in Python source that has a literal first argument."""
+    try:
+        tree = ast.parse(source)
+    except (SyntaxError, ValueError, RecursionError):
+        return
+    modules, functions, shadowed = {}, set(), set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            modules.update((alias.asname or alias.name, alias.name) for alias in node.names if alias.name in SPAWNS)
+        elif isinstance(node, ast.ImportFrom):
+            names = {alias.asname or alias.name: alias.name for alias in node.names}
+            if node.module in SPAWNS:
+                functions.update(name for name, original in names.items() if original in SPAWNS[node.module])
+            else:
+                shadowed.update(names)
+    # Why not resolve scopes: a name also imported from another module is ambiguous, so skip it.
+    functions -= shadowed
+    for node in ast.walk(tree):
+        func = getattr(node, "func", None)
+        if not isinstance(node, ast.Call) or not node.args or not (
+                isinstance(func, ast.Name) and func.id in functions or
+                isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name) and
+                func.attr in SPAWNS.get(modules.get(func.value.id), ())):
+            continue
+        first = node.args[0]
+        if isinstance(first, ast.Constant) and isinstance(first.value, str):
+            yield first.value
+        elif isinstance(first, (ast.List, ast.Tuple)):
+            argv = [element.value if isinstance(element, ast.Constant) and isinstance(element.value, str)
+                    else "<expression>" for element in first.elts]
+            shell = any(keyword.arg == "shell" and getattr(keyword.value, "value", None) is True
+                        for keyword in node.keywords)
+            # Why not join a shell=True sequence: sh runs only its first item; the rest become $0, $1, ...
+            yield argv[0] if shell and argv else shlex.join(argv)
 
 
 class LenientParser(ShellParser):
@@ -192,14 +279,17 @@ class LenientParser(ShellParser):
         return "".join(value), quoted
 
     def heredocs(self, pending):
-        for delimiter, strip_tabs, quoted in pending:
+        for delimiter, strip_tabs, quoted, owner in pending:
+            start = self.index
             while self.index < len(self.source):
+                line_start = self.index
                 end = self.source.find("\n", self.index)
                 end = len(self.source) if end < 0 else end
                 line = self.source[self.index:end]
                 if (line.lstrip("\t") if strip_tabs else line) == delimiter or quoted:
                     self.index = end + 1
                     if (line.lstrip("\t") if strip_tabs else line) == delimiter:
+                        self.record_heredoc(owner, start, line_start, strip_tabs)
                         break
                 else:
                     self.expansions("\n")
@@ -230,7 +320,9 @@ class LenientParser(ShellParser):
                     self.index += 1
                 target, quoted = self.word(closer)
                 if operator in {"<<", "<<-"} and target:
-                    pending.append((target, operator == "<<-", quoted))
+                    pending.append((target, operator == "<<-", quoted, arguments))
+                elif operator in {">", ">>"} and target:
+                    self.writes.append((arguments, target, operator))
             elif char in ";&|()\n":
                 self.finish(arguments)
                 arguments = []
