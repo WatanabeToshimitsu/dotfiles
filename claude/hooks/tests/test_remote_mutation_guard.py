@@ -682,9 +682,9 @@ class RemoteMutationGuardSpellingTest(unittest.TestCase):
             ("bash -- -c 'git -C'", "deny"),
             ("bash --norc '-- ; " + self.FORCE + "' -c true", "deny"),
             ("bash -o pipefail -c 'gh pr cre\"\"ate --title t --body b'", "pr"),
-            ("bash -c 'git status' 'gh pr create --title t --body b'", "pr"),
-            ("bash -c 'gh pr create --title t --body b' 'git push origin main'", "deny"),
+            ("bash --norc 'gh pr create --title t --body b' -c 'git push origin main'", "deny"),
             ("bash -o pipefail -c ls", "continue"),
+            ("bash -c 'printf hello' '" + self.FORCE + "'", "continue"),
         ])
 
     def test_brace_group_push_is_blocked(self):

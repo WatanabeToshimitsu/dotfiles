@@ -130,9 +130,11 @@ def classify_words(words):
         return "continue", {}
     text, modeled = shell_script(words)
     if words[0] in SHELL_PROGRAMS:
-        # Why not the -c text alone: the scanner this replaced read the word after any option
-        # holding a "c", so every word is read as shell text to keep what it stopped.
-        results = [classify_shell(word) for word in words[1:]]
+        # Why not the -c text alone: the scanner this replaced read the word after the first
+        # option holding a "c", and what it stopped there stays stopped.
+        picked = next((words[index + 1] for index, word in enumerate(words[1:-1], 1)
+                       if word.startswith("-") and "c" in word), None)
+        results = [classify_shell(word) for word in {text, picked} - {None}]
         if not modeled and KEYWORD_FALLBACK.search(" ".join(words)):
             results.append(("deny", {"reason": OPAQUE_REASON}))
         found = [result for result in results if result != ("continue", {})]
