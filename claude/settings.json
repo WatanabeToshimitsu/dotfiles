@@ -433,6 +433,16 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "startup|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/herdr-session-status.py\"",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "Stop": [
