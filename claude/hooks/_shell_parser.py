@@ -175,11 +175,10 @@ def command_words(words):
         elif program in WRAPPER_VALUE_OPTIONS:
             values = WRAPPER_VALUE_OPTIONS[program]
             words = words[1:]
-            while words and words[0].startswith("-"):
-                option = words.pop(0)
-                if option == "--":
-                    break
-                if option in values:
+            # Why not stop at -- or an env assignment: the guards before this skipped
+            # both and kept reading options, and a shorter skip would drop their denials.
+            while words and (words[0].startswith("-") or program == "env" and ASSIGNMENT.match(words[0])):
+                if words.pop(0) in values:
                     words = words[1:]
             if program == "timeout":
                 words = words[1:]

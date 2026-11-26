@@ -66,14 +66,19 @@ def names_ticket_path(word, bare=False):
     return False
 
 
-def adds_all(words):
-    """Whether words run git add on every file: -A, --all, or a pathspec naming the whole tree."""
+def adds_all(arguments):
+    """Whether arguments run git add on every file: -A, --all, or a pathspec naming the whole tree."""
+    words = command_words(arguments)
     if not words or Path(words[0]).name != "git":
         return False
+    literal = any(word.startswith("GIT_LITERAL_PATHSPECS=") and
+                  word.split("=", 1)[1].lower() not in {"", "0", "false", "no", "off"}
+                  for word in arguments[:len(arguments) - len(words)])
     rest = iter(words[1:])
     for word in rest:
         if not word.startswith("-"):
             break
+        literal = literal or word == "--literal-pathspecs"
         if word in GIT_VALUE_OPTIONS:
             next(rest, None)
     else:
@@ -87,7 +92,7 @@ def adds_all(words):
         elif options and argument.startswith("-"):
             if argument == "--all" or (not argument.startswith("--") and "A" in argument):
                 return True
-        elif argument and os.path.normpath(argument.removeprefix(":/") or ".") == ".":
+        elif argument and os.path.normpath((argument if literal else argument.removeprefix(":/")) or ".") == ".":
             return True
     return False
 
@@ -123,9 +128,8 @@ class Commands(ShellParser):
         if not arguments:
             return
         self.argvs.append(arguments)
-        words = command_words(arguments)
-        text, _ = shell_script(words)
-        if adds_all(words) or (text is not None and stages_all(text)):
+        text, _ = shell_script(command_words(arguments))
+        if adds_all(arguments) or (text is not None and stages_all(text)):
             self.forbidden = True
         if Path(launched_program(arguments) or "").name in NODE_LAUNCHERS:
             self.node_launch = True

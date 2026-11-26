@@ -173,7 +173,9 @@ class GuardPropertyTest(unittest.TestCase):
                 "operation": STAGE_ALL, "git_option": GIT_OPTIONS,
                 "prefix": PREFIXES, "composition": COMPOSITIONS,
             }, lambda case: f"{case['prefix']}git {case['git_option']}add {case['operation']}",
-                "git", lambda case: ["add", *case["operation"].split()],
+                # Literal pathspecs read :/ as a path named ":", which git add rejects.
+                "git", lambda case: None if (case["operation"], case["git_option"]) == (
+                    ":/", "--literal-pathspecs ") else ["add", *case["operation"].split()],
                 cls.validate_bash, lambda decision: decision != "deny"),
             Family("force-push", {
                 "operation": FORCE_PUSH, "git_option": GIT_OPTIONS,
@@ -213,8 +215,8 @@ class GuardPropertyTest(unittest.TestCase):
     @classmethod
     def performs(cls, family, case, command):
         expected = family.operation(case)
-        return any(call[0] == family.program and call[-len(expected):] == expected
-                   for call in cls.calls(command))
+        return expected is not None and any(call[0] == family.program and call[-len(expected):] == expected
+                                            for call in cls.calls(command))
 
     @classmethod
     def validate_bash(cls, command):

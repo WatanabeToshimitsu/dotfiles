@@ -128,10 +128,15 @@ def classify_words(words):
     if not words:
         return "continue", {}
     text, modeled = shell_script(words)
-    if text is not None:
+    if modeled and text is not None:
         return classify_shell(text)
     if not modeled:
-        # Why not continue: the shell runs a file this cannot read, so its own words are all there is.
+        # Why not trust one word: an unmodeled option or a script file can make the shell run
+        # another word, so any word that would be stopped as shell text stops the command.
+        for word in words[1:]:
+            decision, detail = classify_shell(word)
+            if decision == "deny":
+                return decision, detail
         return ("deny", {"reason": OPAQUE_REASON}) if KEYWORD_FALLBACK.search(" ".join(words)) else ("continue", {})
     if words[0] == "git":
         index = 1

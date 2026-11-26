@@ -673,6 +673,16 @@ class RemoteMutationGuardSpellingTest(unittest.TestCase):
     def test_eval_push_is_blocked(self):
         self.assert_decision("eval '" + self.FORCE + "'", "deny")
 
+    def test_shell_forms_the_old_scanner_stopped_stay_stopped(self):
+        self.assert_decisions([
+            ("env X=1 -i " + self.FORCE, "deny"),
+            ("env -- -i " + self.FORCE, "deny"),
+            ("bash -oc '" + self.FORCE + "' true", "deny"),
+            ("bash x.sh -c '" + self.FORCE + "'", "deny"),
+            ("bash -- -c 'git -C'", "deny"),
+            ("bash -o pipefail -c ls", "continue"),
+        ])
+
     def test_brace_group_push_is_blocked(self):
         self.assert_decision("{ " + self.FORCE + "; }", "deny")
 
