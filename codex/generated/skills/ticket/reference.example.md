@@ -27,6 +27,8 @@ from `symlink-manifest.sh`, because this repository is public.
   filtered to the user's own tickets.
 - Templates: `<team template name>` for `<kind of work>`; the default
   template otherwise.
+- Required properties on every new ticket, and the value to set when the
+  template leaves one empty: `<property = value>`.
 - Evidence field: `<property name or body heading>` and how to append.
 - Status buttons in the template body, if any: `<start>` / `<review>` /
   `<finish>`.
