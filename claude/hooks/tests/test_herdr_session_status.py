@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+import re
 import stat
 import subprocess
 import sys
@@ -9,6 +10,7 @@ import unittest
 
 
 SCRIPT = Path(__file__).resolve().parents[1] / "herdr-session-status.py"
+SETTINGS = Path(__file__).resolve().parents[2] / "settings.json"
 
 # Stands in for herdr: logs each argv, answers `workspace get` from a fixture, fails on request.
 FAKE_HERDR = """#!/usr/bin/env python3
@@ -21,6 +23,15 @@ sys.exit(int(os.environ.get("FAKE_HERDR_EXIT", "0")))
 """
 
 REPLY = "PR を作成しました。\n\n目的: 状態表示 herdr ─ いま: レビュー待ち\nユーザーのタスク: PR の差分を見て、マージしてよいか返事をする"
+
+
+def matcher_selects(matcher, value):
+    """Apply the hooks matcher rules in https://code.claude.com/docs/en/hooks."""
+    if matcher in (None, "", "*"):
+        return True
+    if re.fullmatch(r"[A-Za-z0-9_\- ,|]*", matcher):
+        return value in {part.strip() for part in re.split(r"[|,]", matcher)}
+    return re.search(matcher, value) is not None
 
 
 class HerdrSessionStatusTest(unittest.TestCase):
@@ -153,6 +164,19 @@ class HerdrSessionStatusTest(unittest.TestCase):
         cleared = {"task": "", "task2": "", "task3": "", "now": "", "done": ""}
         self.assertEqual((self.status(calls), self.status(calls, ("workspace", "w1"))), (cleared, cleared))
         self.assertEqual(len(calls), 2)
+
+    def test_a_new_session_clears_the_status_through_the_hooks_settings_registers(self) -> None:
+        hooks = json.loads(SETTINGS.read_text(encoding="utf-8"))["hooks"]
+        for source in ("startup", "clear"):
+            with self.subTest(source=source):
+                wired = [hook["command"] for group in hooks.get("SessionStart", [])
+                         if matcher_selects(group.get("matcher"), source)
+                         for hook in group["hooks"] if SCRIPT.name in hook["command"]]
+                self.assertEqual(len(wired), 1)
+                calls = self.run_hook(hook_event_name="SessionStart", source=source, last_assistant_message=None)
+                cleared = {"task": "", "task2": "", "task3": "", "now": "", "done": ""}
+                self.assertEqual(self.status(calls), cleared)
+                self.log.unlink()
 
     def test_reports_the_same_status_to_the_workspace(self) -> None:
         calls = self.run_hook()
