@@ -8,6 +8,9 @@
   "expand-tool-output": {
     "note": "This skill can read existing Claude archive IDs only when the local Claude archive helper is installed. It does not enable a Codex compaction hook. If the archive/helper is unavailable, report the missing dependency instead of guessing output."
   },
+  "kintai": {
+    "note": "This skill needs Claude in Chrome, including its JavaScript tool, on the user's signed-in Chrome. In Codex, report it as unavailable; never enter TeamSpirit data with another browser tool."
+  },
   "review-ping": {
     "note": "This skill needs Claude Code's Slack connector, Claude in Chrome, and background Bash re-invocation. In Codex, report it as unavailable; never send the review request with another tool or connector."
   },
