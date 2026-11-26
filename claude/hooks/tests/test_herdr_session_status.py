@@ -31,7 +31,9 @@ def matcher_selects(matcher, value):
         return True
     if re.fullmatch(r"[A-Za-z0-9_\- ,|]*", matcher):
         return value in {part.strip() for part in re.split(r"[|,]", matcher)}
-    return re.search(matcher, value) is not None
+    # Why not Python's re: matchers are JavaScript regular expressions, and some syntax differs.
+    test = "process.exit(new RegExp(process.argv[1]).test(process.argv[2]) ? 0 : 1)"
+    return subprocess.run(["node", "-e", test, matcher, value]).returncode == 0
 
 
 class HerdrSessionStatusTest(unittest.TestCase):
@@ -173,7 +175,13 @@ class HerdrSessionStatusTest(unittest.TestCase):
                          if matcher_selects(group.get("matcher"), source)
                          for hook in group["hooks"] if SCRIPT.name in hook["command"]]
                 self.assertEqual(len(wired), 1)
-                calls = self.run_hook(hook_event_name="SessionStart", source=source, last_assistant_message=None)
+                with tempfile.TemporaryDirectory() as home:
+                    (Path(home) / ".claude").mkdir()
+                    (Path(home) / ".claude" / "hooks").symlink_to(SCRIPT.parent)
+                    subprocess.run(["bash", "-c", wired[0]], env={**self.env, "HOME": home}, check=True,
+                                   input=json.dumps({"hook_event_name": "SessionStart", "source": source}),
+                                   text=True, capture_output=True, timeout=10)
+                calls = [json.loads(line) for line in self.log.read_text(encoding="utf-8").splitlines()]
                 cleared = {"task": "", "task2": "", "task3": "", "now": "", "done": ""}
                 self.assertEqual(self.status(calls), cleared)
                 self.log.unlink()
