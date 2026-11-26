@@ -62,6 +62,7 @@ MANIFEST_CLAUDE_FILES=(
   skills/delivery-workflow/references/invocation.md
   skills/delivery-workflow/references/scheduled-work.md
   skills/delivery-workflow/references/goals.md
+  skills/delivery-workflow/references/improvement-loop.md
   skills/difit-guided-review/SKILL.md
   skills/evidence-video/SKILL.md
   skills/evidence-video/references/recording.md
