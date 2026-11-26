@@ -648,9 +648,11 @@ class RemoteMutationGuardSpellingTest(unittest.TestCase):
     def test_command_p_pr_create_requires_review(self):
         self.assert_decision("command -p gh pr create --title T --body B", "pr")
 
-    @unittest.expectedFailure
     def test_exec_with_argv0_option_push_is_blocked(self):
         self.assert_decision("exec -a name " + self.FORCE, "deny")
+
+    def test_env_with_directory_option_push_is_blocked(self):
+        self.assert_decision("x=$y; env -C repo git push origin main", "deny")
 
     @unittest.expectedFailure
     def test_xargs_push_is_blocked(self):
@@ -668,11 +670,9 @@ class RemoteMutationGuardSpellingTest(unittest.TestCase):
     def test_sudo_push_is_blocked(self):
         self.assert_decision("sudo " + self.FORCE, "deny")
 
-    @unittest.expectedFailure
     def test_eval_push_is_blocked(self):
         self.assert_decision("eval '" + self.FORCE + "'", "deny")
 
-    @unittest.expectedFailure
     def test_brace_group_push_is_blocked(self):
         self.assert_decision("{ " + self.FORCE + "; }", "deny")
 
@@ -684,7 +684,6 @@ class RemoteMutationGuardSpellingTest(unittest.TestCase):
     def test_graphql_delete_ref_is_blocked(self):
         self.assert_decision("gh api graphql -f query='mutation { deleteRef(input: {refId: \"R\"}) { clientMutationId } }'", "deny")
 
-    @unittest.expectedFailure
     def test_pr_new_alias_requires_review(self):
         self.assert_decision("gh pr new --title T --body B", "pr")
 
@@ -875,7 +874,6 @@ class RemoteMutationGuardFallbackMissTest(unittest.TestCase):
         ('ansi_c_quote_after_line_continuation', 'echo $\\\n\'a\\\'\' ; git push origin "$b" #\''),
         ('coproc', 'coproc git push origin "$b"'),
         ('for_without_in', 'x=$y; set -- main; for branch do git push origin "$branch"; done'),
-        ('env_with_directory_option', 'x=$y; env -C repo git push origin main'),
         ('zsh_repeat', "x=$y; zsh -c 'repeat 1 git push origin main'"),
         ('zsh_nocorrect', 'x=$y; nocorrect git push origin main'),
         ('zsh_brace_loop', 'while [[ -n $b ]] { git push origin "$b"; break; }'),

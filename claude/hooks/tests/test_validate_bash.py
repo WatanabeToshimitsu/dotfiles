@@ -117,7 +117,6 @@ class ValidateBashTests(unittest.TestCase):
     def test_shell_split_by_env_from_a_heredoc_is_denied(self):
         self.assertEqual(self.decision("env -S 'bash -s' <<'EOF'\ngit add -A\nEOF\n"), "deny")
 
-    @unittest.expectedFailure
     def test_wrapped_git_with_global_options_is_denied(self):
         self.assertEqual(self.decision('env git -C "$REPO" add -A'), "deny")
 

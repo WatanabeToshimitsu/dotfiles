@@ -49,13 +49,27 @@ class ShellParser:
                 self.index += 1
                 self.parse(nested=True)
                 value.append("<substitution>")
-            elif char in "$`":
+            elif char == "`":
+                self.backquote()
+            elif char == "$":
                 raise UnsupportedShell()
             else:
                 value.append(char)
         if quote or self.index == start:
             raise UnsupportedShell()
         return "".join(value), quoted
+
+    def backquote(self):
+        """Report the commands in a backquote substitution, then refuse it as unmodeled syntax."""
+        end = self.index
+        while end < len(self.source) and self.source[end] != "`":
+            end += 2 if self.source[end] == "\\" else 1
+        if end < len(self.source):
+            self.source, self.index = re.sub(r"\\([$`\\])", r"\1", self.source[self.index:end]), 0
+            self.parse()
+        # Why not resume after the body: callers fall back to pattern checks on
+        # unmodeled syntax, and reading the body must only add findings.
+        raise UnsupportedShell()
 
     def record_heredoc(self, owner, start, end, strip_tabs):
         body = self.source[start:end]
@@ -135,8 +149,78 @@ ANSI_C = re.compile(r"'((?:[^'\\]|\\.)*)'?", re.S)
 UNMODELED_SHELL = re.compile(r"=~|\(\(|\$\{#?(?!#)[^}#]*(?:[#\s'\"<>()`;&|\\]|\$\{)")
 PYTHON = re.compile(r"python[0-9.]*$")
 LAUNCHERS = {"env", "command", "exec", "nohup", "time", "timeout", "nice", "sudo", "rtk", "proxy", "uv", "run"}
+RESERVED_WORDS = {"!", "{", "}", "do", "done", "then", "else", "elif", "fi", "if", "while", "until"}
+ASSIGNMENT = re.compile(r"[A-Za-z_]\w*=")
+WRAPPER_VALUE_OPTIONS = {
+    "env": {"-u", "--unset", "-C", "--chdir"}, "exec": {"-a"},
+    **dict.fromkeys(["time", "nohup", "nice", "timeout", "stdbuf"],
+                    {"-n", "-k", "-s", "--adjustment", "--kill-after", "--signal", "-i", "-o", "-e"}),
+}
+SHELL_PROGRAMS = {"bash", "sh", "zsh", "dash", "ksh"}
 SPAWNS = {"subprocess": {"run", "call", "check_call", "check_output", "Popen", "getoutput", "getstatusoutput"},
           "os": {"system", "popen"}}
+
+
+def command_words(words):
+    """The words from the command name on, past reserved words, assignments, and wrapper programs."""
+    words = list(words)
+    while words:
+        program = Path(words[0]).name
+        if words[0] in RESERVED_WORDS or ASSIGNMENT.match(words[0]):
+            words = words[1:]
+        elif program == "rtk":
+            words = words[2:] if words[1:2] == ["proxy"] else words[1:]
+        elif program in {"command", "builtin", "noglob"}:
+            words = words[2:] if words[1:2] == ["--"] else words[1:]
+        elif program in WRAPPER_VALUE_OPTIONS:
+            values = WRAPPER_VALUE_OPTIONS[program]
+            words = words[1:]
+            while words and words[0].startswith("-"):
+                option = words.pop(0)
+                if option == "--":
+                    break
+                if option in values:
+                    words = words[1:]
+            if program == "timeout":
+                words = words[1:]
+        else:
+            break
+    return words
+
+
+def shell_script(words):
+    """The text eval or a shell's -c option runs, and whether reading it met only modeled options.
+
+    The text is None when the words run none. A shell reading a file or stdin,
+    or given --rcfile, also gives False; an -o value or an option after -c
+    still gives the text, with False.
+    """
+    program = Path(words[0]).name if words else ""
+    if program == "eval":
+        return " ".join(words[1:]), True
+    if program not in SHELL_PROGRAMS:
+        return None, True
+    modeled, reads_text, rest = True, False, iter(words[1:])
+    for word in rest:
+        if word in {"--", "-"}:
+            word = next(rest, None)
+            break
+        if word in {"--rcfile", "--init-file"}:
+            return None, False
+        if not word.startswith(("-", "+")):
+            break
+        if word.startswith("--"):
+            continue
+        modeled = modeled and not reads_text
+        if re.search(r"[oO]", word[1:]):
+            modeled = False
+            next(rest, None)
+        reads_text = reads_text or (word[0] == "-" and "c" in word[1:])
+    else:
+        word = None
+    if not reads_text or word is None:
+        return None, False
+    return word, modeled
 
 
 def python_sources(parser, argvs):
@@ -221,7 +305,7 @@ class LenientParser(ShellParser):
             self.index += 1
             self.parse(")")
         elif char == "`":
-            raise UnsupportedShell()
+            self.backquote()
         else:
             return False
         return True
