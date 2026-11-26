@@ -98,6 +98,8 @@ Build the technical plan from repository evidence; ask only for unresolved
 intent, scope, limits, and preferences. Planning authorizes neither activation
 nor writes.
 
+To change the harness on evidence, follow [improvement-loop](references/improvement-loop.md).
+
 ## Stage contract
 
 | Stage | Exit evidence |
