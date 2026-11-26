@@ -84,6 +84,7 @@ class HerdrSessionStatusTest(unittest.TestCase):
                 "task2": "てよいか返事をする",
                 "task3": "",
                 "now": "",
+                "done": "",
             },
         )
 
@@ -104,8 +105,18 @@ class HerdrSessionStatusTest(unittest.TestCase):
     def test_reports_the_next_step_when_nothing_is_asked_of_the_user(self) -> None:
         self.assertEqual(
             self.status(self.run_hook("目的: 状態表示 herdr ─ いま: CI の結果待ち\nユーザーのタスク: なし")),
-            {"task": "", "task2": "", "task3": "", "now": "CI の結果待ち"},
+            {"task": "", "task2": "", "task3": "", "now": "CI の結果待ち", "done": ""},
         )
+
+    def test_marks_a_session_whose_goal_is_complete(self) -> None:
+        status = self.status(self.run_hook("目的: 状態表示 herdr ─ いま: 完了（後片付け済み）\nユーザーのタスク: なし"))
+
+        self.assertEqual((status["now"], status["done"]), ("完了（後片付け済み）", "✓"))
+
+    def test_does_not_mark_a_complete_step_while_the_user_still_has_a_task(self) -> None:
+        status = self.status(self.run_hook("目的: 状態表示 herdr ─ いま: 完了\nユーザーのタスク: PR をマージする"))
+
+        self.assertEqual(status["done"], "")
 
     def test_reports_a_task_that_only_begins_with_the_reserved_word(self) -> None:
         status = self.status(self.run_hook("目的: 状態表示 herdr ─ いま: 設定待ち\nユーザーのタスク: なしに変更して保存する"))
@@ -132,7 +143,14 @@ class HerdrSessionStatusTest(unittest.TestCase):
     def test_clears_the_status_when_the_user_sends_a_prompt(self) -> None:
         calls = self.run_hook(hook_event_name="UserPromptSubmit", last_assistant_message=None)
 
-        cleared = {"task": "", "task2": "", "task3": "", "now": ""}
+        cleared = {"task": "", "task2": "", "task3": "", "now": "", "done": ""}
+        self.assertEqual((self.status(calls), self.status(calls, ("workspace", "w1"))), (cleared, cleared))
+        self.assertEqual(len(calls), 2)
+
+    def test_clears_the_previous_sessions_status_when_a_session_starts(self) -> None:
+        calls = self.run_hook(hook_event_name="SessionStart", source="startup", last_assistant_message=None)
+
+        cleared = {"task": "", "task2": "", "task3": "", "now": "", "done": ""}
         self.assertEqual((self.status(calls), self.status(calls, ("workspace", "w1"))), (cleared, cleared))
         self.assertEqual(len(calls), 2)
 

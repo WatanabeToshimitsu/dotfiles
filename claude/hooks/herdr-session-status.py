@@ -3,7 +3,7 @@
 
 On Stop, reads the two status lines that end a reply, reports them to the session's herdr pane
 and workspace, and names the workspace after the goal. On UserPromptSubmit, clears the status, since the user
-has just acted.
+has just acted; on SessionStart, clears what the previous session in the pane left.
 Try it: echo '{"last_assistant_message": "目的: x ─ いま: y\\nユーザーのタスク: なし"}' | python3 herdr-session-status.py
 """
 
@@ -88,8 +88,8 @@ def main():
     if os.environ.get("HERDR_ENV") != "1" or not pane or data.get("agent_id"):
         return
     cwd = data.get("cwd") or ""
-    if data.get("hook_event_name") == "UserPromptSubmit":
-        report(pane, project=project(cwd), task="", task2="", task3="", now="")
+    if data.get("hook_event_name") in ("UserPromptSubmit", "SessionStart"):
+        report(pane, project=project(cwd), task="", task2="", task3="", now="", done="")
         return
 
     lines = [line.strip() for line in (data.get("last_assistant_message") or "").rstrip().splitlines()]
@@ -102,10 +102,12 @@ def main():
     name, step, task = goal.group(1).strip(), goal.group(2).strip(), task.group(1).strip()
 
     if task.rstrip("。") == "なし":
-        report(pane, project=project(cwd), task="", task2="", task3="", now=step)
+        # Not 完了 anywhere in いま: "#1 完了、#2 は未着手" is partial; claude/CLAUDE.md leads with 完了 only when done.
+        done = "✓" if step.startswith("完了") else ""
+        report(pane, project=project(cwd), task="", task2="", task3="", now=step, done=done)
     else:
         first, second, third = sidebar_rows(task)
-        report(pane, project=project(cwd), task=first, task2=second, task3=third, now="")
+        report(pane, project=project(cwd), task=first, task2=second, task3=third, now="", done="")
     if workspace := os.environ.get("HERDR_WORKSPACE_ID"):
         name_workspace(workspace, name, cwd)
 

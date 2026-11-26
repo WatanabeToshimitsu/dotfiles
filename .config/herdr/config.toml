@@ -43,23 +43,25 @@ sidebar_width = 32
 sidebar_min_width = 32
 sidebar_max_width = 32
 
-# $project, $task* and $now come from claude/hooks/herdr-session-status.py; a row with no
+# $project, $task*, $now and $done come from claude/hooks/herdr-session-status.py; a row with no
 # value disappears. $project, the repository or directory name, stands in for the branch.
 # $task*, what the user must do, is tokyo-night-day's orange: yellow is unreadable on white.
+# $done marks a complete goal in tokyo-night-day's green. The name stays uncolored: rules only
+# match a token's own value, and coloring the label would mean rewriting names the user typed.
 # cmd+shift+a shows the full text of the highlighted agent.
 [ui.sidebar.spaces]
 rows = [
-  ["state_icon", "workspace"],
+  ["state_icon", { token = "$done", fg = "#587539", bold = true }, "workspace"],
   [{ token = "$project", dim = true }, "git_status"],
   [{ token = "$task", fg = "#b15c00", bold = true }],
   [{ token = "$task2", fg = "#b15c00", bold = true }],
   [{ token = "$task3", fg = "#b15c00", bold = true }],
-  [{ token = "$now", dim = true }],
+  [{ token = "$now", dim = true, rules = [{ starts_with = "完了", fg = "#587539", bold = true, dim = false }] }],
 ]
 
 # One row per agent: this panel keeps its full height and the Spaces panel scrolls in what is left
 [ui.sidebar.agents]
-rows = [["state_icon", "workspace", { token = "agent", dim = true }]]
+rows = [["state_icon", { token = "$done", fg = "#587539", bold = true }, "workspace", { token = "agent", dim = true }]]
 
 [experimental]
 # Make prefix commands register even while Japanese IME is active (macOS only)
