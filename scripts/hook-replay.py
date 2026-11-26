@@ -92,9 +92,9 @@ def main():
     parser.add_argument("--out", help="JSONL file for changed commands (default: a new temp file)")
     args = parser.parse_args()
 
-    out = Path(args.out or Path(tempfile.mkdtemp(prefix="hook-replay-")) / "changes.jsonl").resolve()
-    # Why not any existing path: /dev/stdout or a shared file would carry the commands elsewhere.
-    if out.is_relative_to(ROOT) or out.exists() or out.is_symlink():
+    out = Path(args.out or Path(tempfile.mkdtemp(prefix="hook-replay-")) / "changes.jsonl").absolute()
+    # Why not any existing path or link: /dev/stdout or a shared file would carry the commands elsewhere.
+    if out.resolve().is_relative_to(ROOT) or out.exists() or out.is_symlink():
         parser.error("--out must be a new file outside the repository; it holds transcript commands")
     found = list(commands(args.transcripts, args.since))
     if args.limit:

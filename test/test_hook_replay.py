@@ -68,13 +68,16 @@ class HookReplayTest(unittest.TestCase):
                                  "--out", str(ROOT / "replay.jsonl")], capture_output=True, text=True)
         self.assertNotEqual(inside.returncode, 0)
         self.assertFalse((ROOT / "replay.jsonl").exists())
-        for existing in ("/dev/stdout", str(self.root / "projects" / "repo" / "recent.jsonl")):
+        dangling = self.root / "dangling.jsonl"
+        dangling.symlink_to(self.root / "not-yet.jsonl")
+        for existing in ("/dev/stdout", str(self.root / "projects" / "repo" / "recent.jsonl"), str(dangling)):
             with self.subTest(out=existing):
                 refused = subprocess.run([sys.executable, str(SCRIPT), "--before", str(self.allow_all),
                                           "--transcripts", str(self.root / "projects"), "--out", existing],
                                          capture_output=True, text=True)
                 self.assertNotEqual(refused.returncode, 0)
                 self.assertNotIn("private-marker", refused.stdout)
+        self.assertFalse((self.root / "not-yet.jsonl").exists())
 
 
 if __name__ == "__main__":
