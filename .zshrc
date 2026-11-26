@@ -247,7 +247,6 @@ export PATH="$HOME/.local/bin:$PATH"
 
 command -v oh-my-posh &>/dev/null && eval "$(oh-my-posh init zsh --config ~/oh-my-posh-theme/myconfig.omp.json)"
 
-export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
 [[ -f ~/.safe-chain/scripts/init-posix.sh ]] && source ~/.safe-chain/scripts/init-posix.sh
 
 # Editor: nvim when available (used by direnv, yazi opener, herdr prefix+e)
