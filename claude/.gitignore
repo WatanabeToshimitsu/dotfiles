@@ -20,11 +20,13 @@ skills/*
 !skills/difit-guided-review/
 !skills/evidence-video/
 !skills/expand-tool-output/
+!skills/kintai/
 !skills/repository-audit/
 !skills/review-ping/
 !skills/ticket/
 # Concrete IDs, board URLs, and option labels stay local: this repo is public
 skills/ticket/reference.md
+skills/kintai/reference.md
 statsig/
 tasks/
 teams/

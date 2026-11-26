@@ -67,6 +67,11 @@ MANIFEST_CLAUDE_FILES=(
   skills/evidence-video/references/recording.md
   skills/evidence-video/scripts/trim_idle.py
   skills/expand-tool-output/SKILL.md
+  skills/kintai/SKILL.md
+  skills/kintai/reference.example.md
+  skills/kintai/scripts/gh_activity.py
+  skills/kintai/scripts/notion_timeline.js
+  skills/kintai/scripts/teamspirit.js
   skills/repository-audit/SKILL.md
   skills/review-ping/SKILL.md
   skills/ticket/SKILL.md
