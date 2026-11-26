@@ -14,10 +14,10 @@ SCRIPT = ROOT / "scripts" / "hook-replay.py"
 PRIVATE = "echo private-marker-7f3a"
 
 
-def transcript_line(command):
+def transcript_line(command, **flags):
     return json.dumps({"type": "assistant", "message": {"content": [
         {"type": "text", "text": "running"},
-        {"type": "tool_use", "name": "Bash", "input": {"command": command}},
+        {"type": "tool_use", "name": "Bash", "input": {"command": command, **flags}},
     ]}})
 
 
@@ -29,8 +29,8 @@ class HookReplayTest(unittest.TestCase):
         transcripts = self.root / "projects" / "repo"
         transcripts.mkdir(parents=True)
         recent = ["git add -A", "git add -A", PRIVATE, "git push --force origin main"]
-        (transcripts / "recent.jsonl").write_text(
-            "\n".join(map(transcript_line, recent)) + "\nnot json\n")
+        lines = [*map(transcript_line, recent), transcript_line("npm run dev", run_in_background=True)]
+        (transcripts / "recent.jsonl").write_text("\n".join(lines) + "\nnot json\n")
         old = transcripts / "old.jsonl"
         old.write_text(transcript_line("git add --all") + "\n")
         month_ago = time.time() - 30 * 86400
@@ -49,12 +49,12 @@ class HookReplayTest(unittest.TestCase):
     def test_counts_changed_decisions_between_two_hook_versions(self):
         result = self.replay("--before", str(self.allow_all))
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("commands replayed: 3", result.stdout)
-        self.assertIn("validate-bash: allow -> deny: 1", result.stdout)
+        self.assertIn("commands replayed: 4", result.stdout)
+        self.assertIn("validate-bash: allow -> deny: 2", result.stdout)
         self.assertIn("remote-mutation-guard: allow -> deny: 1", result.stdout)
         details = [json.loads(line) for line in (self.root / "details.jsonl").read_text().splitlines()]
-        self.assertEqual(sorted(entry["command"] for entry in details),
-                         ["git add -A", "git push --force origin main"])
+        self.assertEqual(sorted(entry["tool_input"]["command"] for entry in details),
+                         ["git add -A", "git push --force origin main", "npm run dev"])
 
     def test_the_same_version_on_both_sides_changes_nothing(self):
         result = self.replay("--before", "HEAD", "--after", "HEAD")
@@ -68,6 +68,13 @@ class HookReplayTest(unittest.TestCase):
                                  "--out", str(ROOT / "replay.jsonl")], capture_output=True, text=True)
         self.assertNotEqual(inside.returncode, 0)
         self.assertFalse((ROOT / "replay.jsonl").exists())
+        for existing in ("/dev/stdout", str(self.root / "projects" / "repo" / "recent.jsonl")):
+            with self.subTest(out=existing):
+                refused = subprocess.run([sys.executable, str(SCRIPT), "--before", str(self.allow_all),
+                                          "--transcripts", str(self.root / "projects"), "--out", existing],
+                                         capture_output=True, text=True)
+                self.assertNotEqual(refused.returncode, 0)
+                self.assertNotIn("private-marker", refused.stdout)
 
 
 if __name__ == "__main__":

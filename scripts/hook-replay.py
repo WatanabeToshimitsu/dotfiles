@@ -58,14 +58,15 @@ def commands(transcripts, since_days):
                     if not (isinstance(item, dict) and item.get("type") == "tool_use"
                             and item.get("name") == "Bash" and isinstance(item.get("input"), dict)):
                         continue
-                    command = item["input"].get("command")
-                    if isinstance(command, str) and command not in seen:
-                        seen.add(command)
-                        yield command
+                    # The whole input, since flags such as run_in_background change decisions.
+                    call = json.dumps(item["input"], sort_keys=True, ensure_ascii=False)
+                    if isinstance(item["input"].get("command"), str) and call not in seen:
+                        seen.add(call)
+                        yield call
 
 
-def decision(argv, command, cwd):
-    payload = json.dumps({"tool_name": "Bash", "tool_input": {"command": command}, "cwd": cwd})
+def decision(argv, call, cwd):
+    payload = json.dumps({"tool_name": "Bash", "tool_input": json.loads(call), "cwd": cwd})
     try:
         result = subprocess.run(argv, input=payload, capture_output=True, text=True, timeout=60)
     except subprocess.TimeoutExpired:
@@ -91,9 +92,10 @@ def main():
     parser.add_argument("--out", help="JSONL file for changed commands (default: a new temp file)")
     args = parser.parse_args()
 
-    out = Path(args.out or tempfile.mkstemp(prefix="hook-replay-", suffix=".jsonl")[1]).resolve()
-    if out.is_relative_to(ROOT):
-        parser.error("--out must be outside the repository; it holds transcript commands")
+    out = Path(args.out or Path(tempfile.mkdtemp(prefix="hook-replay-")) / "changes.jsonl").resolve()
+    # Why not any existing path: /dev/stdout or a shared file would carry the commands elsewhere.
+    if out.is_relative_to(ROOT) or out.exists() or out.is_symlink():
+        parser.error("--out must be a new file outside the repository; it holds transcript commands")
     found = list(commands(args.transcripts, args.since))
     if args.limit:
         found = found[:args.limit]
@@ -114,14 +116,14 @@ def main():
             results = dict(pool.map(run, jobs))
 
     changes = Counter()
-    with out.open("w", encoding="utf-8") as details:
+    with out.open("x", encoding="utf-8") as details:
         for command in found:
             for hook in HOOKS:
                 before, after = results[command, hook, "before"], results[command, hook, "after"]
                 if before != after:
                     changes[f"{hook}: {before} -> {after}"] += 1
                     details.write(json.dumps({"hook": hook, "before": before, "after": after,
-                                              "command": command}, ensure_ascii=False) + "\n")
+                                              "tool_input": json.loads(command)}, ensure_ascii=False) + "\n")
     print(f"commands replayed: {len(found)}")
     for hook in HOOKS:
         for side in ("before", "after"):
