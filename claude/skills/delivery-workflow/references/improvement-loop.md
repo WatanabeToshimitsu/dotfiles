@@ -1,9 +1,10 @@
 # Improvement loop
 
-Use this to change the harness (hooks, rules, skills, settings) on evidence:
-pick one recurring friction, fix it with a before-and-after comparison,
-re-measure it later, then keep or revert the change. Track each step in its
-own issue under one epic.
+Use this when the user asks to fix a recurring harness friction on evidence:
+pick one friction, fix it with a before-and-after comparison, re-measure it
+later, then keep or revert the change. Track each step in its own issue under
+one epic. Every round so far changed a hook; the replays below need recorded
+inputs, so a change to instruction text needs its own comparison.
 
 ## 1. Pick one friction
 
