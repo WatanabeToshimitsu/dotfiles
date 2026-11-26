@@ -33,7 +33,7 @@ def matcher_selects(matcher, value):
         return value in {part.strip() for part in re.split(r"[|,]", matcher)}
     # Why not Python's re: matchers are JavaScript regular expressions, and some syntax differs.
     test = "process.exit(new RegExp(process.argv[1]).test(process.argv[2]) ? 0 : 1)"
-    return subprocess.run(["node", "-e", test, matcher, value]).returncode == 0
+    return subprocess.run(["node", "-e", test, "--", matcher, value]).returncode == 0
 
 
 class HerdrSessionStatusTest(unittest.TestCase):
