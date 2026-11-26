@@ -23,12 +23,13 @@ a visible pointer, readable pauses, no dead time. Commands and mock code are in
 3. **Browser.** Start the dev server with
    `launchgate run --port <port> -- <dev command>`; it waits up to an hour for
    another checkout to free the port. Pass
-   `--session <name> --restore <key> --headed --idle-timeout 0` on every
+   `--session <name> --restore <key> --headed --idle-timeout 30m` on every
    browser command; other launch options relaunch the browser and lose the
-   login. The lead signs in as the browser login rule says; when it falls back,
-   the user logs in by hand. Never type or store credentials. If waiting for
-   login times out, ask again; never close the browser. Keep it open across
-   retakes.
+   login. Use one session name for the whole job and reuse it for every scene
+   and retake; never start a session per scene. The lead signs in as the
+   browser login rule says; when it falls back, the user logs in by hand.
+   Never type or store credentials. If waiting for login times out, ask again;
+   never close the browser while waiting. Keep it open across retakes.
 4. **Failure paths.** Mock in the page, for one URL and method, behind a flag,
    with a network abort route on that URL as a guard. Prove the mock with the
    probe in the reference before recording; it never reaches the server.
@@ -67,7 +68,9 @@ On a failure, re-edit first. Retake only when content is missing, at most twice
 per scene. After two retakes, report the failure instead.
 
 Once the lead's check passes, remove the mocks and routes, stop the dev server,
-and close the browser session; `--restore` keeps the login for a later retake.
+and close the browser session with `agent-browser --session <name> close`;
+`--restore` keeps the login for a later retake. Before reporting, confirm that
+`agent-browser session list` shows no session you started.
 
 ## Attach
 

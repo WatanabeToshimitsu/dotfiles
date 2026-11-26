@@ -1,11 +1,13 @@
 # Recording reference
 
 `ab` below stands for
-`agent-browser --session <name> --restore <key> --headed --idle-timeout 0`.
+`agent-browser --session <name> --restore <key> --headed --idle-timeout 30m`.
 Pass exactly these options on every command, in the lead and the subagent: a
 command whose launch options differ relaunches the browser on `about:blank`
-and loses the login. `--idle-timeout 0` stops the daemon from closing the
-logged-in browser after an hour of inactivity.
+and loses the login. Headed browsers are exempt from agent-browser's default
+idle shutdown, so without `--idle-timeout` (or with `0`) a forgotten window
+stays open forever; `30m` closes it half an hour after its last command, and
+`--restore` brings the login back on the next one.
 
 ## Browser and login
 
