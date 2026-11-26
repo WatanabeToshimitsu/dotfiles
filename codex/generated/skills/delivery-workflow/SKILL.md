@@ -20,11 +20,11 @@ still run.
 4. Run focused checks, fix their cause, and rerun affected checks.
    When two fixes that rest on one premise fail the same check, write the
    premise down and test it directly before another fix.
-5. Use `code-review` for each review the stage contract requires.
-   Before D, name the one or two facts the change's safety rests on and prove
-   each: run a script or test that calls the real code when the behavior is
-   executable, otherwise give the most direct check available. Put the
-   commands and output in the PR body.
+5. Before the PR and any review, name the one or two facts the change's safety
+   rests on and prove each: run a script or test that calls the real code when
+   the behavior is executable, otherwise give the most direct check available.
+   Put the commands and output in the PR body. Then use `code-review` for each
+   review the stage contract requires.
 6. Self-review the complete final diff for scope and accidental changes.
    Keep related out-of-scope work as proposals instead of implementing it.
    Do not add intermediate variables, conversions, or test cases beyond what
@@ -107,8 +107,9 @@ nor writes.
 | C: implementation | Artifact, and the commands run with their output |
 | D: implementation review | Findings |
 
-D is required for changes to `claude/hooks/`, the `permissions` and `sandbox`
-keys of `settings.json`, and code that publishes or handles secrets. Other
+D is required for changes to `claude/hooks/`, permission and auto mode rules in
+`settings.json`, sandbox settings and launchers, and code that publishes or
+handles secrets. Other
 changes, agent instructions (CLAUDE.md, rules, skills, agents) included, get a
 full-diff self-review; report D as `not run`. D reviews the pushed PR once its
 body carries the run evidence; keep the PR a Draft until D ends. B runs only
