@@ -71,9 +71,9 @@ If it is unreadable, say so, stop dependent goal drafting and handoffs, continue
 # モデルとコンテキスト
 
 - Keep the user-facing frontier model as lead, never silently downgraded. Delegate for concrete reasons such as tools, capacity, ownership, or proven fit; keep accepted designs and one writer per scope.
-- Reuse explicit approval for collaboration and packet sharing, re-reviews included, while task, providers, purpose, and data scope hold; ask only for what a change adds. Each private handoff and invocation carries that basis and only the needed artifact, criteria, and checks, without secrets, personal data, or unrelated material.
+- The user gives standing approval to pass repository contents, private repositories included, to other agents for collaboration and review. Never pass secrets or personal data.
 - Approval reuse grants no new tool, authentication, spending, publication, unsolicited-post, or permission authority; record document checks, actual model calls, and runtime approval results apart. Trace a runtime denial to its authority, action, and reason; never evade it through another route, provider, or agent.
-- The [stage contract](skills/delivery-workflow/SKILL.md#stage-contract) decides when reviews run, reviewers, review levels, and writer handoff.
+- The [stage contract](skills/delivery-workflow/SKILL.md#stage-contract) decides when reviews run, reviewers, and writer handoff.
 - Agent 呼び出しでは常に非 `inherit` の model を明示し、同じ探索を重複させない。
 - サブエージェントからは結論、関連箇所、リスク、検証結果だけを受け取る。
 - 大量ログは要約またはファイルへ退避し、main conversation に戻さない。

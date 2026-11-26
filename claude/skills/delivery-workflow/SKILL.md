@@ -24,13 +24,13 @@ still run.
    Before D, name the one or two facts the change's safety rests on and prove
    each: run a script or test that calls the real code when the behavior is
    executable, otherwise give the most direct check available. Put the
-   commands and output in the packet.
+   commands and output in the PR body.
 6. Self-review the complete final diff for scope and accidental changes.
    Keep related out-of-scope work as proposals instead of implementing it.
    Do not add intermediate variables, conversions, or test cases beyond what
    the requested behavior requires.
-7. After C handback and required D, apply the outcomes below before authorized
-   Git delivery. Stage explicit files, commit logical units, and push normally.
+7. After C handback, stage explicit files, commit logical units, and push
+   normally.
    Never force-push, use forced refspecs, mirror, or delete remote refs.
    Delegated C implementers do not commit or push.
    After each authorized push, identify CI runs/checks for the repository,
@@ -103,42 +103,37 @@ nor writes.
 | Stage | Exit evidence |
 | --- | --- |
 | A: design | Acceptance criteria |
-| B: design review | Findings and level |
-| C: implementation | Artifact and checks |
-| D: implementation review | Findings and level |
+| B: design review | Findings |
+| C: implementation | Artifact, and the commands run with their output |
+| D: implementation review | Findings |
 
-D is required for non-obvious changes and changes to hooks, permissions,
-settings, sandbox, publication or delivery steps, or secret handling. B runs
-when the design has options or touches those areas; resolve its blockers before
-dependent C work. Agent instructions (CLAUDE.md, rules, skills, agents) also
-need D. Other changes get a full-diff self-review; report B and D as `not run`.
-Redo reviews that later changes invalidate.
+D is required for changes to `claude/hooks/`, the `permissions` and `sandbox`
+keys of `settings.json`, and code that publishes or handles secrets. Other
+changes, agent instructions (CLAUDE.md, rules, skills, agents) included, get a
+full-diff self-review; report D as `not run`. D reviews the pushed PR once its
+body carries the run evidence; keep the PR a Draft until D ends. B runs only
+when the design has competing options; resolve its blockers before dependent C
+work. Redo reviews that later changes invalidate. Re-review at most twice, then
+list the remaining findings and ask the user.
 
-### Models and availability
+### Reviewers
 
-Reviewers never helped author the artifact.
+Reviewers never helped author the artifact. Prefer an other-family frontier
+model; otherwise use a same-family non-author frontier model and say so. Give
+the reviewer the acceptance criteria, the run evidence, and the reviewed range.
+A reviewer may run tests and reproduction scripts in a disposable worktree at
+the reviewed head. Only a finding a run shows blocks; ask the rest as one-line
+questions. A route that fails or passes its time limit moves to the next
+reviewer; with none left, report the review as `not run`.
 
-| Order | Reviewer |
-| --- | --- |
-| 1 | Other-family frontier |
-| 2 | Same-family non-author frontier, disclosed |
+### Records and handoff
 
-### Review outcomes and continuation
-
-Record B and D apart with requested and observed model; CLI flags and
-self-report are not evidence. `PASS` needs a completed frontier review with
-blockers resolved; lower-tier or unknown-model advice is `ADVISORY`; an unrun
-required review is `UNREVIEWED`. The lead may continue reversible work;
-unresolved consequential risk pauses dependent work and delivery.
-
-### Handoff and exclusive editing
-
-A shared worktree has one writer. Reviewers get the full artifact in a private
-packet and block on missing evidence. Public summaries list only family, model
-evidence, roles, stage, level, relative paths, base/ref, and results.
+The PR states who ran what to verify the change. A shared worktree has one
+writer. Public records use repo-relative paths; review transcripts and absolute
+paths stay private.
 
 ### Invocation routes
 
 B and D get 600 seconds unless a longer limit is declared first. Read
 [invocation](references/invocation.md) for routes and
-[recovery](references/recovery.md) on expiry, failure, or a stopped writer.
+[recovery](references/recovery.md) for a stopped writer.
