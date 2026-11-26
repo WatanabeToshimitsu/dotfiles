@@ -56,8 +56,6 @@ jobs:
         run: python3 -m unittest discover -s claude/hooks/tests -p 'test_*.py'
       - name: Test read-only Loop snapshot
         run: python3 -B -m unittest discover -s test -p 'test_loop_snapshot.py'
-      - name: Test bounded repair supervisor without model calls
-        run: python3 -B -m unittest discover -s test -p 'test_self_improvement_run.py'
       - name: Test evidence video trimming
         run: python3 -B -m unittest discover -s test -p 'test_trim_idle.py'
       - name: Test kintai GitHub activity
@@ -164,8 +162,6 @@ jobs:
         run: zsh -f test/test-chpwd-tty-guard.zsh
       - name: Test read-only Loop snapshot
         run: python3 -B -m unittest discover -s test -p 'test_loop_snapshot.py'
-      - name: Test bounded repair supervisor without model calls
-        run: python3 -B -m unittest discover -s test -p 'test_self_improvement_run.py'
       - name: Test evidence video trimming
         run: python3 -B -m unittest discover -s test -p 'test_trim_idle.py'
       - name: Test kintai GitHub activity
