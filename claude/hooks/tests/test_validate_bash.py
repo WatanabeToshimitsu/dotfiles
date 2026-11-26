@@ -72,10 +72,42 @@ class ValidateBashTests(unittest.TestCase):
             with self.subTest(command=command):
                 self.assertEqual(self.decision(command), "allow")
 
-    @unittest.expectedFailure
     def test_staging_from_python_code_is_denied(self):
-        command = "python3 - <<'EOF'\nimport subprocess\nsubprocess.run('git add -A', shell=True)\nEOF\n"
-        self.assertEqual(self.decision(command), "deny")
+        cases = [
+            "python3 - <<'EOF'\nimport subprocess\nsubprocess.run('git add -A', shell=True)\nEOF\n",
+            "python3 - <<'EOF'\nimport subprocess\nsubprocess.run(['git', '-C', 'repo', 'add', '--all'])\nEOF\n",
+            "cd /repo && cat > s.py <<'EOF'\nimport os\nos.system('git add .')\nEOF\npython3 ./s.py",
+            "python3 -c \"import subprocess; subprocess.run(['git', 'add', '-A'])\"",
+            'python3 -c "import subprocess; subprocess.run([\\"git\\", \\"add\\", \\"-A\\"])"',
+            "x=$y; python3 - <<'EOF'\nimport subprocess\nsubprocess.run(['git', 'add', '-A'])\nEOF\n",
+            "rtk proxy python3 - <<-'EOF'\n\tfrom subprocess import run\n\trun(['git', 'add', '-A'])\n\tEOF\n",
+        ]
+        for command in cases:
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "deny")
+
+    def test_python_code_without_staging_is_allowed(self):
+        cases = [
+            "python3 - <<'EOF'\nimport subprocess\nsubprocess.run(['git', 'add', 'a.txt'])\n"
+            "subprocess.run(['git', 'commit', '-m', 'Keep git add -A denied'])\nEOF\n",
+            "cat > s.py <<'EOF'\nimport os\nos.system('git add -A')\nEOF\n",
+            "cat > s.py <<'EOF'\nimport os\nos.system('git add -A')\nEOF\npython3 -c 'pass'",
+            "python3 - <<'EOF'\nprint(\"subprocess.run(['git', 'add', '-A'])\")\n"
+            "# subprocess.run(['git', 'add', '-A'])\nEOF\n",
+            "python3 - <<'EOF'\nfrom unittest.mock import call\nprint(call(['git', 'add', '-A']))\nEOF\n",
+            "printf '%s\\n' python3 -c \"import subprocess; subprocess.run(['git', 'add', '-A'])\"",
+            "cat > s.py <<'EOF'\nimport os\nos.system('git add -A')\nEOF\npython3 -m py_compile s.py",
+            "python3 -c 'pass' <<'EOF'\nimport os\nos.system('git add -A')\nEOF\n",
+            "cat > s.py <<'EOF'\nimport os\nos.system('git add -A')\nEOF\ncat > s.py <<'EOF'\npass\nEOF\npython3 s.py",
+            "python3 - <<'EOF'\nfrom unittest.mock import call\ndef f(argv):\n    from subprocess import call\n"
+            "    return call(argv)\nprint(call(['git', 'add', '-A']))\nEOF\n",
+            "cat > s.py <<'EOF'\nprint(\"\"\"\nEOF\ncat >> s.py <<'EOF'\nimport os\nos.system('git add -A')\nEOF\n"
+            "cat >> s.py <<'EOF'\n\"\"\")\nEOF\npython3 s.py",
+            "command -v python3 <<'EOF'\nimport os\nos.system('git add -A')\nEOF\n",
+        ]
+        for command in cases:
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "allow")
 
     @unittest.expectedFailure
     def test_staging_option_glued_to_an_expansion_is_denied(self):

@@ -791,6 +791,55 @@ class RemoteMutationGuardFallbackTest(unittest.TestCase):
         ], "continue")
 
 
+class RemoteMutationGuardInterpreterTest(unittest.TestCase):
+    """Publication launched from interpreter code, parsed or not (issue #373)."""
+
+    @classmethod
+    def setUpClass(cls):
+        spec = importlib.util.spec_from_file_location("remote_guard", HOOK)
+        cls.guard = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cls.guard)
+
+    def assert_decisions(self, commands, decision):
+        for command in commands:
+            with self.subTest(command=command):
+                self.assertEqual(self.guard.classify_shell(command)[0], decision)
+
+    def test_publication_from_python_code_is_blocked(self):
+        self.assert_decisions([
+            "python3 - <<'EOF'\nimport subprocess\nsubprocess.run(['git', 'push', 'origin', 'main'])\nEOF\n",
+            "x=$y; python3 - <<'EOF'\nimport os\nos.system('git push origin main')\nEOF\n",
+            "cd /repo && python3 - <<'EOF'\nimport subprocess\n"
+            "subprocess.run('gh pr create --title T --body B', shell=True)\nEOF\n",
+            "cat > s.py <<'EOF'\nimport subprocess\n"
+            "subprocess.run(['gh', 'api', 'repos/o/r/issues/1/comments', '-f', 'body=B'])\nEOF\npython3 s.py",
+            "python3 -c \"import os; os.system('git push origin main')\"",
+            'python3 -c "import subprocess; subprocess.run([\\"git\\", \\"push\\", \\"origin\\", \\"main\\"])"',
+            "python3 - <<-'PY'\n\timport subprocess as sp\n\tsp.check_call(['git', 'push', 'origin', 'main'])\n\tPY\n",
+        ], "deny")
+
+    def test_python_code_without_publication_continues(self):
+        self.assert_decisions([
+            "python3 - <<'EOF'\nimport subprocess\nsubprocess.run(['git', 'status'])\n"
+            "subprocess.run(['git', 'stash', 'push'])\nEOF\n",
+            "x=$y; python3 - <<'EOF'\nprint('git push origin main later')\nEOF\n",
+            "python3 - <<'EOF'\nimport subprocess\n"
+            "subprocess.run(['gh', 'api', 'repos/o/r/pulls/1'], capture_output=True)\nEOF\n",
+            "python3 - <<'EOF'\nimport subprocess\nsubprocess.run(['git', 'commit', '-m', 'git push later'])\nEOF\n",
+            "cat > notes.py <<'EOF'\nsubprocess.run(['git', 'push', 'origin', 'main'])\nEOF\npython3 -c 'pass'",
+            "python3 - <<'EOF'\nprint(\"subprocess.run(['git', 'push', 'origin', 'main'])\")\n"
+            "# os.system('git push origin main')\nEOF\n",
+            "python3 - <<'EOF'\nfrom unittest.mock import call\nprint(call(['git', 'push', 'origin', 'main']))\nEOF\n",
+            "printf '%s\\n' python3 -c \"import os; os.system('git push origin main')\"",
+            "cat > s.py <<'EOF'\nimport os\nos.system('git push origin main')\nEOF\npython3 -m py_compile s.py",
+            "python3 -c 'pass' <<'EOF'\nimport os\nos.system('git push origin main')\nEOF\n",
+            "cat > s.py <<'EOF'\nimport os\nos.system('git push origin main')\nEOF\n"
+            "cat > s.py <<'EOF'\npass\nEOF\npython3 s.py",
+            "python3 -c 'import subprocess; subprocess.run([\"git\", \"push\", \"origin\", \"main\"], shell=True)'",
+            "command -v python3 <<'EOF'\nimport os\nos.system('git push origin main')\nEOF\n",
+        ], "continue")
+
+
 class RemoteMutationGuardFallbackMissTest(unittest.TestCase):
     """Spellings the narrowed fallback lets through, recorded for issue #317.
 
