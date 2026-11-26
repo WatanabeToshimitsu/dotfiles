@@ -58,6 +58,15 @@ class SecurityPolicyTest(unittest.TestCase):
     def test_default_settings_do_not_enable_sandbox_during_canary(self) -> None:
         self.assertNotIn("sandbox", self.settings)
 
+    def test_named_agents_run_as_subagents_not_lingering_teammates(self) -> None:
+        self.assertEqual(
+            self.settings["env"]["CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS"], "0"
+        )
+        self.assertNotIn(
+            "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS",
+            (REPO_ROOT / ".zshrc").read_text(),
+        )
+
     def test_auto_mode_keeps_bypass_permissions_disabled(self) -> None:
         permissions = self.settings["permissions"]
         self.assertEqual(permissions["defaultMode"], "auto")
