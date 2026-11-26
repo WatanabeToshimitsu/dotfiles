@@ -132,7 +132,8 @@ reviewer; with none left, report the review as `not run`.
 
 ### Records and handoff
 
-The PR states who ran what to verify the change. A shared worktree has one
+End the PR body with one line, `検証: <who ran what, and the result>`, or
+`検証: なし` when nothing was run. A shared worktree has one
 writer. Public records use repo-relative paths; review transcripts and absolute
 paths stay private.
 
