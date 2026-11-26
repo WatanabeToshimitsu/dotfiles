@@ -21,7 +21,7 @@ it remains ambiguous, cannot be determined, or no current-branch PR exists.
 For every review task, first read and follow the
 [delivery stage contract](../delivery-workflow/SKILL.md#stage-contract).
 It defines when independent design and implementation review is required,
-reviewer selection, fallback, invocation, handoffs, and review outcomes.
+reviewer selection, fallback, invocation, and handoffs.
 
 Scale depth by risk; high-risk changes receive adversarial focus and a specialist
 only when the domain requires one. Self-checks never replace a required
@@ -45,14 +45,14 @@ or other checkable evidence. Label hypotheses and missing evidence.
 Treat authentication, authorization, payments, privacy, destructive migrations, cryptography, and externally visible compatibility as high risk.
 
 The request and its acceptance criteria are the whole bar. Block only on a
-failing run at the reviewed head, a defect a user would hit, including one a
-design would cause, or a high-risk issue with checkable evidence. Report other
-findings in one line each without blocking, and likewise problems the base
-already has unless the change exposes or worsens them.
+finding a run shows, such as a failing test or reproduction script at the
+reviewed head; in a design review, a throwaway experiment counts as a run. Ask
+other findings as one-line questions without blocking, and likewise problems
+the base already has unless the change exposes or worsens them.
 
 Do not report style preferences as defects. If no actionable issue remains, say
 so and state what was verified and what was not.
 
 ## Codex portability
 
-Claude model names require an actual Claude route. Select independent reviewers by artifact author and follow the source workflow's automatic fallback through locally available, authorized tools. A fresh Codex frontier review can be a recorded same-family fallback; never label it a Claude review. Advice, unknown model identity, and self-checks are not frontier approval.
+Claude model names require an actual Claude route. Select independent reviewers by artifact author and follow the source workflow's automatic fallback through locally available, authorized tools. A fresh Codex frontier review can be a recorded same-family fallback; never label it a Claude review.

@@ -16,10 +16,10 @@ allowlist the supervisor to bypass a blocked operation.
 Read repository instructions and follow
 [delivery-workflow](../claude/skills/delivery-workflow/SKILL.md). The native
 frontier lead owns the claim, worktree, acceptance criteria and publication.
-A fresh reviewer reviews the design at B. The delegated C worker is instructed
-to return text-only edits without tools, Git writes or publication. After C hands back,
-a fresh non-author reviewer performs D. The lead inspects the complete outgoing
-range and public fields before normal signed commit, push and PR creation.
+Reviews follow its stage contract. The delegated C worker is instructed
+to return text-only edits without tools, Git writes or publication. The lead
+inspects the complete outgoing range and public fields before normal signed
+commit, push and PR creation.
 
 ## One goal activation
 
@@ -33,14 +33,15 @@ private location from the actual user request:
 > claim it before editing. Preserve unrelated work.
 >
 > Pin an isolated worktree, source evidence and acceptance criteria. Add a narrow
-> protected regression test and obtain independent B review. Create the private
+> protected regression test. Create the private
 > contract below and invoke the repair supervisor once. A repair result must
 > include the expected baseline failure and passing regression checks.
 >
-> On awaiting_review, obtain independent D review. Independently confirm the
+> On awaiting_review, independently confirm the
 > regression fails on the pinned baseline and passes on the candidate; do not
 > rely on the patch worker's prose. Inspect all outgoing changes, then use normal
-> native tools for authorized signed commit/push and inspected PR creation.
+> native tools for authorized signed commit/push and inspected PR creation, and
+> obtain D review as the stage contract requires.
 > Observe CI for the exact published HEAD with a finite deadline. Unknown checks,
 > a Draft PR, or model self-report do not establish completion.
 >
@@ -157,9 +158,8 @@ calls. They do not prove native model repair quality, permission enforcement or
 successful publication.
 
 For every actual pilot retain the original SHA and source evidence, protected
-RED/GREEN output, complete diff, A/B/C/D authors and reviewers, actual model
-metadata, exact published SHA and CI readback, elapsed time, intervention count
-and stop reason. Re-run the proposed regression against the baseline when
+RED/GREEN output, complete diff, A/B/C/D authors and reviewers, exact published
+SHA and CI readback, elapsed time, intervention count and stop reason. Re-run the proposed regression against the baseline when
 accepting a real repair. Verify installed hook paths are separate from the
 candidate worktree before editing hook sources.
 

@@ -8,11 +8,15 @@
   keep independent authorized work moving while waiting.
 - Before substantial work, briefly invite the user to use the proposed goal.
   In the response language, give one fenced, copyable, single-line launch
-  command, `cd <absolute repo path> && claude -n "<project> <task>" '/goal ...'`,
+  command, `cd <absolute repo path> && claude -n "<project> <task>" --model <model> '/goal ...'`,
   so parallel sessions can be told apart by name; single-quote the prompt and
-  escape inner single quotes. The `/goal` carries concrete outcome, evidence, task-specific constraints,
+  escape inner single quotes. Pick the model for the stage's difficulty, `opus`
+  or lower unless the user asks otherwise. The `/goal` carries concrete outcome, evidence, task-specific constraints,
   authorized iteration, and when missing input or authority requires user
-  action. No placeholders or invented budgets. Keep the goal condition within the client's documented
+  action. When the proposing session has a name and a cross-session send tool
+  is available, the `/goal` also has the worker send it one line at launch and
+  when the worker stops at completion or for user input, and keep working if
+  the send fails. No placeholders or invented budgets. Keep the goal condition within the client's documented
   limit and name evidence the goal checker can observe; Claude Code judges a
   goal from the conversation alone and accepts a condition of up to 4,000
   characters (https://code.claude.com/docs/en/goal).
