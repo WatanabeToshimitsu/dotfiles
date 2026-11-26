@@ -1,5 +1,7 @@
 {
-  "executables": [],
+  "executables": [
+    "skills/kintai/scripts/gh_activity.py"
+  ],
   "files": {
     "AGENTS.md": "sha256:a4cffd9c9e281334c8e449b512aa4c704a6cdc5f91049c1952f6423322ab79d1",
     "rules/common/github-actions.md": "sha256:dd83e898d6979615d69c358ea9664bb671ca70ff0e3b781ef48ee7ebf8d921a2",
@@ -27,6 +29,11 @@
     "skills/evidence-video/references/recording.md": "sha256:1637cfa75c310e6ec99352eb91b1723e28e128d5392028cf4b029d21c5691e80",
     "skills/evidence-video/scripts/trim_idle.py": "sha256:5e81ef32f86ed12911d53331177ad8466eca13ed0dd018a6150be62e3b515c93",
     "skills/expand-tool-output/SKILL.md": "sha256:dea48c29238226b273b40151a34adf4b3ec8c7997857626e4a6c38d348a4cbf8",
+    "skills/kintai/SKILL.md": "sha256:ab589760b8d0d5f7439cba30ba73d4aa92f8989537f82d16c3671638d30b2e9e",
+    "skills/kintai/reference.example.md": "sha256:4d255f9f111784bb30c2c14be44a20fc5476ce657e8eb8b255aa080deeff7949",
+    "skills/kintai/scripts/gh_activity.py": "sha256:7cefcf0cee50b81853b00ca38cf17dcf32905c5b7be7af02d5bdc9005fd782fc",
+    "skills/kintai/scripts/notion_timeline.js": "sha256:b66661097ca4c87fd6c6ea447409cde2fc64738e9e28cbce58bf17c9ee5f83ff",
+    "skills/kintai/scripts/teamspirit.js": "sha256:f842178a85cbc6e8e5274e95efb08f37440cf6f5258782a158eb3aeabfdb6b1c",
     "skills/repository-audit/SKILL.md": "sha256:200164ed0c118c771c6ec4ed357059d03d7b96f87a807a88d05ded01cae79f9d",
     "skills/review-ping/SKILL.md": "sha256:04592ae3340c55d9879641c4e8b2b2bd7e31c11579c4536f8b80f0b5f8b8ff07",
     "skills/ticket/SKILL.md": "sha256:23ae01dbda005c94ced444dc677d0b1e15f8cb8e1320fa61f77bd4caf650a16c",
@@ -60,12 +67,17 @@
     "claude/skills/evidence-video/references/recording.md": "sha256:1637cfa75c310e6ec99352eb91b1723e28e128d5392028cf4b029d21c5691e80",
     "claude/skills/evidence-video/scripts/trim_idle.py": "sha256:5e81ef32f86ed12911d53331177ad8466eca13ed0dd018a6150be62e3b515c93",
     "claude/skills/expand-tool-output/SKILL.md": "sha256:2b21b700450c9e673b45da33ae848e45fafb0f251b79917a54d00f3e93ba0e08",
+    "claude/skills/kintai/SKILL.md": "sha256:bcee15dac4a26e6f7444265a8e0539b9181400c0d162cef48efd51ffec9ea3d3",
+    "claude/skills/kintai/reference.example.md": "sha256:4d255f9f111784bb30c2c14be44a20fc5476ce657e8eb8b255aa080deeff7949",
+    "claude/skills/kintai/scripts/gh_activity.py": "sha256:7cefcf0cee50b81853b00ca38cf17dcf32905c5b7be7af02d5bdc9005fd782fc",
+    "claude/skills/kintai/scripts/notion_timeline.js": "sha256:b66661097ca4c87fd6c6ea447409cde2fc64738e9e28cbce58bf17c9ee5f83ff",
+    "claude/skills/kintai/scripts/teamspirit.js": "sha256:f842178a85cbc6e8e5274e95efb08f37440cf6f5258782a158eb3aeabfdb6b1c",
     "claude/skills/repository-audit/SKILL.md": "sha256:200164ed0c118c771c6ec4ed357059d03d7b96f87a807a88d05ded01cae79f9d",
     "claude/skills/review-ping/SKILL.md": "sha256:1bdcedbd8496b6f2d69c5564ae87562175799badb60cdc5d01af6c21616b6a73",
     "claude/skills/ticket/SKILL.md": "sha256:aae041aa0c89c6c4b3c50f7d3ed47459d1fd2e94e0da4e1575e08c583b3375ec",
     "claude/skills/ticket/reference.example.md": "sha256:6ec32ff44cb70e980585e31e8ac8b35ab6da243e097f72558ac2253c7987ca58",
     "codex/adaptations.md": "sha256:da56c74ebf835a9b188ac1d751f790d6b5e1650314369260b56b384f5067a8fb",
-    "codex/skill-adaptations.json": "sha256:118c59830d1b1b8bafa5bab9570c78f514b4afdfe229e66ab013f4c8acb66b7b"
+    "codex/skill-adaptations.json": "sha256:3e01322ae3150c958525c59e2fb7e58c55490a07339aaa306b91f248078967aa"
   },
   "local_dependencies": {
     "ticket": {
@@ -78,6 +90,7 @@
     "difit-guided-review",
     "evidence-video",
     "expand-tool-output",
+    "kintai",
     "repository-audit",
     "review-ping",
     "ticket"
