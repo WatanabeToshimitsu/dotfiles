@@ -54,7 +54,7 @@ class PlanBudgetTest(unittest.TestCase):
         out = self.run_script("check", now=H5_RESET - 5 * 3600 + 6 * 60).stdout
         self.assertIn("5h: 2% used, pace allows 10.0%", out)
 
-    def test_estimate_is_converted_with_logged_costs_and_asks_when_over_pace(self):
+    def write_two_sessions_over_weekly_pace(self) -> None:
         self.write_schedule(MON_TO_FRI_9_TO_18)
         weekly_start = D7_RESET - 7 * 86400
         self.write_samples(
@@ -64,10 +64,26 @@ class PlanBudgetTest(unittest.TestCase):
             sample(NOW - 60, "a", 25.0),
             sample(NOW - 60, "b", 11.0),
         )
+
+    def test_estimate_is_converted_with_logged_costs_and_asks_when_over_pace(self):
+        self.write_two_sessions_over_weekly_pace()
         out = self.run_script("check", "--usd", "2").stdout
-        self.assertIn("$1 API-equivalent = 2.15% of 5h, 1.00% of weekly", out)
-        self.assertIn("weekly +2.0% -> 32.0%", out)
-        self.assertIn("1.8%/work-hour for weekly (so far 4.7%/work-hour)", out)
+        self.assertIn("5h: $1 API-equivalent = 2.15%", out)
+        self.assertIn("weekly: $1 API-equivalent = 1.00%", out)
+        self.assertIn("weekly: estimate +2.0% -> 32.0%; staying under the limit then needs at most "
+                      "1.8%/work-hour (so far 4.7%/work-hour)", out)
+        self.assertIn("verdict: ask (over pace: weekly)", out)
+
+    def test_conversion_counts_only_usage_since_logging_began_in_the_window(self):
+        self.write_samples(sample(NOW - 3600, "a", 3.0, h5=40, d7=20), sample(NOW - 60, "a", 5.0, h5=44, d7=22))
+        out = self.run_script("check").stdout
+        self.assertIn("5h: $1 API-equivalent = 2.00%", out)
+        self.assertIn("weekly: $1 API-equivalent = 1.00%", out)
+
+    def test_window_without_a_conversion_does_not_hide_the_other_windows_verdict(self):
+        self.write_two_sessions_over_weekly_pace()
+        out = self.run_script("check", "--usd", "2", now=H5_RESET + 60).stdout
+        self.assertIn("5h: no conversion yet", out)
         self.assertIn("verdict: ask (over pace: weekly)", out)
 
     def test_estimate_within_both_allowances_is_ok(self):
@@ -96,7 +112,7 @@ class PlanBudgetTest(unittest.TestCase):
 
     def test_status_line_logs_a_sample_and_reaches_powerline_with_or_without_the_script(self):
         command = json.loads(SETTINGS.read_text())["statusLine"]["command"]
-        stdin = json.dumps({"session_id": "a", "cost": {"total_cost_usd": 1.0}})
+        stdin = json.dumps({"session_id": "a", "cost": {"total_cost_usd": 1.0}}) + "\n\n"
         for installed in (True, False):
             with self.subTest(installed=installed):
                 home = Path(tempfile.mkdtemp())
