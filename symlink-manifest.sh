@@ -81,7 +81,6 @@ MANIFEST_CLAUDE_FILES=(
   rules/golang/coding-style.md
   rules/golang/hooks.md
   rules/golang/testing.md
-  rules/python/fastapi.md
   rules/python/hooks.md
   rules/typescript/hooks.md
   rules/typescript/type-safety.md
@@ -103,6 +102,7 @@ MANIFEST_CLAUDE_OBSOLETE_FILES=(
   rules/common/patterns.md
   rules/common/performance.md
   rules/golang/patterns.md
+  rules/python/fastapi.md
   rules/python/patterns.md
   rules/typescript/patterns.md
   rules/typescript/documentation.md

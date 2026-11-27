@@ -31,7 +31,6 @@ still run.
    the requested behavior requires.
 7. After C handback, stage explicit files, commit logical units, and push
    normally.
-   Never force-push, use forced refspecs, mirror, or delete remote refs.
    Delegated C implementers do not commit or push.
    After each authorized push, identify CI runs/checks for the repository,
    branch, and exact pushed HEAD. Set a finite watch deadline before starting.
@@ -53,7 +52,7 @@ still run.
 8. When the change alters what a reviewer can see or do in a running web UI,
    run the `evidence-video` skill before drafting the PR, whichever skill
    creates it, and put its Evidence note in the body. Skip docs-only and
-   backend-only changes without UI effect. Its login approval still applies;
+   backend-only changes without UI effect;
    when it cannot run, ask the user in the session, not in the body.
    Before each PR, including a Draft, prepare its target, title, body, and full
    outgoing commit range. Unless a PR template or PR skill sets the body, state
@@ -86,8 +85,8 @@ still run.
    why; do not switch, stash, reset, or overwrite them.
    Never delete remote branches. Briefly report removed and retained items.
 
-Preserve unrelated changes and repository conventions. Never add Claude
-attribution or report unrun checks as passing. Ask about consequential product,
+Preserve unrelated changes and repository conventions. Never report unrun
+checks as passing. Ask about consequential product,
 architecture, data, compatibility, security, or data-loss choices unresolved
 by existing evidence.
 
