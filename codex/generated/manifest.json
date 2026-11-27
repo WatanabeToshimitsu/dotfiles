@@ -3,7 +3,7 @@
     "skills/kintai/scripts/gh_activity.py"
   ],
   "files": {
-    "AGENTS.md": "sha256:963addbb50d1405907fa526709549f4ed345ee2c711a0bda04c6b5ba063aa0ae",
+    "AGENTS.md": "sha256:586a3b0552834c54d6d9087664bc030e1a511224c8f984e522311e13786f3c72",
     "rules/common/github-actions.md": "sha256:dd83e898d6979615d69c358ea9664bb671ca70ff0e3b781ef48ee7ebf8d921a2",
     "rules/common/hooks.md": "sha256:958560e5c011273127d8088a65e73d010bfcc1a787cb3b97385663b0a8d1a57d",
     "rules/common/security.md": "sha256:1713a293faad361f76947974f68f7e51cc01595d79ddab75eb91cc8b078ed3b4",
@@ -40,7 +40,7 @@
     "skills/ticket/reference.example.md": "sha256:95089b30008d87b42ce025ef3ad58286cad93af815899a42c4ebe3bad50827e0"
   },
   "inputs": {
-    "claude/CLAUDE.md": "sha256:5f904fab69e7ad40bdc01b71208266451d5bfd6c3d470b035ebeb76e65efac1b",
+    "claude/CLAUDE.md": "sha256:1d5d0d809453f4d361c3650d34a15bc2843b5ea5768e5475fabb670a3d70997f",
     "claude/rules/common/github-actions.md": "sha256:dd83e898d6979615d69c358ea9664bb671ca70ff0e3b781ef48ee7ebf8d921a2",
     "claude/rules/common/hooks.md": "sha256:958560e5c011273127d8088a65e73d010bfcc1a787cb3b97385663b0a8d1a57d",
     "claude/rules/common/security.md": "sha256:1713a293faad361f76947974f68f7e51cc01595d79ddab75eb91cc8b078ed3b4",
@@ -76,7 +76,7 @@
     "claude/skills/review-ping/SKILL.md": "sha256:1bdcedbd8496b6f2d69c5564ae87562175799badb60cdc5d01af6c21616b6a73",
     "claude/skills/ticket/SKILL.md": "sha256:0bc102a2415dfabe2fe477f41a96753a14bebce364164274b2213448d1cb9ffd",
     "claude/skills/ticket/reference.example.md": "sha256:95089b30008d87b42ce025ef3ad58286cad93af815899a42c4ebe3bad50827e0",
-    "codex/adaptations.md": "sha256:afa22c2360e9d06a5b2f075481adccfbdd2efa4204a9903ba80177f36a6044e6",
+    "codex/adaptations.md": "sha256:579fb1074321f71badd9c3c9fc36e817916fc3b7abe41d6a87cc5672c483b83f",
     "codex/skill-adaptations.json": "sha256:66847301549e15240e6692e783a9bd7cfaab70108f6baf409e98f8e33c411b7c"
   },
   "local_dependencies": {

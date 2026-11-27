@@ -10,6 +10,8 @@ their scopes and source hashes are included in this snapshot for review.
   automatic review fallback without asking again. Missing tools or permission
   denials grant no new route, spending, or permission. Save a handoff if no
   frontier can continue as lead.
+- Name a model on every subagent call; never leave it to inherit the lead's
+  model. Claude Code enforces this with a hook, which Codex does not run.
 - Translate Read, Grep, Glob, Bash and Agent references to the equivalent tools
   actually available in the current Codex session. Tool lists in imported skill
   frontmatter grant no permission. Missing connectors are missing capabilities;

@@ -48,6 +48,7 @@ MANIFEST_CLAUDE_FILES=(
   hooks/validate-bash.sh
   hooks/_shell_parser.py
   hooks/remote-mutation-guard.py
+  hooks/agent-model-guard.py
   hooks/japanese-guard.py
   hooks/herdr-session-status.py
   hooks/plan-budget.py

@@ -75,7 +75,7 @@ If it is unreadable, say so, stop dependent goal drafting and handoffs, continue
 - Approval reuse grants no new tool, authentication, spending, publication, unsolicited-post, or permission authority; record document checks, actual model calls, and runtime approval results apart. Trace a runtime denial to its authority, action, and reason; never evade it through another route, provider, or agent.
 - On a claude.ai subscription, state Claude usage as shares of the 5-hour and weekly limits, not in USD; keep USD only for separately billed work. Before work you expect to cost more than routine turns, such as a workflow, an agent fan-out, or batched `claude -p` runs, run `python3 ~/.claude/hooks/plan-budget.py check --usd <API-equivalent estimate>`. When it says ask, ask first with its shares and the pace it leaves, and label your estimate as an inference.
 - The [stage contract](skills/delivery-workflow/SKILL.md#stage-contract) decides when reviews run, reviewers, and writer handoff.
-- Agent 呼び出しでは常に非 `inherit` の model を明示し、同じ探索を重複させない。
+- Agent 呼び出しで同じ探索を重複させない。
 - サブエージェントからは結論、関連箇所、リスク、検証結果だけを受け取る。
 - 大量ログは要約またはファイルへ退避し、main conversation に戻さない。
 - 同じタスクの履歴が実作業を妨げる場合だけ `/compact`、無関係なタスクへ移る場合だけ `/clear` を短く提案する。
