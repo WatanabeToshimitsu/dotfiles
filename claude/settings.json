@@ -355,7 +355,11 @@
   "model": "opus[1m]",
   "skillOverrides": {
     "difit": "user-invocable-only",
-    "gh-stack": "user-invocable-only"
+    "lucian-uxui": "off",
+    "vercel-react-best-practices": "off",
+    "find-skills": "off",
+    "gh-stack": "user-invocable-only",
+    "prompt-review": "off"
   },
   "deniedMcpServers": [
     {
