@@ -24,6 +24,7 @@ WRAPPERS = {"env": {"-u", "--unset", "-C", "--chdir"}, "exec": {"-a"},
             "nohup": set(), "time": set(), "command": set()}
 ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 SHELLS = {"bash", "sh", "zsh", "dash", "ksh", "eval", "source", "xargs"}
+GIT_VALUE_OPTIONS = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--config-env", "--attr-source"}
 working_directory = os.getcwd()
 
 
@@ -65,6 +66,37 @@ def names_ticket_path(word, bare=False):
     return False
 
 
+def adds_all(arguments):
+    """Whether arguments run git add on every file: -A, --all, or a pathspec naming the whole tree."""
+    words = command_words(arguments)
+    if not words or Path(words[0]).name != "git":
+        return False
+    literal = any(word.startswith("GIT_LITERAL_PATHSPECS=") and
+                  word.split("=", 1)[1].lower() not in {"", "0", "false", "no", "off"}
+                  for word in arguments[:len(arguments) - len(words)])
+    rest = iter(words[1:])
+    for word in rest:
+        if not word.startswith("-"):
+            break
+        literal = literal or word == "--literal-pathspecs"
+        if word in GIT_VALUE_OPTIONS:
+            next(rest, None)
+    else:
+        return False
+    if word != "add":
+        return False
+    options = True
+    for argument in rest:
+        if argument == "--" and options:
+            options = False
+        elif options and argument.startswith("-"):
+            if argument == "--all" or (not argument.startswith("--") and "A" in argument):
+                return True
+        elif argument and os.path.normpath((argument if literal else argument.removeprefix(":/")) or ".") == ".":
+            return True
+    return False
+
+
 sys.dont_write_bytecode = True
 parser_dir = Path(sys.argv[1]).resolve().parent
 sys.path.insert(0, str(parser_dir))
@@ -72,7 +104,7 @@ try:
     if not (parser_dir / "_shell_parser.py").is_file():
         raise ImportError
     from _shell_parser import (LenientParser, ShellParser, UNMODELED_SHELL, UnsupportedShell,
-                               python_sources, spawned_commands)
+                               command_words, python_sources, shell_script, spawned_commands)
 except ImportError:
     print("Required shell parser is unavailable", file=sys.stderr)
     raise SystemExit(2)
@@ -96,6 +128,9 @@ class Commands(ShellParser):
         if not arguments:
             return
         self.argvs.append(arguments)
+        text, _ = shell_script(command_words(arguments))
+        if adds_all(arguments) or (text is not None and stages_all(text)):
+            self.forbidden = True
         if Path(launched_program(arguments) or "").name in NODE_LAUNCHERS:
             self.node_launch = True
         if arguments[0] in {"cd", "pushd", "popd"}:
@@ -127,16 +162,6 @@ class Commands(ShellParser):
                 self.unknown = self.shell_text = True
             arguments = ["git", *arguments[3 if option in {"-C", "-c"} else 2:]]
         if arguments[:2] == ["git", "add"]:
-            options = True
-            for argument in arguments[2:]:
-                if argument == "--" and options:
-                    options = False
-                elif argument == "." or (options and (
-                    argument == "--all" or
-                    (argument.startswith("-") and not argument.startswith("--")
-                     and "A" in argument)
-                )):
-                    self.forbidden = True
             return
         # Only these commands are known to treat their arguments/stdin as data.
         if arguments[:1] in [["cat"], ["echo"], ["printf"]]:

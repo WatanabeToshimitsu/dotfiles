@@ -173,7 +173,9 @@ class GuardPropertyTest(unittest.TestCase):
                 "operation": STAGE_ALL, "git_option": GIT_OPTIONS,
                 "prefix": PREFIXES, "composition": COMPOSITIONS,
             }, lambda case: f"{case['prefix']}git {case['git_option']}add {case['operation']}",
-                "git", lambda case: ["add", *case["operation"].split()],
+                # Literal pathspecs read :/ as a path named ":", which git add rejects.
+                "git", lambda case: None if (case["operation"], case["git_option"]) == (
+                    ":/", "--literal-pathspecs ") else ["add", *case["operation"].split()],
                 cls.validate_bash, lambda decision: decision != "deny"),
             Family("force-push", {
                 "operation": FORCE_PUSH, "git_option": GIT_OPTIONS,
@@ -213,8 +215,8 @@ class GuardPropertyTest(unittest.TestCase):
     @classmethod
     def performs(cls, family, case, command):
         expected = family.operation(case)
-        return any(call[0] == family.program and call[-len(expected):] == expected
-                   for call in cls.calls(command))
+        return expected is not None and any(call[0] == family.program and call[-len(expected):] == expected
+                                            for call in cls.calls(command))
 
     @classmethod
     def validate_bash(cls, command):
@@ -280,7 +282,6 @@ class GuardPropertyTest(unittest.TestCase):
                 self.assertEqual(digest, {cause: recorded
                                           for cause, _, recorded in KNOWN_MISSES.get(family.name, [])})
 
-    @unittest.expectedFailure
     def test_operations_run_by_a_shell_are_always_stopped(self):
         self.assertEqual({family.name: len(self.misses(family)) for family in self.families},
                          {family.name: 0 for family in self.families})
@@ -300,45 +301,9 @@ class GuardPropertyTest(unittest.TestCase):
                     self.assertFalse(self.performs(family, case, context.replace("{T}", text)))
 
 
-WRAPPERS = [prefix for prefix in PREFIXES if prefix and not prefix.startswith("rtk")]
-SKIPPED_GIT_OPTIONS = ["-C . ", "-c core.a=b ", "--no-optional-locks ", "--literal-pathspecs "]
-RESERVED = ["! {X}", "{ {X}; }", "if true; then {X}; fi", "for i in 1; do {X}; done",
-            "while true; do {X}; break; done"]
-SHELL_TEXT = ["bash -c '{X}'", "sh -c '{X}'", "zsh -c '{X}'", "eval '{X}'", "echo `{X}`"]
-
 # Each cause lists the generated values that reach it, then the count and
 # digest of the misses it explains, so a new, fixed or swapped miss fails.
-KNOWN_MISSES = {
-    "stage-all": [
-        ("all-files pathspec other than '.'", [{"operation": ["./", ":/"]}], "215 2ecca9fd3320"),
-        ("git option the parser does not skip", [
-            {"git_option": ["--no-pager ", "-P "]},
-            {"git_option": ["--git-dir=.git "], "operation": ["-vA"]},
-        ], "157 04e6b2cdfb3f"),
-        ("wrapper before git", [
-            {"prefix": WRAPPERS, "operation": ["-vA"]},
-            {"prefix": WRAPPERS, "git_option": SKIPPED_GIT_OPTIONS},
-            {"prefix": WRAPPERS, "operation": ["."], "composition": ['echo "$({X})"']},
-        ], "173 7f62300b0783"),
-        ("reserved word or function around git", [
-            {"composition": RESERVED + ["f() { {X}; }; f"], "operation": ["-vA"]},
-            {"composition": RESERVED + ["f() { {X}; }; f"], "git_option": SKIPPED_GIT_OPTIONS},
-        ], "39 b81da1ec0117"),
-        ("text run by another shell", [
-            {"composition": SHELL_TEXT, "operation": ["-vA", "."]},
-            {"composition": SHELL_TEXT, "git_option": SKIPPED_GIT_OPTIONS},
-        ], "39 f7953eb48c1e"),
-    ],
-    "force-push": [
-        ("reserved word before the command", [{"composition": RESERVED}], "240 4326dd5fb4a8"),
-        ("eval", [{"composition": ["eval '{X}'"]}], "48 b9d1dc7f759b"),
-    ],
-    "create-pr": [
-        ("gh pr new alias", [{"operation": ["gh pr new --title t --body b"]}], "88 4a4d1f267562"),
-        ("reserved word before the command", [{"composition": RESERVED}], "144 d87d63d3c5a8"),
-        ("eval", [{"composition": ["eval '{X}'"]}], "28 629d0be39e09"),
-    ],
-}
+KNOWN_MISSES = {}
 
 
 if __name__ == "__main__":

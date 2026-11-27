@@ -18,7 +18,8 @@ try:
     if not (parser_dir / "_shell_parser.py").is_file():
         raise ImportError
     from _shell_parser import (LenientParser, ShellParser, UNMODELED_SHELL, UnsupportedShell,
-                               python_sources, spawned_commands)
+                               SHELL_PROGRAMS, command_words, python_sources, shell_script,
+                               spawned_commands)
 except ImportError:
     print("Required shell parser is unavailable", file=sys.stderr)
     raise SystemExit(2)
@@ -36,7 +37,6 @@ class ShellWords(ShellParser):
             self.commands.append(arguments)
 
 
-RESERVED_WORDS = {"!", "{", "}", "do", "done", "then", "else", "elif", "fi", "if", "while", "until"}
 KEYWORD_FALLBACK = re.compile(r"\b(?:git|gh)\b[\s\S]*\b(?:push|create|api)\b")
 
 
@@ -64,38 +64,7 @@ MAX_BYTES = 4 * 1024 * 1024
 
 
 def unwrap(words):
-    words = list(words)
-    while words:
-        program = Path(words[0]).name
-        if program == "rtk":
-            words = words[1:]
-            if words[:1] == ["proxy"]:
-                words = words[1:]
-        elif program in {"command", "builtin", "noglob", "exec"}:
-            words = words[1:]
-            if words[:1] == ["--"]:
-                words = words[1:]
-        elif program == "env":
-            words = words[1:]
-            while words:
-                if words[0] in {"-u", "--unset"}:
-                    words = words[2:]
-                elif words[0] in {"--", "-i", "--ignore-environment"} or re.match(r"^[A-Za-z_]\w*=", words[0]):
-                    words = words[1:]
-                else:
-                    break
-        elif program in {"time", "nohup", "nice", "timeout", "stdbuf"}:
-            words = words[1:]
-            while words and words[0].startswith("-"):
-                option = words.pop(0)
-                if option in {"-n", "-k", "-s", "--adjustment", "--kill-after", "--signal", "-i", "-o", "-e"}:
-                    words = words[1:]
-            if program == "timeout":
-                words = words[1:]
-        elif re.match(r"^[A-Za-z_]\w*=", words[0]):
-            words = words[1:]
-        else:
-            break
+    words = command_words(words)
     if words:
         words[0] = Path(words[0]).name
     return words
@@ -159,10 +128,22 @@ def classify_words(words):
     words = unwrap(words)
     if not words:
         return "continue", {}
-    if words[0] in {"bash", "sh", "zsh"}:
-        for index, word in enumerate(words[1:], 1):
-            if word.startswith("-") and "c" in word and index + 1 < len(words):
-                return classify_shell(words[index + 1])
+    text, modeled = shell_script(words)
+    if words[0] in SHELL_PROGRAMS:
+        # Why not the -c text alone: the scanner this replaced read the word after the first
+        # option holding a "c", and what it stopped there stays stopped.
+        picked = next((words[index + 1] for index, word in enumerate(words[1:-1], 1)
+                       if word.startswith("-") and "c" in word), None)
+        results = [classify_shell(word) for word in {text, picked} - {None}]
+        if not modeled and KEYWORD_FALLBACK.search(" ".join(words)):
+            results.append(("deny", {"reason": OPAQUE_REASON}))
+        found = [result for result in results if result != ("continue", {})]
+        denied = next((result for result in found if result[0] == "deny"), None)
+        if denied or len(found) > 1:
+            return denied or ("deny", {"reason": OPAQUE_REASON})
+        return found[0] if found else ("continue", {})
+    if text is not None:
+        return classify_shell(text)
     if words[0] == "git":
         index = 1
         configs = []
@@ -219,7 +200,7 @@ def classify_words(words):
     while index < len(words) and words[index].startswith("-"):
         index += 2 if words[index] in {"-R", "--repo", "--hostname"} else 1
     args = words[index:]
-    if args[:2] == ["pr", "create"]:
+    if args[:2] in (["pr", "create"], ["pr", "new"]):
         flags, positional, values = option_parts(args[2:], {
             "--title", "-t", "--body", "-b", "--body-file", "-F", "--template", "-T",
             "--base", "-B", "--head", "-H", "--repo", "-R", "--recover", "--attach",
@@ -292,35 +273,31 @@ def lenient_decision(command):
     if UNMODELED_SHELL.search(command):
         raise UnsupportedShell()
     parsed = LenientWords(command)
-    parsed.parse()
+    try:
+        parsed.parse()
+        unmodeled = False
+    except UnsupportedShell:
+        # Why not stop here: the commands located so far, such as a backquote body, still run.
+        unmodeled = True
     if spawned_publication(parsed):
         return "deny", {"reason": OPAQUE_REASON}
     for words in parsed.commands:
         program = unwrap(words)
-        while program[:1] and program[0] in RESERVED_WORDS:
-            program = unwrap(program[1:])
         if not program:
             continue
         if program[0] in {"case", "function"} or "=" in program[0] or "$" in program[0] or "<substitution>" in program[0]:
-            raise UnsupportedShell()
-        if program[0] in {"bash", "sh", "zsh"}:
-            flag = None
-            for index, word in enumerate(program[1:], 1):
-                if word == "--" or not word.startswith(("-", "+")):
-                    break
-                if word in {"--rcfile", "--init-file"} or re.match(r"[-+][^-]*[oO]", word):
-                    raise UnsupportedShell()
-                if re.match(r"-[^-]*c", word):
-                    flag = index
-                    break
-            script = program[flag + 1:] if flag is not None else []
-            if script[:1] == ["--"]:
-                script = script[1:]
-            if not script or script[0].startswith(("-", "+")):
-                raise UnsupportedShell()
-            decision, detail = lenient_decision(script[0])
+            unmodeled = True
+            continue
+        text, modeled = shell_script(program)
+        if text is not None:
+            try:
+                decision, detail = lenient_decision(text)
+            except UnsupportedShell:
+                decision, detail, modeled = "continue", {}, False
             if decision == "deny":
                 return decision, detail
+        unmodeled = unmodeled or not modeled
+        if text is not None or not modeled:
             continue
         try:
             decision, detail = classify_words(program)
@@ -330,6 +307,8 @@ def lenient_decision(command):
             return decision, detail
         if decision == "pr" or detail.get("pushes") or gh_publication(program):
             return "deny", {"reason": OPAQUE_REASON}
+    if unmodeled:
+        raise UnsupportedShell()
     return "continue", {}
 
 

@@ -40,6 +40,8 @@ class ValidateBashTests(unittest.TestCase):
             "# don't run git add -A\ngit status",
             "printf '%s\\n' 'git add -A'",
             "git commit -m 'literal $(git add -A) and `git add --all`'",
+            "git --literal-pathspecs add :/",
+            "GIT_LITERAL_PATHSPECS=1 git add :/",
         ]
         for command in cases:
             with self.subTest(command=command):
@@ -117,7 +119,6 @@ class ValidateBashTests(unittest.TestCase):
     def test_shell_split_by_env_from_a_heredoc_is_denied(self):
         self.assertEqual(self.decision("env -S 'bash -s' <<'EOF'\ngit add -A\nEOF\n"), "deny")
 
-    @unittest.expectedFailure
     def test_wrapped_git_with_global_options_is_denied(self):
         self.assertEqual(self.decision('env git -C "$REPO" add -A'), "deny")
 
@@ -140,6 +141,7 @@ class ValidateBashTests(unittest.TestCase):
             'git -C fixture add -A; echo "$branch"',
             'git add "-A"; echo "unfinished',
             "git add README.md -A", "git add '-A'", "git add \".\"",
+            "git --literal-pathspecs add .", "GIT_LITERAL_PATHSPECS=0 git add :/",
             "rtk git add -A", "rtk proxy git add -A",
             'echo "$HOME"\ngit add .\ngit status',
             "git \\\n add -A",
