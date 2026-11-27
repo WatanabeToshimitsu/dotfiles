@@ -1,7 +1,0 @@
-{
-  "file": "claude/skills/delivery-workflow/SKILL.md",
-  "remove": "\n   when it cannot run, ask the user in the session, not in the body.",
-  "allow_tools": [
-    "Write"
-  ]
-}
