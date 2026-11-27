@@ -115,7 +115,7 @@ def window_cost(samples: list, start: float) -> float:
     return sum(last - first for first, last in by_session.values())
 
 
-def window(name, key, latest, length, schedule, samples, t):
+def window(key, latest, length, schedule, samples, t):
     used, reset = float(latest[key]), latest[key + "_reset"]
     if t >= reset:
         # Why not reuse the sampled window: it already reset to 0, and a new 5-hour window opens only at the next request.
@@ -126,7 +126,7 @@ def window(name, key, latest, length, schedule, samples, t):
     allowed = 100.0 * elapsed / total if total else 100.0
     if length == H5:
         allowed = max(H5_FLOOR, allowed)
-    logged = [s for s in samples if s["ts"] <= t]
+    logged = [s for s in samples if s["ts"] <= latest["ts"]]
     if any(s["ts"] <= start for s in logged):
         since, used_then = start, 0.0
     else:
@@ -135,50 +135,49 @@ def window(name, key, latest, length, schedule, samples, t):
         since, used_then = (first["ts"], float(first[key])) if first else (t, used)
     cost = window_cost(logged, since)
     rate = (used - used_then) / cost if cost > 0 and used > used_then else None
-    return {"name": name, "used": used, "allowed": allowed, "reset": reset, "total": total,
+    return {"used": used, "allowed": allowed, "reset": reset, "total": total,
             "elapsed": elapsed, "left": total - elapsed, "cost": cost, "rate": rate}
 
 
 def check(usd) -> int:
     t = now()
     samples = read_samples(state_dir() / "samples.jsonl")
-    limited = [s for s in samples if s.get("h5") is not None and s.get("d7") is not None]
-    if not limited:
-        print("no rate-limit sample yet: the status line logs one after a session's first response")
-        return 0
-    latest = max(limited, key=lambda s: s["ts"])
     try:
         schedule = load_schedule()
     except (ValueError, KeyError, TypeError) as error:
         print(f"invalid {state_dir() / 'schedule.json'}: {error!r}", file=sys.stderr)
         return 2
-    h5 = window("5h", "h5", latest, H5, None, samples, t)
-    d7 = window("weekly", "d7", latest, D7, schedule, samples, t)
-    unit = "work-hour" if schedule else "h"
-    print(f"sample: {(t - latest['ts']) / 60:.0f} min old")
-    print(f"5h: {h5['used']:.0f}% used, pace allows {h5['allowed']:.1f}% (floor {H5_FLOOR:.0f}%); "
-          f"resets {datetime.fromtimestamp(h5['reset']):%H:%M} ({h5['left'] / 3600:.1f} h left)")
-    hours = f"{d7['elapsed'] / 3600:.1f} of {d7['total'] / 3600:.1f} {'work hours' if schedule else 'hours'}"
-    print(f"weekly: {d7['used']:.0f}% used, pace allows {d7['allowed']:.1f}% ({hours}); "
-          f"resets {datetime.fromtimestamp(d7['reset']):%m/%d %H:%M} ({d7['left'] / 3600:.1f} {'work hours' if schedule else 'h'} left)")
+    specs = (("5h", "h5", H5, None, "hours", "h", f", floor {H5_FLOOR:.0f}%"),
+             ("weekly", "d7", D7, schedule, *(("work hours", "work-hour") if schedule else ("hours", "h")), ""))
     over, unknown = [], []
-    for w, per in ((h5, "h"), (d7, unit)):
+    for name, key, length, sched, hours, per, note in specs:
+        latest = max((s for s in samples if s.get(key) is not None and s.get(key + "_reset")),
+                     key=lambda s: s["ts"], default=None)
+        if latest is None:
+            unknown.append(name)
+            print(f"{name}: no rate-limit sample yet; the status line logs one after a session's first response")
+            continue
+        w = window(key, latest, length, sched, samples, t)
+        print(f"{name}: {w['used']:.0f}% used, pace allows {w['allowed']:.1f}% "
+              f"({w['elapsed'] / 3600:.1f} of {w['total'] / 3600:.1f} {hours}{note}); "
+              f"resets {datetime.fromtimestamp(w['reset']):%m/%d %H:%M} ({w['left'] / 3600:.1f} {hours} left); "
+              f"sample {(t - latest['ts']) / 60:.0f} min old")
         if w["rate"]:
-            print(f"{w['name']}: $1 API-equivalent = {w['rate']:.2f}% "
+            print(f"{name}: $1 API-equivalent = {w['rate']:.2f}% "
                   f"(from ${w['cost']:.2f} logged; unlogged usage makes it high)")
         if usd is None:
             continue
         if not w["rate"]:
-            unknown.append(w["name"])
-            print(f"{w['name']}: no conversion yet, too little logged cost; judge its share yourself")
+            unknown.append(name)
+            print(f"{name}: no conversion yet, too little logged cost; judge its share yourself")
             continue
         est = usd * w["rate"]
         after = (100 - w["used"] - est) / (w["left"] / 3600) if w["left"] else 0.0
         so_far = w["used"] / (w["elapsed"] / 3600) if w["elapsed"] else 0.0
-        print(f"{w['name']}: estimate +{est:.1f}% -> {w['used'] + est:.1f}%; staying under the limit then "
+        print(f"{name}: estimate +{est:.1f}% -> {w['used'] + est:.1f}%; staying under the limit then "
               f"needs at most {after:.1f}%/{per} (so far {so_far:.1f}%/{per})")
         if est > w["allowed"] - w["used"]:
-            over.append(w["name"])
+            over.append(name)
     if usd is not None:
         note = f" (no conversion: {', '.join(unknown)})" if unknown else ""
         print(f"verdict: ask (over pace: {', '.join(over)})" if over else f"verdict: ok{note}")

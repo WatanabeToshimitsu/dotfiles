@@ -80,6 +80,18 @@ class PlanBudgetTest(unittest.TestCase):
         self.assertIn("5h: $1 API-equivalent = 2.00%", out)
         self.assertIn("weekly: $1 API-equivalent = 1.00%", out)
 
+    def test_each_window_uses_its_own_latest_sample(self):
+        self.write_samples(sample(NOW - 600, "a", 1.0, h5=20, d7=5), sample(NOW - 60, "a", 2.0, h5=90, d7=None))
+        out = self.run_script("check").stdout
+        self.assertIn("5h: 90% used", out)
+        self.assertIn("weekly: 5% used", out)
+
+    def test_conversion_ends_at_the_latest_usage_sample(self):
+        self.write_samples(sample(NOW - 3600, "a", 1.0, h5=10, d7=1), sample(NOW - 1800, "a", 2.0, h5=20, d7=2),
+                           sample(NOW - 60, "a", 6.0, h5=None, d7=None))
+        out = self.run_script("check").stdout
+        self.assertIn("5h: $1 API-equivalent = 10.00%", out)
+
     def test_window_without_a_conversion_does_not_hide_the_other_windows_verdict(self):
         self.write_two_sessions_over_weekly_pace()
         out = self.run_script("check", "--usd", "2", now=H5_RESET + 60).stdout
