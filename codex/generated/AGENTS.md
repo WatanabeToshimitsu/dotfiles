@@ -114,7 +114,6 @@ Before editing a file, read every matching rule below, in the listed order. Patt
 - rules/golang/coding-style.md: `**/*.go`, `**/go.mod`, `**/go.sum`
 - rules/golang/hooks.md: `**/*.go`, `**/go.mod`, `**/go.sum`
 - rules/golang/testing.md: `**/*.go`, `**/go.mod`, `**/go.sum`
-- rules/python/fastapi.md: `**/app/**/*.py`, `**/fastapi/**/*.py`, `**/*_api.py`
 - rules/python/hooks.md: `**/*.py`, `**/*.pyi`
 - rules/typescript/hooks.md: `**/*.ts`, `**/*.tsx`, `**/*.js`, `**/*.jsx`
 - rules/typescript/type-safety.md: `**/*.ts`, `**/*.tsx`

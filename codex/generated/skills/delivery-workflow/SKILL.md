@@ -31,7 +31,6 @@ still run.
    the requested behavior requires.
 7. After C handback, stage explicit files, commit logical units, and push
    normally.
-   Never force-push, use forced refspecs, mirror, or delete remote refs.
    Delegated C implementers do not commit or push.
    After each authorized push, identify CI runs/checks for the repository,
    branch, and exact pushed HEAD. Set a finite watch deadline before starting.
