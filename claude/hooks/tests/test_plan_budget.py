@@ -92,6 +92,18 @@ class PlanBudgetTest(unittest.TestCase):
         out = self.run_script("check").stdout
         self.assertIn("5h: $1 API-equivalent = 10.00%", out)
 
+    def test_window_already_over_pace_asks_even_without_a_conversion(self):
+        self.write_samples(sample(NOW - 3600, "a", 1.0), sample(NOW - 60, "a", 2.0))
+        out = self.run_script("check", "--usd", "1").stdout
+        self.assertIn("verdict: ask (over pace: weekly)", out)
+
+    def test_weekly_window_advances_past_several_missed_resets(self):
+        self.write_samples({**sample(NOW - 15 * 86400, "a", 1.0), "h5_reset": NOW - 15 * 86400 + 3600,
+                            "d7_reset": D7_RESET - 14 * 86400})
+        out = self.run_script("check").stdout
+        self.assertIn("weekly: 0% used", out)
+        self.assertIn("resets 12/03 15:00", out)
+
     def test_window_without_a_conversion_does_not_hide_the_other_windows_verdict(self):
         self.write_two_sessions_over_weekly_pace()
         out = self.run_script("check", "--usd", "2", now=H5_RESET + 60).stdout

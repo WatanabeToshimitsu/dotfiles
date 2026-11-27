@@ -119,7 +119,7 @@ def window(key, latest, length, schedule, samples, t):
     used, reset = float(latest[key]), latest[key + "_reset"]
     if t >= reset:
         # Why not reuse the sampled window: it already reset to 0, and a new 5-hour window opens only at the next request.
-        start = t if length == H5 else reset
+        start = t if length == H5 else reset + (t - reset) // length * length
         reset, used = start + length, 0.0
     start = reset - length
     total, elapsed = active_seconds(start, reset, schedule), active_seconds(start, t, schedule)
@@ -168,7 +168,7 @@ def check(usd) -> int:
         if usd is None:
             continue
         if not w["rate"]:
-            unknown.append(name)
+            (over if w["used"] >= w["allowed"] else unknown).append(name)
             print(f"{name}: no conversion yet, too little logged cost; judge its share yourself")
             continue
         est = usd * w["rate"]
