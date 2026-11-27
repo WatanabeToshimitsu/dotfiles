@@ -1,0 +1,7 @@
+{
+  "file": "claude/skills/delivery-workflow/references/goals.md",
+  "remove": [
+    " --model <model>",
+    " Pick the model for the stage's difficulty, `opus`\n  or lower unless the user asks otherwise."
+  ]
+}
