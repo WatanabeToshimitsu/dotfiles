@@ -1,0 +1,7 @@
+{
+  "file": "CLAUDE.md",
+  "remove": "- PR and issue bodies are written in Japanese, because they are read for review. Commit messages, titles, code, and comments stay in English\n",
+  "allow_tools": [
+    "Write"
+  ]
+}

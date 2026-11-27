@@ -1,0 +1,4 @@
+{
+  "file": "claude/CLAUDE.md",
+  "remove": "- Before asking the user to merge a change they will see outside a web UI, such as a terminal sidebar or status line, show it running on their own screen and wait for their look.\n"
+}
