@@ -7,7 +7,7 @@ paths:
 # Web Application Security
 
 Applies to code that builds a query, renders untrusted data, or handles a
-state-changing request. CORS and JWT belong in `python/fastapi.md`.
+state-changing request.
 
 ## Queries
 

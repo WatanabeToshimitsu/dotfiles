@@ -3,8 +3,8 @@
 Use this when the user asks to fix a recurring harness friction on evidence:
 pick one friction, fix it with a before-and-after comparison, re-measure it
 later, then keep or revert the change. Track each step in its own issue under
-one epic. Every round so far changed a hook; the replays below need recorded
-inputs, so a change to instruction text needs its own comparison.
+one epic. The replays below feed recorded inputs to code; compare a change to
+instruction text as [Instruction changes](#instruction-changes) describes.
 
 ## 1. Pick one friction
 
@@ -50,3 +50,22 @@ starts when the main checkout picks up the merge; its reflog shows when.
   the sessions that fixed it.
 - In both rounds so far, the PR-stage replay predicted the re-measurement;
   treat it as the stronger evidence of an effect.
+
+## Instruction changes
+
+`scripts/instruction-eval.py` runs each case in `test/instruction-evals/`
+through `claude plugin eval`, once with today's instructions and once with the
+passage the case's `ablation.json` names removed. CI does not run it: each run
+is a paid model session.
+
+- Base a case on an instruction that was broken in practice, and cite the PR,
+  issue, or feedback memory in its `description`.
+- Keep a case only if today's version passes every run and the version without
+  the passage fails most runs. A case that passes without its passage tests
+  nothing; record that result instead, as a sign the passage may be redundant.
+- Before editing a passage a case covers, run that case; after the edit, run
+  every case.
+- When settings, a hook, or a test enforces a rule, show it enforcing, then
+  delete the rule's text and any case that covers it.
+- Runs see both CLAUDE.md files and the skills, but not a long session, so a
+  pass says less about long sessions.

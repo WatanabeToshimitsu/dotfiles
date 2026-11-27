@@ -1,0 +1,7 @@
+{
+  "file": "CLAUDE.md",
+  "remove": "More than one agent (Claude Code and Codex/GPT) works these issues at the same\ntime. Before starting an issue, confirm nobody else is on it, then claim it.\n\nThe `agent:*` labels only help once the other agent cooperates, so check the\nobservable traces first:\n\n```bash\ngh issue view <N> --json state,labels,assignees,comments\ngh pr list --state all --search \"<N>\"\ngit fetch --prune && git branch -r --list \"*<N>*\"\ngit log --oneline origin/main -15\n```\n\nIf any of those show work already in progress, stop and ask rather than starting\na second implementation.\n\nClaim the issue before touching any file:\n\n```bash\ngh issue edit <N> --add-label \"agent:claude\"   # or agent:codex\n```\n\nLeave a comment naming the agent, the branch, and the date. Remove the label with\n`--remove-label` if the work is abandoned; a merged PR closes the issue, so the\nlabel can stay in that case.\n\n",
+  "allow_tools": [
+    "Bash"
+  ]
+}
