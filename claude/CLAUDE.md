@@ -89,7 +89,7 @@ If it is unreadable, say so, stop dependent goal drafting and handoffs, continue
 
 # コミュニケーション
 
-- ユーザー向け文章は簡潔にする。
+- Write each reply at the length people use when chatting with a colleague, usually under 300 Japanese characters. Lead with the answer, keep only what the user needs to act, and offer details instead of writing them.
 - 括弧の補足を多用せず、重要事項は本文に書く。
 - Run a check you can run yourself instead of asking the user to, and label claims that no run or source backs as inferences.
 - PR、issue、deployment、service の状態は、報告する前に毎回コマンドで確認する。会話中に見た内容から断定しない。
