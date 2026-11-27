@@ -3,7 +3,7 @@
     "skills/kintai/scripts/gh_activity.py"
   ],
   "files": {
-    "AGENTS.md": "sha256:9aa31c957d5fa01bf5974ed946416331472d2a36253f8862bfe5ccb242b3db77",
+    "AGENTS.md": "sha256:963addbb50d1405907fa526709549f4ed345ee2c711a0bda04c6b5ba063aa0ae",
     "rules/common/github-actions.md": "sha256:dd83e898d6979615d69c358ea9664bb671ca70ff0e3b781ef48ee7ebf8d921a2",
     "rules/common/hooks.md": "sha256:958560e5c011273127d8088a65e73d010bfcc1a787cb3b97385663b0a8d1a57d",
     "rules/common/security.md": "sha256:1713a293faad361f76947974f68f7e51cc01595d79ddab75eb91cc8b078ed3b4",
@@ -40,7 +40,7 @@
     "skills/ticket/reference.example.md": "sha256:95089b30008d87b42ce025ef3ad58286cad93af815899a42c4ebe3bad50827e0"
   },
   "inputs": {
-    "claude/CLAUDE.md": "sha256:168253d65a9a7c853945d58a896dffcc9a53f7af0bb8facd96ae230e81f6f03a",
+    "claude/CLAUDE.md": "sha256:5f904fab69e7ad40bdc01b71208266451d5bfd6c3d470b035ebeb76e65efac1b",
     "claude/rules/common/github-actions.md": "sha256:dd83e898d6979615d69c358ea9664bb671ca70ff0e3b781ef48ee7ebf8d921a2",
     "claude/rules/common/hooks.md": "sha256:958560e5c011273127d8088a65e73d010bfcc1a787cb3b97385663b0a8d1a57d",
     "claude/rules/common/security.md": "sha256:1713a293faad361f76947974f68f7e51cc01595d79ddab75eb91cc8b078ed3b4",
