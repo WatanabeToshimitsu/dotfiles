@@ -337,7 +337,8 @@
       "Bash(rtk git push --prune*)",
       "Bash(rtk git push * --prune*)",
       "Bash(rtk proxy git push --prune*)",
-      "Bash(rtk proxy git push * --prune*)"
+      "Bash(rtk proxy git push * --prune*)",
+      "mcp__claude_ai_Notion__*"
     ],
     "ask": [
       "Bash(dangerouslyDisableSandbox:true)",
@@ -360,6 +361,11 @@
     "gh-stack": "user-invocable-only",
     "prompt-review": "off"
   },
+  "deniedMcpServers": [
+    {
+      "serverUrl": "https://mcp.notion.com/*"
+    }
+  ],
   "hooks": {
     "Notification": [
       {
